@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>主数据照合 API｜规格与真实场景差异确认</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8dee8;
+      --blue: #175cd3;
+      --blue-soft: #eef4ff;
+      --red: #b42318;
+      --red-soft: #fff3f1;
+      --green: #087a4b;
+      --green-soft: #edf9f2;
+      --amber: #8f5700;
+      --amber-soft: #fff8e7;
+      --slate: #f7f9fc;
+    }
+    * { box-sizing: border-box; }
+    .language-switch { position: fixed; top: 18px; right: 24px; z-index: 20; display: flex; padding: 3px; border: 1px solid #cdd5e1; border-radius: 999px; background: rgba(255,255,255,.96); box-shadow: 0 5px 18px rgba(23,32,51,.14); backdrop-filter: blur(8px); }
+    .language-switch a { min-width: 54px; padding: 5px 11px; border-radius: 999px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; text-decoration: none; }
+    .language-switch a.is-active { background: var(--ink); color: #fff; }
+    .language-switch a:hover { color: var(--blue); }
+    .language-switch a.is-active:hover { color: #fff; }
+    body { margin: 0; background: #e9edf3; color: var(--ink); font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.7; }
+    .sheet { width: min(1180px, calc(100% - 32px)); min-height: 735px; margin: 24px auto; padding: 42px 46px 34px; background: #fff; box-shadow: 0 7px 30px rgba(23,32,51,.09); }
+    .topline { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+    .eyebrow { color: var(--blue); font-size: 14px; font-weight: 700; }
+    h1 { margin: 7px 0 0; font-size: 30px; line-height: 1.38; }
+    h2 { margin: 25px 0 12px; font-size: 21px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    .page-no { color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .meta { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .conclusion { margin-top: 24px; padding: 18px 20px; border-left: 5px solid var(--blue); background: var(--blue-soft); }
+    .conclusion strong { display: block; margin-bottom: 5px; font-size: 18px; }
+    .conclusion p { margin: 0; font-size: 16px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { padding: 16px 18px; border: 1px solid var(--line); border-radius: 9px; }
+    .panel.spec { background: var(--green-soft); border-color: #b8dfca; }
+    .panel.gap { background: var(--red-soft); border-color: #f2c1ba; }
+    .panel ul { margin: 7px 0 0; padding-left: 20px; }
+    .panel li { margin: 5px 0; }
+    .situation { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+    .day { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff; }
+    .day-head { padding: 8px 12px; background: var(--slate); color: var(--muted); font-size: 13px; font-weight: 700; }
+    .day-body { padding: 13px 14px 15px; }
+    .day-body strong { display: block; margin-bottom: 5px; font-size: 16px; }
+    .day-body span { display: block; color: var(--muted); font-size: 14px; }
+    .day.is-new { border-color: #9db9ec; }
+    .day.is-new .day-head { background: var(--blue-soft); color: var(--blue); }
+    .callout { margin-top: 13px; padding: 11px 14px; border-radius: 7px; background: var(--amber-soft); border: 1px solid #efd7a3; color: #5e3b07; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { padding: 10px 11px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--slate); font-weight: 700; }
+    .gap-col { color: var(--red); font-weight: 700; }
+    .proposal { margin-top: 16px; padding: 17px 18px; border: 1px solid #9db9ec; border-radius: 9px; background: var(--blue-soft); }
+    .proposal h3 { color: var(--blue); }
+    .flow { display: grid; grid-template-columns: 150px 28px 1fr 28px 1fr 28px 1fr; gap: 5px; align-items: center; margin-top: 12px; }
+    .case-box { padding: 15px 13px; border-radius: 8px; background: #fff; border: 1px solid #b4c9ec; text-align: center; font-weight: 700; }
+    .arrow { color: var(--blue); font-size: 22px; text-align: center; }
+    .task-box { min-height: 120px; padding: 12px; border-radius: 8px; background: #fff; border: 1px solid #cfd7e4; }
+    .task-box strong { display: block; margin-bottom: 4px; font-size: 15px; }
+    .task-box span { display: block; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .question-table td:last-child { white-space: normal; }
+    .answer-options { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+    .answer-option { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--ink); }
+    .answer-option input { width: 15px; height: 15px; margin: 0; accent-color: var(--blue); }
+    .question-example { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .answer-detail { display: none; width: 100%; min-height: 52px; margin-top: 8px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 5px; resize: vertical; font: inherit; font-size: 12px; color: var(--ink); }
+    .answer-detail.is-visible { display: block; }
+    .reset-button { margin-right: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+    .reset-button:hover { color: var(--blue); border-color: var(--blue); }
+    .tiny { color: var(--muted); font-size: 13px; }
+    .comment-box { margin-top: 17px; padding: 17px 18px; border: 1px solid var(--line); border-radius: 8px; }
+    .comment-lines { width: 100%; height: 92px; resize: vertical; padding: 9px 10px; border: 1px solid var(--line); border-radius: 5px; font: inherit; color: var(--ink); }
+    .signature { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 18px; margin-top: 20px; }
+    .signature label { display: block; color: var(--muted); font-size: 13px; }
+    .signature input { width: 100%; margin-top: 7px; padding: 4px 2px; border: 0; border-bottom: 1px solid #98a2b3; font: inherit; color: var(--ink); background: transparent; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .sheet-confirm .question-table th, .sheet-confirm .question-table td { padding: 7px 9px; font-size: 13px; line-height: 1.45; }
+    .sheet-confirm .comment-box { margin-top: 10px; padding: 12px 14px; }
+    .sheet-confirm .comment-lines { height: 58px; }
+    .sheet-confirm .signature { margin-top: 10px; }
+    .sheet-confirm .signature label { padding-top: 10px; }
+
+    .flow-lanes { display:grid; grid-template-columns: 1fr 1.25fr; gap: 20px; margin-top:14px; }
+    .lane { padding:15px 16px; border:1px solid var(--line); border-radius:9px; background:#fbfcfe; }
+    .process-lane { background:#f7faff; }
+    .lane-title { margin:0 0 10px; font-size:18px; }
+    .flow-step { position:relative; padding:8px 10px; border:1px solid var(--line); border-left-width:4px; border-radius:6px; background:#fff; }
+    .flow-step b { display:block; font-size:14px; }
+    .flow-step span { display:block; margin-top:2px; color:var(--muted); font-size:12px; line-height:1.45; }
+    .flow-step.accent-blue { border-left-color:var(--blue); }
+    .flow-step.accent-green { border-left-color:var(--green); }
+    .flow-step.accent-amber { border-left-color:var(--amber); }
+    .flow-step.is-dashed { border-style:dashed; border-left-style:solid; }
+    .flow-arrow { height:18px; color:#8a97ad; text-align:center; line-height:18px; font-size:16px; }
+    .split-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+    .flow-note { display:flex; gap:12px; align-items:flex-start; margin-top:11px; padding:10px 12px; border:1px solid #efd7a3; border-radius:7px; background:var(--amber-soft); font-size:13px; }
+    .flow-note b { flex:0 0 auto; color:var(--amber); }
+    .flow-note.is-blue { border-color:#b9cdf2; background:var(--blue-soft); }
+    .flow-note.is-blue b { color:var(--blue); }
+    .flow-sheet .lane { padding: 9px 11px; }
+    .flow-sheet .lane-title { margin-bottom: 6px; font-size: 16px; }
+    .flow-sheet .flow-step { padding: 5px 8px; }
+    .flow-sheet .flow-step b { font-size: 12px; line-height: 1.35; }
+    .flow-sheet .flow-step span { margin-top: 0; font-size: 10.5px; line-height: 1.3; }
+    .flow-sheet .flow-arrow { height: 10px; line-height: 10px; font-size: 12px; }
+    .flow-sheet .split-grid { gap: 6px; margin-top: 4px; }
+    .flow-sheet .flow-note { margin-top: 7px; padding: 6px 9px; font-size: 11px; line-height: 1.4; }
+
+    .proto-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .proto-card { margin:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+    .proto-card img { display:block; width:100%; height:168px; object-fit:cover; object-position:top left; }
+    .proto-card figcaption { padding:7px 10px; border-top:1px solid var(--line); }
+    .proto-card b { display:block; font-size:14px; }
+    .proto-card span { color:var(--muted); font-size:11px; }
+    .mode-table { margin-top:8px; font-size:11.5px; }
+    .mode-table th, .mode-table td { padding:5px 8px; }
+    .mode-example { margin-top:7px; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--slate); }
+    .mode-example h3 { margin:0 0 4px; font-size:13px; }
+    .mode-example-grid { display:grid; grid-template-columns:1fr 80px 1fr; gap:10px; align-items:center; }
+    .mode-example-grid b { display:block; font-size:12px; margin-bottom:3px; }
+    .mode-example-grid span { display:block; color:var(--muted); font-size:10.5px; line-height:1.3; }
+    .mode-example-arrow { text-align:center; color:var(--blue); font-size:24px; }
+    .mode-example-arrow small { display:block; font-size:10px; color:var(--muted); }
+    .modes-sheet .flow-note { margin-top:6px; padding:5px 8px; font-size:10.5px; }
+    .proto-links { display:flex; gap:16px; margin-top:5px; font-size:11px; }
+    .proto-links a { color:var(--blue); font-weight:700; text-decoration:none; }
+
+    .scope-intro { margin:10px 0 4px; color:var(--muted); font-size:12px; }
+    .scope-table { margin-top:6px; font-size:10.5px; }
+    .scope-table th, .scope-table td { padding:4px 6px; line-height:1.35; }
+    .scope-options { display:flex; flex-wrap:wrap; gap:3px 8px; }
+    .scope-option { display:inline-flex; align-items:center; gap:3px; white-space:nowrap; font-size:9.5px; }
+    .scope-option input { width:12px; height:12px; margin:0; accent-color:var(--blue); }
+
+    .flow-confirm-list { display:flex; flex-direction:column; gap:9px; margin-top:10px; }
+    .flow-confirm-card { padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .flow-confirm-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+    .flow-confirm-head b { font-size:15px; }
+    .flow-confirm-head span { color:var(--blue); font-size:11px; font-weight:700; }
+    .flow-confirm-steps { margin:4px 0; color:var(--ink); font-size:11.5px; line-height:1.45; }
+    .flow-confirm-understanding { margin:3px 0 5px; color:var(--muted); font-size:11px; line-height:1.4; }
+    .flow-confirm-understanding b { margin-right:6px; color:var(--ink); }
+    .flow-confirm-card .answer-options { margin-top:2px; }
+    .flow-confirm-card .answer-detail { min-height:42px; margin-top:5px; }
+    .flow-question-link { margin-top:4px; color:var(--blue); font-size:11px; font-weight:700; }
+
+    .mini-flow { display:flex; align-items:center; gap:4px; margin:5px 0; }
+    .mini-node { flex:1; min-height:30px; display:flex; align-items:center; justify-content:center; text-align:center; padding:3px 5px; border:1px solid var(--line); border-left:3px solid var(--blue); border-radius:4px; background:#fff; font-size:9.5px; line-height:1.25; }
+    .mini-node.decision { border-left-color:var(--amber); }
+    .mini-node.good { border-left-color:var(--green); }
+    .mini-node.warn { border-left-color:var(--red); }
+    .mini-arrow { color:var(--blue); font-size:12px; flex:none; }
+    .mini-branch { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:2px 0 5px 0; }
+    .mini-branch-item { display:grid; grid-template-columns:90px 1fr; gap:5px; align-items:center; }
+    .mini-branch-item > span { color:var(--muted); font-size:9px; }
+    .mini-branch-three { flex:1.8; display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+    .mini-branch-three .mini-node { min-height:28px; }
+    .mini-note { color:var(--muted); font-size:9.5px; margin-top:2px; }
+
+    .flow-confirm-list { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .flow-confirm-card { padding:7px 9px; }
+
+    .flow-steps { display:flex; flex-direction:column; gap:0; margin:5px 0; }
+    .flow-arrow-down { height:13px; line-height:13px; text-align:center; color:var(--blue); font-size:12px; }
+    .flow-steps .flow-step { padding:5px 8px; }
+    .flow-steps .flow-step b { font-size:11px; line-height:1.3; }
+    .flow-steps .flow-step span { font-size:9.5px; line-height:1.25; }
+    .flow-branch { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:3px 0; }
+    .flow-branch.three { grid-template-columns:repeat(3,1fr); }
+    .flow-step.accent-red { border-left-color:var(--red); }
+
+    .flow-steps { display:flex; flex-direction:column; margin:5px 0; }
+    .flow-arrow-down { height:12px; line-height:12px; text-align:center; color:var(--blue); font-size:12px; }
+    .flow-steps .flow-step { padding:5px 8px; }
+    .flow-steps .flow-step b { font-size:11px; line-height:1.3; }
+    .flow-steps .flow-step span { font-size:9.5px; line-height:1.25; }
+    .flow-branch { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:3px 0; }
+    .flow-branch.three { grid-template-columns:repeat(3,1fr); }
+    .flow-step.accent-red { border-left-color:var(--red); }
+
+    .sequence-flow { display:flex; align-items:center; justify-content:center; height:430px; margin:5px 0; overflow:hidden; border:1px solid #eef1f5; border-radius:5px; background:#fff; }
+    .sequence-flow img { display:block; max-width:100%; max-height:420px; width:auto; height:auto; }
+
+    .flow-confirm-list.single { display:block; }
+    .flow-confirm-list.single .flow-confirm-card { max-width:100%; }
+    .flow-confirm-list.single .sequence-flow { height:430px; }
+    .flow-confirm-list.single .sequence-flow img { max-height:420px; }
+
+    .priority-sheet .lead { margin-top:16px; padding:12px 15px; border-left:5px solid var(--blue); background:var(--blue-soft); font-size:14px; }
+    .priority-sheet h2 { margin:18px 0 7px; font-size:18px; }
+    .priority-sheet .status { display:inline-block; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; }
+    .priority-sheet .status.do { color:var(--green); background:var(--green-soft); }
+    .priority-sheet .status.later { color:var(--amber); background:var(--amber-soft); }
+    .priority-sheet .status.no { color:var(--muted); background:#f2f4f7; }
+    .priority-sheet .status.ask { color:var(--red); background:var(--red-soft); }
+    .priority-sheet .decision-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:8px; }
+    .priority-sheet .decision { padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--slate); font-size:12px; }
+    .priority-sheet .decision b { display:block; margin-bottom:2px; }
+    .priority-sheet .decision span { color:var(--muted); font-size:11px; }
+    .result-question-card { padding:10px 12px; border:1px solid var(--line); border-radius:8px; margin-bottom:9px; }
+    .result-question-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+    .result-question-head b { font-size:14px; }
+    .result-question-head span { color:var(--blue); font-size:11px; font-weight:700; }
+    .result-question-context { margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
+    .result-question-proposal { margin:3px 0 0; font-size:12px; line-height:1.45; }
+
+    .sheet-confirm.is-all-questions .question-table th,
+    .sheet-confirm.is-all-questions .question-table td { padding: 4px 6px; font-size: 11.5px; line-height: 1.3; }
+    .sheet-confirm.is-all-questions .comment-lines { height: 44px; }
+    .sheet-confirm.is-all-questions .comment-box { margin-top: 8px; padding: 10px 12px; }
+    .sheet-confirm.is-all-questions .signature { margin-top: 7px; }
+    .sheet-confirm.is-all-questions .signature label { padding-top: 7px; }
+
+    .task-architecture { margin-top:10px; display:flex; flex-direction:column; align-items:center; }
+    .architecture-case, .architecture-summary { width:min(520px,100%); padding:9px 12px; border:1px solid #9db9ec; border-radius:7px; background:#fff; text-align:center; }
+    .architecture-case { font-size:13px; }
+    .architecture-down { padding:4px 0; color:var(--blue); font-size:11px; font-weight:700; }
+    .architecture-task-row { width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .architecture-task { padding:8px 9px; border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:6px; background:#fff; }
+    .architecture-task b { display:block; font-size:12px; }
+    .architecture-task span { display:block; margin-top:2px; color:var(--muted); font-size:10px; }
+    .architecture-task em { display:block; margin-top:4px; color:var(--green); font-size:10px; font-style:normal; }
+    .architecture-summary { border-color:#b8dfca; background:var(--green-soft); color:var(--green); font-size:12px; font-weight:700; }
+    .architecture-summary span { display:block; margin-top:2px; color:var(--muted); font-size:10px; font-weight:400; }
+    @media print {
+      @page { size: A4 landscape; margin: 8mm; }
+      body { background: #fff; }
+      .sheet { width: auto; min-height: auto; height: 194mm; margin: 0; padding: 5mm 7mm; box-shadow: none; page-break-after: always; overflow: hidden; }
+      .sheet:last-child { page-break-after: auto; }
+      .reset-button, .language-switch { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="language-switch" aria-label="Language"><a class="is-active" href="主数据照合_规格与真实场景差异确认_中文.html" aria-current="page">中文</a><a href="主数据照合_仕様と実運用Gap確認.html">日本語</a></nav>
+  <section class="sheet">
+    <div class="topline">
+      <div>
+        <div class="eyebrow">规格确认资料</div>
+        <h1>主数据照合 API<br />规格与真实场景差异确认</h1>
+        <div class="meta">对象：IDP 案件服务／主数据照合 API　｜　2026-11-20</div>
+      </div>
+      <div class="page-no">1 / 6</div>
+    </div>
+
+    <div class="conclusion">
+      <strong>本次设计结论</strong>
+      <p>V1.1 已明确请求队列、同优先级受理顺序和 50 份以上拆分的关联方式。IDP 在此基础上确定：新文件或补件创建独立任务并分别进入 OCR抽出确认；同一业务批次拆成多个 API 任务时，由 IDP 合并展示结果。</p>
+    </div>
+
+    <h2>真实案件会发生什么</h2>
+    <div class="situation">
+      <div class="day"><div class="day-head">7 月 1 日｜初回</div><div class="day-body"><strong>请求书＋诊断书</strong><span>案件开始，需要执行第一次照合。</span></div></div>
+      <div class="day is-new"><div class="day-head">7 月 3 日｜追加</div><div class="day-body"><strong>领收书到达</strong><span>同一案件增加了新文件。</span></div></div>
+      <div class="day is-new"><div class="day-head">7 月 5 日｜补件</div><div class="day-body"><strong>本人确认书到达</strong><span>作为补件加入同一案件。</span></div></div>
+    </div>
+
+    <div class="two-col" style="margin-top:18px">
+      <div class="panel spec">
+        <h3>式样书已经说明</h3>
+        <ul><li>以案件为单位执行照合</li><li>请求中包含案件全部文件</li><li>有异步任务和完成确认</li><li>案件中止并重新处理时，由 IDP 取消旧的照合任务</li></ul>
+      </div>
+      <div class="panel spec">
+        <h3>IDP 已定处理方式</h3>
+        <ul><li>新文件或补件创建新的独立批次任务</li><li>每个独立任务的结果分别进入 OCR抽出确认</li><li>超过 50 份时，一个业务批次拆成多个 API 任务</li><li>多个 taskId 的结果由 IDP 合并为同一批次展示</li><li>同一优先级按受理顺序排队，并发量由 Zurich 控制</li></ul>
+      </div>
+    </div>
+
+    <div class="flow-note is-blue"><b>IDP 内部已定</b><span>旧任务结果晚到时，只更新该任务自己的结果和待办，不修改其他任务。</span></div>
+    <div class="callout">V1.1 已回答请求排队和 50 份以上拆分的接口规则。批次任务划分与多个 taskId 的合并展示属于 IDP 内部处理，本次无需再向 Zurich 提问。</div>
+  </section>
+
+  <section class="sheet">
+    <div class="topline"><div><div class="eyebrow">真实场景与处理结论</div><h1>各类文件到达后的处理方式</h1></div><div class="page-no">2 / 6</div></div>
+    <table>
+      <thead><tr><th style="width:23%">真实场景</th><th style="width:31%">式样书依据</th><th>IDP 已定处理方式</th></tr></thead>
+      <tbody>
+        <tr><td><strong>追加文件到达</strong></td><td>案件全部有效文件随新请求发送</td><td>创建新的独立批次任务</td></tr>
+        <tr><td><strong>补件到达</strong></td><td>没有补件专用字段</td><td>创建新的独立批次任务</td></tr>
+        <tr><td><strong>每次重发全部文件</strong></td><td>要求发送全部有效文件</td><td>按提交时点的全部有效文件处理，生成本批次结果</td></tr>
+        <tr><td><strong>多批次执行顺序</strong></td><td>同一优先级按受理顺序处理，并发量由 API 控制</td><td>沿用 Zurich 队列，不另建案件级队列</td></tr>
+        <tr><td><strong>单次超过 50 份文件</strong></td><td>相同 caseNo 拆分请求，变更 clientRequestId 序号</td><td>一个业务批次对应多个 API 任务，由 IDP 合并展示</td></tr>
+      </tbody>
+    </table>
+
+    <div class="proposal">
+      <h3>IDP 批次处理方式</h3>
+      <p>新文件或补件创建独立批次任务，并分别进入 OCR抽出确认。超过 50 份时，一个业务批次拆成多个 Zurich 任务，由 IDP 保存 taskId 并合并结果。</p>
+      <div class="task-architecture">
+        <div class="architecture-case">案件<br /><b>CLAIM-001</b></div>
+        <div class="architecture-down">↓ 分发批次任务</div>
+        <div class="architecture-task-row">
+          <div class="architecture-task"><b>任务 1｜初回</b><span>请求书＋诊断书</span><em>结果独立保存</em></div>
+          <div class="architecture-task"><b>任务 2｜追加</b><span>请求书＋诊断书＋领收书</span><em>结果独立保存</em></div>
+          <div class="architecture-task"><b>任务 3｜补件</b><span>全部有效文件＋本人确认书</span><em>结果独立保存</em></div>
+        </div>
+        <div class="architecture-down">↓ 各批次独立推进</div>
+        <div class="architecture-summary">每个业务批次独立进入 OCR抽出确认<br /><span>50 份以上由 IDP 合并多个 taskId；旧任务只更新自身</span></div>
+      </div>
+    </div>
+
+    <div class="callout">V1.1 的队列与拆分规则作为接口依据。批次划分和结果合并由 IDP 实现，无需新增 Zurich 确认项。</div>
+  </section>
+
+  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">接口流程</div><h1>1. 配置接口流程</h1></div><div class="page-no">3 / 6</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>1. 配置接口流程</b><span>1.1 / S-01～S-09</span></div><div class="sequence-flow"><img src="assets/flow-zh1.svg" alt="配置接口流程" /></div><p class="flow-confirm-understanding"><b>IDP 理解</b>确认主数据获取、默认组、配置校验、保存与版本生成。</p><div class="flow-question-link">配置流程已由 V1.1 明确</div></div></div></section>
+
+  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">业务流程</div><h1>2. 案件照合与批次/补件流程</h1></div><div class="page-no">4 / 6</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>2. 案件照合与批次/补件流程</b><span>1.2 / Q-01～Q-07</span></div><div class="sequence-flow"><img src="assets/flow-zh2.svg" alt="案件照合与批次/补件流程" /></div><p class="flow-confirm-understanding"><b>IDP 处理方式（已定）</b>新批次和补件分别创建任务，旧任务继续运行；各任务提交当时的全部有效账票并独立进入 OCR抽出确认。</p><div class="flow-question-link">批次处理方式已确定</div></div></div></section>
+
+<section class="sheet modes-sheet">
+    <div class="topline"><div><div class="eyebrow">照合端三种模式</div><h1>三种照合模式的动作</h1></div><div class="page-no">5 / 6</div></div>
+    <table class="mode-table">
+      <thead><tr><th>模式</th><th>参与匹配</th><th>更新字段</th><th>示例</th></tr></thead>
+      <tbody>
+        <tr><td><b>照合のみ</b><br><code>INPUT</code></td><td>是</td><td>否</td><td>金融机构名假名。选择候选后仍保留 OCR 值</td></tr>
+        <tr><td><b>照合して反映</b><br><code>INPUT_OUTPUT</code></td><td>是</td><td>是</td><td>金融机构名、支店名。选择候选后更新成主数据值</td></tr>
+        <tr><td><b>反映のみ</b><br><code>OUTPUT</code></td><td>否</td><td>是</td><td>金融机构代码、支店代码。选择候选后只回填结果</td></tr>
+      </tbody>
+    </table>
+    <div class="mode-example">
+      <h3>同一照合组的例子</h3>
+      <div class="mode-example-grid">
+        <div><b>OCR 抽出值</b><span>金融机构名：瀬戸信金</span><span>支店名：瑞穂通</span><span>金融机构名假名：セトシンキン</span><span>金融机构代码：空</span><span>支店代码：空</span></div>
+        <div class="mode-example-arrow">→<small>选择マスタ推奨</small></div>
+        <div><b>选择后的值</b><span>金融机构名：瀬戸信用金庫</span><span>支店名：瑞穂通</span><span>金融机构名假名：セトシンキン（不变）</span><span>金融机构代码：155</span><span>支店代码：123</span></div>
+      </div>
+    </div>
+    <div class="flow-note is-blue"><b>确认页重新照合</b><span>只处理 INPUT／INPUT_OUTPUT 的修改。同一照合组的输入（PRIMARY／SUPPORTING）与输出目标（OUTPUT）在同一次结果中一起更新，不同组分别请求。</span></div>
+  </section>
+
+  <section class="sheet priority-sheet">
+    <div class="topline"><div><div class="eyebrow">内部优先级</div><h1>主数据照合 API｜本期实施优先级</h1><div class="meta">按式样书要求、上线阻塞和真正需要 Zurich 确认的程度重新排列</div></div><div class="page-no">6 / 6</div></div>
+    <div class="lead">原则：先完成 API 契约和数据正确性；可后推的运营增强不阻塞主链路；式样书第 2 期功能本期不做。</div>
+
+    <h2>P0｜本期必须完成</h2>
+    <table>
+      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">状态</th></tr></thead>
+      <tbody>
+        <tr><td>S-01～S-05</td><td>照合组 CRUD、主数据同步、字段类型、多个组共享输入、保存前校验</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>S-06</td><td><code>groupsVersion</code>、变更履历、版本恢复、验证环境发布</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>S-07</td><td>导入 Zurich 默认组</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>Q-01 / Q-03～Q-06</td><td>案件全量提交、幂等键、重试、轮询、任务结果分页</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>Q-07</td><td><code>options.fallback</code> 开关，默认启用；业务场景可关闭兜底照合</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>A-01～A-08</td><td>自动反映、待确认分流、失败/取消/冲突/fallback</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>C-01～C-02</td><td>确认页、候选选择</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>C-03</td><td>修改识别值后的重新照合（<code>items/standardize</code>），包括单字段、多字段同时重新照合及并发控制</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>E-02</td><td>回填值和 selection 进入数据映射与后续输出</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>50 份以上</td><td>相同案件拆分请求，由 IDP 关联并合并多个 taskId 的结果</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>G / N</td><td>通用实现、显示名、HTTPS、API Key、超时重试、个人信息移除</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>批次任务</td><td>按批次创建独立任务；补件新增任务；任务结果独立保存并独立进入 OCR抽出确认</td><td><span class="status do">本期做</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>P2｜本期不做</h2>
+    <table>
+      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">结论</th></tr></thead>
+      <tbody>
+        <tr><td>S-09</td><td>AI 生成照合组建议</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>S-08</td><td>废弃列和提示信息标记，新配置禁止选择，旧配置继续运行</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>C-04</td><td><code>masters/search</code> 主数据检索</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>E-01</td><td>将 selection 实际登记到 SFDC 等后续系统</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>E-03</td><td><code>feedback</code> 回传人工确定结果</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>完成通知 callback</td><td>第 2 期接入 <code>callbackUrl</code> 完成通知；本期继续使用轮询取得结果</td><td><span class="status no">第 2 期</span></td></tr>
+      </tbody>
+    </table>
+    <footer>本页是 IDP 内部实施优先级，不代表 Zurich 的 API 阶段划分。</footer>
+  </section>
+
+<script>
+    const storageKey = 'zurich-gap-confirmation-zh'
+    const inputs = Array.from(document.querySelectorAll('input, textarea'))
+
+    const updateAnswerDetail = (name) => {
+      const selected = document.querySelector(`input[name="${name}"]:checked`)
+      const detail = document.querySelector(`.answer-detail[data-question="${name}"]`)
+      if (detail) detail.classList.toggle('is-visible', Boolean(selected && selected.value !== 'ok'))
+    }
+    const updateAllAnswerDetails = () => {
+      document.querySelectorAll('input[type="radio"]').forEach((radio) => updateAnswerDetail(radio.name))
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '{}')
+      for (const input of inputs) {
+        if (input.type === 'radio') input.checked = saved[input.name] === input.value
+        else if (saved[input.id] !== undefined) input.value = saved[input.id]
+      }
+    } catch {}
+    updateAllAnswerDetails()
+    for (const input of inputs) {
+      input.addEventListener(input.type === 'radio' ? 'change' : 'input', () => {
+        if (input.type === 'radio') updateAnswerDetail(input.name)
+        const saved = {}
+        for (const item of inputs) {
+          if (item.type === 'radio') { if (item.checked) saved[item.name] = item.value }
+          else saved[item.id] = item.value
+        }
+        localStorage.setItem(storageKey, JSON.stringify(saved))
+      })
+    }
+    document.getElementById('reset-answers')?.addEventListener('click', () => {
+      localStorage.removeItem(storageKey)
+      for (const input of inputs) {
+        if (input.type === 'radio') input.checked = false
+        else input.value = ''
+      }
+      updateAllAnswerDetails()
+    })
+  </script>
+</body>
+</html>

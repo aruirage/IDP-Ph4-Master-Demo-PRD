@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>主数据照合 API｜本期优先级与补充确认</title>
+  <style>
+    :root{--ink:#172033;--muted:#667085;--line:#d8dee8;--blue:#175cd3;--blue-soft:#eef4ff;--green:#087a4b;--green-soft:#edf9f2;--amber:#8f5700;--amber-soft:#fff8e7;--red:#b42318;--red-soft:#fff3f1;--slate:#f7f9fc}
+    *{box-sizing:border-box}
+    body{margin:0;background:#e9edf3;color:var(--ink);font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65}
+    .page{width:min(1240px,calc(100% - 32px));min-height:760px;margin:24px auto;padding:40px 46px;background:#fff;box-shadow:0 8px 30px rgba(23,32,51,.09)}
+    .topline{display:flex;justify-content:space-between;gap:24px;align-items:flex-start}
+    .eyebrow{color:var(--blue);font-size:14px;font-weight:700}
+    h1{margin:6px 0 0;font-size:29px;line-height:1.35}h2{margin:24px 0 10px;font-size:20px}h3{margin:0 0 7px;font-size:16px}p{margin:7px 0}
+    .page-no{color:var(--muted);font-size:13px;white-space:nowrap}.meta{color:var(--muted);font-size:13px;margin-top:7px}
+    .lead{margin-top:20px;padding:15px 17px;border-left:5px solid var(--blue);background:var(--blue-soft);font-size:15px}
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}th,td{padding:8px 9px;border:1px solid var(--line);vertical-align:top;text-align:left}th{background:var(--slate);font-weight:700}
+    .p0{color:var(--red);font-weight:700}.p1{color:var(--amber);font-weight:700}.p2{color:var(--muted);font-weight:700}
+    .status{display:inline-block;padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700}.status.do{color:var(--green);background:var(--green-soft)}.status.later{color:var(--amber);background:var(--amber-soft)}.status.no{color:var(--muted);background:#f2f4f7}.status.ask{color:var(--red);background:var(--red-soft)}
+    .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.decision{padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--slate)}.decision b{display:block;margin-bottom:3px}.decision span{color:var(--muted);font-size:13px}
+    .note{padding:10px 12px;border-radius:7px;background:var(--amber-soft);border:1px solid #efd7a3;color:#5e3b07;font-size:13px}
+    .question-card{padding:12px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}.question-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.question-head b{font-size:15px}.question-head span{color:var(--blue);font-size:11px;font-weight:700}.question-example{display:block;margin-top:4px;color:var(--muted);font-size:12px}.proposal{margin-top:4px;color:var(--ink);font-size:12px}
+    .answer-options{display:flex;gap:14px;flex-wrap:wrap;margin-top:7px}.answer-option{display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer}.answer-option input{width:15px;height:15px;margin:0;accent-color:var(--blue)}
+    textarea{display:none;width:100%;min-height:50px;margin-top:6px;padding:7px 9px;border:1px solid var(--line);border-radius:5px;font:inherit;font-size:12px;resize:vertical}textarea.is-visible{display:block}
+    .reset-button{margin-right:10px;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}.reset-button:hover{color:var(--blue);border-color:var(--blue)}
+    footer{margin-top:20px;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    @media print{@page{size:A4 landscape;margin:8mm}body{background:#fff}.page{width:auto;min-height:auto;height:194mm;margin:0;padding:5mm 7mm;box-shadow:none;page-break-after:always;overflow:hidden}.page:last-child{page-break-after:auto}.reset-button{display:none}}
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="topline"><div><div class="eyebrow">内部优先级</div><h1>主数据照合 API｜本期实施优先级</h1><div class="meta">按式样书要求、上线阻塞和真正需要 Zurich 确认的程度重新排列</div></div><div class="page-no">1 / 2</div></div>
+    <div class="lead">原则：先完成 API 契约和数据正确性；可后推的运营增强不阻塞主链路；式样书第 2 期功能本期不做。</div>
+
+    <h2>P0｜本期必须完成</h2>
+    <table>
+      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">状态</th></tr></thead>
+      <tbody>
+        <tr><td>S-01～S-05</td><td>照合组 CRUD、主数据同步、字段类型、多个组共享输入、保存前校验</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>S-06</td><td><code>groupsVersion</code>、变更履历、版本恢复、验证环境发布</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>S-07</td><td>导入 Zurich 默认组</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>Q-01 / Q-03～Q-06</td><td>案件全量提交、幂等键、重试、轮询、任务结果分页</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>A-01～A-08</td><td>自动反映、待确认分流、失败/取消/冲突/fallback</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>C-01～C-03</td><td>确认页、候选选择、单字段重新照合</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>E-02</td><td>回填值和 selection 进入数据映射与后续输出</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>G / N</td><td>通用实现、显示名、HTTPS、API Key、超时重试、个人信息移除</td><td><span class="status do">本期做</span></td></tr>
+        <tr><td>批次任务</td><td>一批文件一个任务；补件新增任务；任务结果独立保存并独立推进</td><td><span class="status do">本期做</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2>P1｜主链路完成后补，可后推</h2>
+    <table>
+      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">建议</th></tr></thead>
+      <tbody>
+        <tr><td>S-08</td><td>废弃列和提示信息标记，新配置禁止选择，旧配置继续运行</td><td><span class="status later">后推</span></td></tr>
+        <tr><td>Q-07</td><td>`options.fallback=false` 的可切换设置</td><td><span class="status later">后推</span></td></tr>
+        <tr><td>50 份以上</td><td>拆分请求、分片结果合并与失败恢复</td><td><span class="status later">确认后做</span></td></tr>
+        <tr><td>E-01b</td><td>将 selection 实际登记到 SFDC 等后续系统</td><td><span class="status later">后推</span></td></tr>
+        
+        
+      </tbody>
+    </table>
+
+    <h2>P2｜本期不做</h2>
+    <table>
+      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">结论</th></tr></thead>
+      <tbody>
+        <tr><td>S-09</td><td>AI 生成照合组建议</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>C-04</td><td>`masters/search` 主数据检索</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>E-03</td><td>`feedback` 回传人工确定结果</td><td><span class="status no">第 2 期</span></td></tr>
+        <tr><td>独立试照合页面</td><td>如 Zurich 不强制，仅保留 `groups/validate` 配置校验</td><td><span class="status ask">待确认</span></td></tr>
+        <tr><td>多字段同时重新照合</td><td>一次修改多个字段后统一重新照合，以及并发上限</td><td><span class="status no">第 2 期</span></td></tr><tr><td>callback</td><td>若本期不启用 callback，可删除完成通知流程</td><td><span class="status ask">待确认</span></td></tr>
+      </tbody>
+    </table>
+    <footer>本页是 IDP 内部实施优先级，不代表 Zurich 的 API 阶段划分。</footer>
+  </section>
+
+  <section class="page">
+    <div class="topline"><div><div class="eyebrow">补充确认</div><h1>式样书未定义、仍需确认的事项</h1></div><div><button type="button" id="reset-answers" class="reset-button">清空回答</button><span class="page-no">2 / 2</span></div></div>
+    <p class="meta">以下问题集中在 API 行为、批次任务、补件、分片和并发。内部页面流程不再逐项确认。</p>
+
+    <div id="questions">
+      <div class="question-card"><div class="question-head"><b>1. 同一案件能否同时存在多个照合任务？</b><span>任务并发</span></div><span class="question-example">例：批次 1 还在处理中，批次 2 到达并新建任务。</span><div class="proposal">IDP 方案：允许并行，新批次不取消旧任务。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q1" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q1" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q1" value="change">需变更</label></div><textarea data-question="q1" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>2. 每个批次任务提交新文件，还是案件全部有效文件？</b><span>请求范围</span></div><span class="question-example">例：批次 2 只发领收书，还是发请求书＋诊断书＋领收书。</span><div class="proposal">IDP 方案：按式样书发送案件全部有效文件。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q2" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q2" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q2" value="change">需变更</label></div><textarea data-question="q2" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>3. 补件是否作为新的批次任务，并重新提交有效文件？</b><span>补件</span></div><span class="question-example">例：请求书、诊断书之后收到本人确认书。</span><div class="proposal">IDP 方案：补件新增任务，提交当时全部有效文件。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q3" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q3" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q3" value="change">需变更</label></div><textarea data-question="q3" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>4. 旧任务晚到时，是否只更新自己的任务结果？</b><span>任务结果</span></div><span class="question-example">例：任务 2 完成后，任务 1 才返回并更新任务 1 自己的结果。</span><div class="proposal">IDP 方案：任务结果独立，不覆盖其他任务；案件汇总重新计算。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q4" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q4" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q4" value="change">需变更</label></div><textarea data-question="q4" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>5. 多字段重新照合时，`items/standardize` 是否有并发上限？</b><span>重新照合</span></div><span class="question-example">例：同时修改金融机构和伤病名，产生两个请求。</span><div class="proposal">IDP 方案：同一组一次请求，不同组分别请求；按确认的上限控制并行。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q5" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q5" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q5" value="change">需变更</label></div><textarea data-question="q5" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>6. 超过 50 份文件拆成多个请求后，如何合并成一份案件结果？</b><span>分片</span></div><span class="question-example">例：60 份文件拆成 2 个请求，其中一个失败。</span><div class="proposal">IDP 方案：全部请求成功后合并；任一失败时暂不合并，先重试或修正。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q6" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q6" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q6" value="change">需变更</label></div><textarea data-question="q6" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>7. 同一字段被多个组设为回填目标时，冲突应如何呈现？</b><span>回填冲突</span></div><span class="question-example">例：金融机构名同时是两个组的 OUTPUT 目标。</span><div class="proposal">IDP 方案：保存时警告；运行时产生 WRITE_CONFLICT 并进入人工确认。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q7" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q7" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q7" value="change">需变更</label></div><textarea data-question="q7" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+
+      <div class="question-card"><div class="question-head"><b>8. 本期是否启用 callback 完成通知？专用试照合页面是否必须？</b><span>可选范围</span></div><span class="question-example">例：callback 不启用时继续轮询；试照合不强制时仅保留 groups/validate。</span><div class="proposal">IDP 方案：两项都先按可选处理，由 Zurich 明确是否必须。</div><div class="answer-options"><label class="answer-option"><input type="radio" name="q8" value="ok">无问题</label><label class="answer-option"><input type="radio" name="q8" value="conditional">有条件</label><label class="answer-option"><input type="radio" name="q8" value="change">需变更</label></div><textarea data-question="q8" class="answer-detail" placeholder="请输入有条件或需变更的内容"></textarea></div>
+    </div>
+    <footer>内部已确定的事项不再要求 Zurich 确认；本页只保留会影响 API 行为和本期范围的问题。</footer>
+    <script>
+      const storageKey='standardization-priority-confirmation-zh'
+      const inputs=Array.from(document.querySelectorAll('input,textarea'))
+      const updateDetail=(name)=>{const checked=document.querySelector(`input[name="${name}"]:checked`);const detail=document.querySelector(`textarea[data-question="${name}"]`);if(detail)detail.classList.toggle('is-visible',Boolean(checked&&checked.value!=='ok'))}
+      const updateAll=()=>document.querySelectorAll('input[type=radio]').forEach(r=>updateDetail(r.name))
+      try{const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');inputs.forEach(input=>{if(input.type==='radio')input.checked=saved[input.name]===input.value;else if(saved[input.dataset.question])input.value=saved[input.dataset.question]})}catch{}
+      updateAll()
+      inputs.forEach(input=>input.addEventListener(input.type==='radio'?'change':'input',()=>{if(input.type==='radio')updateDetail(input.name);const saved={};inputs.forEach(item=>{if(item.type==='radio'){if(item.checked)saved[item.name]=item.value}else if(item.dataset.question)saved[item.dataset.question]=item.value});localStorage.setItem(storageKey,JSON.stringify(saved))}))
+      document.getElementById('reset-answers')?.addEventListener('click',()=>{localStorage.removeItem(storageKey);inputs.forEach(input=>{if(input.type==='radio')input.checked=false;else input.value=''});updateAll()})
+    </script>
+  </section>
+</body>
+</html>

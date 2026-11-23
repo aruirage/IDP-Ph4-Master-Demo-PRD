@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" role="img" aria-labelledby="title desc">
+  <title id="title">案件照合・バッチ・補件フロー</title>
+  <desc id="desc">バッチごとの独立タスクと OCR 抽出確認</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#175cd3" />
+    </marker>
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#667085" />
+    </marker>
+  </defs>
+
+  <rect width="1120" height="520" fill="#ffffff" />
+  <g font-family="'Noto Sans SC','Yu Gothic','Hiragino Sans','Microsoft YaHei',sans-serif" fill="#172033">
+
+    <rect x="30" y="18" width="220" height="44" rx="7" fill="#f7f9fc" stroke="#d8dee8" />
+    <rect x="280" y="18" width="300" height="44" rx="7" fill="#f7f9fc" stroke="#d8dee8" />
+    <rect x="610" y="18" width="210" height="44" rx="7" fill="#f7f9fc" stroke="#d8dee8" />
+    <rect x="850" y="18" width="240" height="44" rx="7" fill="#f7f9fc" stroke="#d8dee8" />
+    <g font-size="14" font-weight="700" text-anchor="middle">
+      <text x="140" y="45">案件／アップロード</text>
+      <text x="430" y="45">IDP 照合タスク</text>
+      <text x="715" y="45">Zurich API</text>
+      <text x="970" y="45">OCR 抽出確認</text>
+    </g>
+    <g stroke="#cfd7e3" stroke-width="1.2" stroke-dasharray="4 5">
+      <line x1="140" y1="62" x2="140" y2="460" />
+      <line x1="430" y1="62" x2="430" y2="460" />
+      <line x1="715" y1="62" x2="715" y2="460" />
+      <line x1="970" y1="62" x2="970" y2="460" />
+    </g>
+
+    <rect x="30" y="78" width="220" height="54" rx="8" fill="#eef4ff" stroke="#9db9ec" />
+    <text x="44" y="99" font-size="12.5" font-weight="700">① 新規バッチまたは補件の到着</text>
+    <text x="44" y="118" font-size="10" fill="#667085">新しい書類は新しいバッチタスクへ。旧タスクは継続</text>
+
+    <line x1="140" y1="150" x2="405" y2="150" stroke="#175cd3" stroke-width="1.7" marker-end="url(#arrow)" />
+    <text x="274" y="142" text-anchor="middle" font-size="11.5" font-weight="700" fill="#175cd3">② 新しいバッチタスクを作成</text>
+
+    <rect x="292" y="166" width="276" height="64" rx="8" fill="#f7faff" stroke="#9db9ec" />
+    <text x="430" y="186" text-anchor="middle" font-size="12.5" font-weight="700">タスク作成時のスナップショット</text>
+    <text x="430" y="205" text-anchor="middle" font-size="10.5" fill="#475467">案件の全有効書類を送信</text>
+    <text x="430" y="220" text-anchor="middle" font-size="10.5" fill="#667085">次バッチを待たず、旧タスクもキャンセルしない</text>
+
+    <line x1="568" y1="198" x2="703" y2="198" stroke="#175cd3" stroke-width="1.7" marker-end="url(#arrow)" />
+    <text x="715" y="181" text-anchor="middle" font-size="11.5" font-weight="700" fill="#175cd3">POST /v1/standardizations</text>
+    <text x="715" y="215" text-anchor="middle" font-size="10.5" fill="#667085">このバッチタスクの有効書類</text>
+
+    <line x1="703" y1="246" x2="568" y2="246" stroke="#667085" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arrowGray)" />
+    <text x="635" y="238" text-anchor="middle" font-size="10.5" font-weight="700">taskId / PROCESSING</text>
+    <text x="635" y="258" text-anchor="middle" font-size="9.5" fill="#667085">同期完了時は結果を直接返却</text>
+
+    <path d="M 430 274 C 392 274 392 296 430 296" fill="none" stroke="#667085" stroke-width="1.3" marker-end="url(#arrowGray)" />
+    <text x="445" y="290" font-size="10.5" fill="#475467">5〜10秒ごとに状態を照会</text>
+
+    <line x1="568" y1="316" x2="703" y2="316" stroke="#175cd3" stroke-width="1.7" marker-end="url(#arrow)" />
+    <text x="715" y="309" text-anchor="middle" font-size="10.5" font-weight="700" fill="#175cd3">GET /v1/standardizations/{taskId}</text>
+
+    <line x1="703" y1="346" x2="568" y2="346" stroke="#667085" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arrowGray)" />
+    <text x="430" y="339" text-anchor="middle" font-size="10.5" font-weight="700">items / status / needsReview / targets</text>
+
+    <rect x="292" y="362" width="155" height="48" rx="8" fill="#edf9f2" stroke="#9fd3b8" />
+    <text x="369" y="382" text-anchor="middle" font-size="12" font-weight="700" fill="#087a4b">要確認なし</text>
+    <text x="369" y="399" text-anchor="middle" font-size="10" fill="#087a4b">このタスクの結果を反映</text>
+
+    <rect x="465" y="362" width="155" height="48" rx="8" fill="#fff8e7" stroke="#efd7a3" />
+    <text x="542" y="382" text-anchor="middle" font-size="12" font-weight="700" fill="#8f5700">要確認あり</text>
+    <text x="542" y="399" text-anchor="middle" font-size="10" fill="#8f5700">このタスクの確認待ちを作成</text>
+
+    <line x1="620" y1="386" x2="838" y2="412" stroke="#175cd3" stroke-width="1.7" marker-end="url(#arrow)" />
+    <text x="728" y="393" text-anchor="middle" font-size="10.5" font-weight="700" fill="#175cd3">taskId で関連付け</text>
+
+    <rect x="852" y="384" width="238" height="66" rx="8" fill="#f7faff" stroke="#9db9ec" />
+    <text x="971" y="405" text-anchor="middle" font-size="12.5" font-weight="700">このタスクだけを処理</text>
+    <text x="971" y="422" text-anchor="middle" font-size="10" fill="#475467">候補選択・再照合・確認完了</text>
+    <text x="971" y="438" text-anchor="middle" font-size="10" fill="#667085">他のバッチタスクには影響しない</text>
+
+    <rect x="30" y="474" width="1060" height="32" rx="7" fill="#fff8e7" stroke="#efd7a3" />
+    <text x="560" y="497" text-anchor="middle" font-size="11" font-weight="700" fill="#5e3b07">結果はタスク単位で保存　•　旧タスクは自身だけ更新　•　50件超の分割統合は Zurich 様へ確認</text>
+  </g>
+</svg>

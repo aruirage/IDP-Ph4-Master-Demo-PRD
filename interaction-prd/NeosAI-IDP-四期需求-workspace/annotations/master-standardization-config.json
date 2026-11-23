@@ -1,0 +1,53 @@
+{
+  "pageId": "master-standardization-config",
+  "annotations": [
+    {
+      "id": "a-standardization-config-1",
+      "number": 1,
+      "target": ".standardization-page__sync",
+      "anchor": { "x": 0.5, "y": 0.5 },
+      "x": 0.5,
+      "y": 0.148,
+      "coordinateSpace": "document",
+      "title": "主数据同步",
+      "content": "标准化 API 连接在 API 设置中维护。页面打开后自动同步主数据表、列和提示信息，也可手动重新同步。",
+      "status": "active"
+    },
+    {
+      "id": "a-standardization-config-2",
+      "number": 2,
+      "target": ".v-config-list-aside",
+      "anchor": { "x": 0.5, "y": 0.5 },
+      "x": 0.20,
+      "y": 0.48,
+      "coordinateSpace": "document",
+      "title": "照合组列表",
+      "content": "支持搜索、新增、复制、名称变更、删除和变更履历。组 ID 由系统生成并隐藏。",
+      "status": "active"
+    },
+    {
+      "id": "a-standardization-config-3",
+      "number": 3,
+      "target": ".standardization-page__main",
+      "anchor": { "x": 0.5, "y": 0.5 },
+      "x": 0.62,
+      "y": 0.42,
+      "coordinateSpace": "document",
+      "title": "组配置",
+      "content": "依次维护组名、适用场景、主数据和照合字段。新增字段仅能选择场景共同拥有的账票和字段。",
+      "status": "active"
+    },
+    {
+      "id": "a-standardization-config-4",
+      "number": 4,
+      "target": ".standardization-page__footer",
+      "anchor": { "x": 0.5, "y": 0.5 },
+      "x": 0.84,
+      "y": 0.88,
+      "coordinateSpace": "document",
+      "title": "保存",
+      "content": "保存前执行场景兼容、字段存在性和组规则校验。全部通过后才更新最新 groupsVersion 和变更履历。",
+      "status": "active"
+    }
+  ]
+}

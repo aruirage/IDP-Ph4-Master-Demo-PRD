@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>主データ照合 API｜案件・バッチ・補件の取扱い確認</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #657086;
+      --line: #d8dee8;
+      --blue: #175cd3;
+      --blue-soft: #eef4ff;
+      --slate-soft: #f6f8fb;
+      --green: #16794b;
+      --green-soft: #edf9f2;
+      --amber: #9a5b08;
+      --amber-soft: #fff8e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e9edf3;
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      line-height: 1.65;
+    }
+    .page {
+      width: min(1240px, calc(100% - 32px));
+      margin: 24px auto;
+      padding: 42px 48px 52px;
+      background: #fff;
+      box-shadow: 0 8px 36px rgba(23, 32, 51, 0.1);
+    }
+    header { border-bottom: 1px solid var(--line); padding-bottom: 24px; }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 3px 9px;
+      border: 1px solid #b9cdf2;
+      border-radius: 4px;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    h1 { margin: 0; font-size: 30px; line-height: 1.35; letter-spacing: 0.01em; }
+    .meta { margin-top: 10px; color: var(--muted); font-size: 14px; }
+    .lead {
+      margin: 24px 0 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--blue);
+      background: var(--blue-soft);
+      font-size: 17px;
+      font-weight: 600;
+    }
+    h2 { margin: 34px 0 14px; font-size: 21px; }
+    h3 { margin: 22px 0 10px; font-size: 17px; }
+    p { margin: 8px 0; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+    .summary-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--slate-soft); min-height: 108px; }
+    .summary-card strong { display: block; margin-bottom: 5px; font-size: 15px; }
+    .summary-card span { color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .diagram { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+    .diagram svg { display: block; width: 100%; height: auto; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+    .note { padding: 14px 16px; border: 1px solid #f0dba9; border-radius: 8px; background: var(--amber-soft); color: #5e3b07; font-size: 15px; }
+    .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rule { padding: 16px 18px; border: 1px solid var(--line); border-radius: 8px; }
+    .rule b { color: var(--blue); }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { padding: 11px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--slate-soft); font-weight: 700; }
+    .check { font-size: 16px; white-space: nowrap; }
+    .comment { color: var(--muted); }
+    .decision { margin-top: 18px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 8px; }
+    .decision h3 { margin-top: 0; }
+    .signature { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 16px; margin-top: 18px; }
+    .signature div { padding-top: 22px; border-bottom: 1px solid #98a2b3; color: var(--muted); font-size: 13px; }
+    footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    @media (max-width: 900px) {
+      .page { padding: 28px 22px 36px; }
+      .summary-grid, .rule-grid { grid-template-columns: 1fr 1fr; }
+      h1 { font-size: 25px; }
+    }
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      body { background: #fff; }
+      .page { width: auto; margin: 0; padding: 0; box-shadow: none; }
+      h2 { page-break-after: avoid; }
+      .diagram, table, .decision { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <span class="eyebrow">確認用</span>
+      <h1>主データ照合 API<br />案件・バッチ・補件の取扱い確認</h1>
+      <div class="meta">対象：IDP 案件サービス／主データ照合 API　｜　2026-11-20</div>
+    </header>
+
+    <div class="lead">
+      1バッチを1つの IDP タスクとして扱い、新しいバッチまたは補件が届いた場合は新しいタスクを追加します。<br />
+      Zurich へ送る内容は、その時点の案件に含まれる全有効書類です。
+    </div>
+
+    <section>
+      <h2>運用案</h2>
+      <div class="summary-grid">
+        <div class="summary-card"><strong>案件は1つ</strong><span>案件番号と有効書類の一覧を保持します。</span></div>
+        <div class="summary-card"><strong>1バッチ＝1タスク</strong><span>初回、追加、補件をそれぞれ別タスクとして記録します。</span></div>
+        <div class="summary-card"><strong>全有効書類を送信</strong><span>各タスクで、その時点の案件全体を API に渡します。</span></div>
+        <div class="summary-card"><strong>最新バッチを優先</strong><span>古いタスクの遅延結果は履歴に残し、最新結果を上書きしません。</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>図1　案件、バッチ、補件の関係</h2>
+      <div class="diagram">
+        <svg viewBox="0 0 1180 540" role="img" aria-label="案件にバッチタスクと補件タスクが追加される図">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#7c8aa3" />
+            </marker>
+            <style>
+              .title{font:700 18px "Noto Sans JP",sans-serif;fill:#172033}
+              .sub{font:14px "Noto Sans JP",sans-serif;fill:#657086}
+              .label{font:700 13px "Noto Sans JP",sans-serif;fill:#175cd3;letter-spacing:.03em}
+              .body{font:15px "Noto Sans JP",sans-serif;fill:#344054}
+              .small{font:13px "Noto Sans JP",sans-serif;fill:#657086}
+              .chip{font:13px "Noto Sans JP",sans-serif;fill:#344054}
+              .line{stroke:#7c8aa3;stroke-width:2;fill:none}
+            </style>
+          </defs>
+
+          <rect x="32" y="26" width="1116" height="104" rx="12" fill="#f6f8fb" stroke="#d8dee8" />
+          <text x="54" y="58" class="label">CASE</text>
+          <text x="106" y="59" class="title">CLAIM-2025-00001</text>
+          <text x="54" y="88" class="body">案件の有効書類</text>
+          <rect x="186" y="72" width="126" height="28" rx="14" fill="#fff" stroke="#cfd7e4" />
+          <text x="202" y="91" class="chip">保険金請求書</text>
+          <rect x="322" y="72" width="92" height="28" rx="14" fill="#fff" stroke="#cfd7e4" />
+          <text x="342" y="91" class="chip">診断書</text>
+          <rect x="424" y="72" width="92" height="28" rx="14" fill="#fff" stroke="#cfd7e4" />
+          <text x="444" y="91" class="chip">領収書</text>
+          <rect x="526" y="72" width="132" height="28" rx="14" fill="#fff" stroke="#cfd7e4" />
+          <text x="542" y="91" class="chip">本人確認書類</text>
+          <text x="978" y="58" class="small">案件単位で最新の有効書類を保持</text>
+
+          <path d="M210 130 L210 178" class="line" marker-end="url(#arrow)" />
+          <path d="M580 130 L580 178" class="line" marker-end="url(#arrow)" />
+          <path d="M970 130 L970 178" class="line" marker-end="url(#arrow)" />
+
+          <g>
+            <rect x="40" y="180" width="340" height="250" rx="12" fill="#fff" stroke="#cfd7e4" />
+            <text x="62" y="212" class="label">BATCH TASK 1</text>
+            <text x="62" y="242" class="title">初回ファイル</text>
+            <text x="62" y="272" class="body">batchSeq = 1</text>
+            <text x="62" y="302" class="body">送信書類：2件</text>
+            <text x="62" y="328" class="small">請求書＋診断書</text>
+            <line x1="62" y1="346" x2="358" y2="346" stroke="#e4e8ef" />
+            <text x="62" y="376" class="body">結果：batchSeq 1 として保存</text>
+            <text x="62" y="402" class="small">新しいバッチが届いても取消さない</text>
+          </g>
+
+          <g>
+            <rect x="420" y="180" width="340" height="250" rx="12" fill="#eef4ff" stroke="#9db9ec" />
+            <text x="442" y="212" class="label">BATCH TASK 2</text>
+            <text x="442" y="242" class="title">追加ファイル</text>
+            <text x="442" y="272" class="body">batchSeq = 2</text>
+            <text x="442" y="302" class="body">送信書類：3件</text>
+            <text x="442" y="328" class="small">請求書＋診断書＋領収書</text>
+            <line x1="442" y1="346" x2="738" y2="346" stroke="#c9d8f4" />
+            <text x="442" y="376" class="body">結果：差分と影響項目のみ反映</text>
+            <text x="442" y="402" class="small">古い batchSeq の結果では上書きしない</text>
+          </g>
+
+          <g>
+            <rect x="800" y="180" width="340" height="250" rx="12" fill="#fff" stroke="#cfd7e4" />
+            <text x="822" y="212" class="label">BATCH TASK 3</text>
+            <text x="822" y="242" class="title">補件ファイル</text>
+            <text x="822" y="272" class="body">batchSeq = 3 / SUPPLEMENT</text>
+            <text x="822" y="302" class="body">送信書類：4件</text>
+            <text x="822" y="328" class="small">全有効書類＋本人確認書類</text>
+            <line x1="822" y1="346" x2="1118" y2="346" stroke="#e4e8ef" />
+            <text x="822" y="376" class="body">結果：補件で影響した項目を再評価</text>
+            <text x="822" y="402" class="small">既存の確認済み項目は再利用</text>
+          </g>
+
+          <path d="M380 305 L410 305" class="line" marker-end="url(#arrow)" />
+          <path d="M760 305 L790 305" class="line" marker-end="url(#arrow)" />
+
+          <rect x="40" y="462" width="1100" height="52" rx="8" fill="#f8fafc" stroke="#d8dee8" />
+          <text x="62" y="494" class="body">重要：各バッチの API リクエストには、その時点の案件に含まれる全有効書類を含めます。新規ファイルだけを送る運用にはしません。</text>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#175cd3"></i>新しく追加されたタスク</span>
+          <span><i style="background:#cfd7e4"></i>案件に保持される既存タスク</span>
+          <span>バッチは IDP の管理単位です。API の処理単位は案件スナップショットです。</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>図2　遅れて返ってきた結果の扱い</h2>
+      <div class="diagram">
+        <svg viewBox="0 0 1180 330" role="img" aria-label="古いタスクの結果が最新結果を上書きしないことを示す図">
+          <defs>
+            <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#7c8aa3" />
+            </marker>
+            <style>
+              .boxTitle{font:700 17px "Noto Sans JP",sans-serif;fill:#172033}
+              .boxBody{font:14px "Noto Sans JP",sans-serif;fill:#344054}
+              .boxSmall{font:13px "Noto Sans JP",sans-serif;fill:#657086}
+              .arrowLine{stroke:#7c8aa3;stroke-width:2;fill:none}
+            </style>
+          </defs>
+          <rect x="36" y="42" width="250" height="88" rx="10" fill="#fff" stroke="#cfd7e4" />
+          <text x="58" y="76" class="boxTitle">Task 1（batchSeq 1）</text>
+          <text x="58" y="103" class="boxBody">遅れて SUCCEEDED</text>
+
+          <rect x="36" y="188" width="250" height="88" rx="10" fill="#eef4ff" stroke="#9db9ec" />
+          <text x="58" y="222" class="boxTitle">Task 2（batchSeq 2）</text>
+          <text x="58" y="249" class="boxBody">先に SUCCEEDED</text>
+
+          <path d="M286 86 L390 86" class="arrowLine" marker-end="url(#arrow2)" />
+          <path d="M286 232 L390 232" class="arrowLine" marker-end="url(#arrow2)" />
+
+          <rect x="400" y="42" width="300" height="88" rx="10" fill="#f8fafc" stroke="#cfd7e4" />
+          <text x="422" y="76" class="boxTitle">比較</text>
+          <text x="422" y="103" class="boxBody">1 &lt; 2 → 古い結果</text>
+
+          <rect x="400" y="188" width="300" height="88" rx="10" fill="#edf9f2" stroke="#a8d9c0" />
+          <text x="422" y="222" class="boxTitle">比較</text>
+          <text x="422" y="249" class="boxBody">2 = 最新 → 反映</text>
+
+          <path d="M700 86 L804 86" class="arrowLine" marker-end="url(#arrow2)" />
+          <path d="M700 232 L804 232" class="arrowLine" marker-end="url(#arrow2)" />
+
+          <rect x="814" y="42" width="330" height="88" rx="10" fill="#fff8e8" stroke="#f0dba9" />
+          <text x="836" y="76" class="boxTitle">履歴にだけ保存</text>
+          <text x="836" y="103" class="boxSmall">案件の現在値・確認待ちには反映しない</text>
+
+          <rect x="814" y="188" width="330" height="88" rx="10" fill="#edf9f2" stroke="#a8d9c0" />
+          <text x="836" y="222" class="boxTitle">案件の現在値へ反映</text>
+          <text x="836" y="249" class="boxSmall">差分の確認待ちだけを新規作成</text>
+        </svg>
+      </div>
+    </section>
+
+    <section>
+      <h2>IDP側で保持する対応情報</h2>
+      <div class="rule-grid">
+        <div class="rule"><b>batchTaskId</b><br />1バッチごとの IDP タスク。一覧と待ち件数の単位。</div>
+        <div class="rule"><b>batchSeq</b><br />案件内の受信順。古い結果を判別するために使用。</div>
+        <div class="rule"><b>clientRequestId</b><br />案件番号、バッチ順、分割番号を含む API の冪等キー。</div>
+        <div class="rule"><b>apiTaskIds</b><br />Zurich の taskId。通常1件、50書類超では複数。</div>
+        <div class="rule"><b>lastAppliedBatchSeq</b><br />案件の現在値に最後に反映したバッチ順。</div>
+        <div class="rule"><b>affectedItems</b><br />補件により再確認・再反映が必要になった項目。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Zurich様への確認事項</h2>
+      <table>
+        <thead>
+          <tr><th style="width:48px">No.</th><th>確認内容</th><th>IDP側の提案</th><th style="width:180px">ご回答</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>同一案件で複数タスクを同時実行できますか。</td><td>可能。新バッチ到着時は旧タスクを取消さない。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+          <tr><td>2</td><td>新バッチ到着時に旧タスクを取消す必要がありますか。</td><td>同一バッチの再アップロード・再OCR時のみ取消す。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+          <tr><td>3</td><td>旧タスクの遅延結果はどう扱いますか。</td><td>履歴保存のみ。最新バッチの結果を上書きしない。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+          <tr><td>4</td><td>補件を新しいバッチタスクとして扱えますか。</td><td>新タスクを追加し、全有効書類を送信する。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+          <tr><td>5</td><td>同一案件の複数タスクで <code>itemId</code> は再利用されますか。</td><td>タスク間の同一性判定には使用しない。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+          <tr><td>6</td><td><code>caseRevision</code> または <code>snapshotId</code> を追加できますか。</td><td>IDP の <code>clientRequestId</code> で代替可能。API 項目があると照合しやすい。</td><td class="comment">□ 問題なし　□ 条件付き　□ 要変更</td></tr>
+        </tbody>
+      </table>
+
+      <div class="decision">
+        <h3>補足コメント</h3>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+        <div class="signature">
+          <div>ご確認者</div>
+          <div>ご確認日</div>
+          <div>管理番号</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      この資料は、IDP 側で複数バッチと補件を管理する場合の運用案です。API の責任範囲と、IDP が保持する案件状態を分けて確認するための資料です。
+    </footer>
+  </main>
+</body>
+</html>

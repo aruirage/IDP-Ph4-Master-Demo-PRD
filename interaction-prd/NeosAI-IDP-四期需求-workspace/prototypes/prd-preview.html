@@ -1,0 +1,3910 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NeosAI IDP · 四期 PRD</title><style>
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:32px}body{margin:0;background:#fafafa;color:#202939;font:15px/1.8 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}aside{position:fixed;inset:0 auto 0 0;width:270px;padding:28px 20px;border-right:1px solid #e5e7eb;background:#fff;overflow:auto}aside strong{display:block;font-size:20px;margin-bottom:4px}aside small{color:#697586}nav{margin-top:22px}nav a{display:block;color:#536174;text-decoration:none;padding:5px 10px;border-radius:4px;line-height:1.6}nav a:hover,nav a.active{background:#edf4ff;color:#175cd3}nav .level-2{font-weight:600;margin-top:12px}nav .level-3{padding-left:22px;font-size:13px}.document{margin-left:270px;padding:28px 40px 100px;max-width:1600px}.tools{display:flex;justify-content:flex-end;gap:10px;margin-bottom:20px}.tools a,.tools button{font:inherit;font-size:14px;padding:5px 13px;background:#fff;color:#175cd3;border:1px solid #d0d5dd;border-radius:4px;text-decoration:none;cursor:pointer}article{background:white;padding:36px 42px;border:1px solid #e5e7eb;border-radius:8px}h1{font-size:27px;line-height:1.5;margin:0 0 30px}h2{font-size:23px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-top:50px}h3{font-size:19px;margin-top:32px}h4{font-size:16px;margin-top:25px}p{margin:12px 0}li{margin:5px 0}a{color:#175cd3}table{border-collapse:collapse;width:100%;font-size:14px;margin:24px 0;overflow-wrap:anywhere}table+table{margin-top:32px}th,td{text-align:left;border:1px solid #dce2eb;padding:10px 12px;vertical-align:top}th{background:#f1f5fb;font-weight:600}pre{padding:18px;background:#f6f8fa;overflow:auto;border-radius:5px;font-size:13px;line-height:1.7}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}p code,td code{background:#f0f3f7;padding:2px 4px;border-radius:3px}.diagram{overflow:auto;border:1px solid #e5e7eb;border-radius:5px;margin:20px 0;padding:18px;background:#fff}.mermaid{min-width:1100px}.mermaid svg{max-width:none!important;width:auto;min-width:1100px}a:focus-visible,button:focus-visible{outline:2px solid #175cd3;outline-offset:3px}@media(max-width:1000px){aside{position:relative;width:auto;max-height:300px}.document{margin:0;padding:16px}article{padding:20px}.diagram{padding:8px}}@media print{aside,.tools{display:none}.document{margin:0;padding:0;max-width:none}article{border:0;padding:0}h2,h3,h4{break-after:avoid}tr{break-inside:avoid}.diagram{overflow:visible}.mermaid{min-width:0}.mermaid svg{min-width:0;width:100%;max-width:100%!important}}
+</style></head><body><aside><strong>NeosAI IDP</strong><small>四期产品需求文档</small><nav><a class="level-2" href="#section-1">第 1 章｜本期范围与优先级</a><a class="level-3" href="#section-2">1.1 背景与目标</a><a class="level-3" href="#section-3">1.2 本期范围</a><a class="level-3" href="#section-4">1.3 本期更新功能清单</a><a class="level-3" href="#section-5">1.4 里程碑与优先级</a><a class="level-3" href="#section-6">1.5 上下游关系与依赖</a><a class="level-2" href="#section-7">第 2 章｜用户故事与旅程</a><a class="level-3" href="#section-8">2.1 故事地图</a><a class="level-3" href="#section-9">2.2 原子用户故事</a><a class="level-3" href="#section-10">2.3 现状旅程</a><a class="level-3" href="#section-11">2.4 目标旅程</a><a class="level-2" href="#section-12">第 3 章｜术语、数据结构与权限</a><a class="level-3" href="#section-13">3.1 术语与词汇表</a><a class="level-3" href="#section-14">3.2 模块与对象关系</a><a class="level-3" href="#section-15">3.3 主数据、组与字段结构</a><a class="level-3" href="#section-16">3.4 批次、任务与结果结构</a><a class="level-3" href="#section-17">3.5 数据结构常见问题</a><a class="level-3" href="#section-18">3.6 权限</a><a class="level-2" href="#section-19">第 4 章｜API 契约</a><a class="level-3" href="#section-20">4.1 API 调用总览</a><a class="level-3" href="#section-21">4.2 公共响应与对象</a><a class="level-3" href="#section-22">4.3 配置接口</a><a class="level-3" href="#section-23">4.4 照合执行接口</a><a class="level-3" href="#section-24">4.5 人工确认与重新照合接口</a><a class="level-2" href="#section-25">第 5 章｜功能详情</a><a class="level-3" href="#section-26">5.1 标准化 API 连接</a><a class="level-3" href="#section-27">5.2 マスタ与照合组配置</a><a class="level-3" href="#section-28">5.3 业务场景与批次照合</a><a class="level-3" href="#section-29">5.4 OCR抽出确认与结果应用</a><a class="level-3" href="#section-30">5.5 端到端流程与模块交接</a><a class="level-3" href="#section-31">5.6 跨模块通用性与非功能要求</a><a class="level-2" href="#section-32">第 6 章｜异常、注意点与附件</a><a class="level-3" href="#section-33">6.1 跨模块异常情况</a><a class="level-3" href="#section-34">6.2 注意点</a><a class="level-3" href="#section-35">6.3 接口规格书附件</a></nav></aside><main class="document"><div class="tools"><a href="http://127.0.0.1:5197/v4/standardization" target="_blank" rel="noopener">打开原型</a><button onclick="window.print()">打印 / PDF</button></div><article><h2 id="section-1">第 1 章｜本期范围与优先级</h2>
+<h3 id="section-2">1.1 背景与目标</h3>
+<p>四期接入 Zurich 综合主数据名称标准化 API。上游已有案件集约、文件补件、OCR抽出和 OCR抽出确认任务。主数据照合接入这些既有业务链路，使用独立业务批次、异步任务和现有 OCR抽出确认待办。</p>
+<p>本 PRD 的正文、字段说明和流程说明使用简体中文。界面文案、API 字段值、接口返回内容和示例中的日语保留原文。</p>
+<p>本期要完成以下结果。</p>
+<ul>
+<li>配置管理员可以通过 Zurich 返回的主数据 schema 配置可复用的照合组。</li>
+<li>业务场景管理员可以在 OCR抽出后放置「マスタ照合」节点。节点按当前业务场景自动读取适用的照合组。</li>
+<li>新文件和补件以批次为单位提交 Zurich，异步获取结果。</li>
+<li>IDP 按结果中的 targets 回填无须确认的项目，将需要确认的结果合并到该批次的 OCR抽出确认。</li>
+<li>组外字段保持 OCR抽出值。</li>
+<li>照合组、默认组来源、整体版本和变更履历可追溯。</li>
+</ul>
+<h3 id="section-3">1.2 本期范围</h3>
+<table>
+<thead>
+<tr>
+<th>范围</th>
+<th>本期内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>API 连接</td>
+<td>在「API設定 → 外部API」维护 Zurich 标准化 API 的 Base URL 和 API Key</td>
+</tr>
+<tr>
+<td>主数据设定</td>
+<td>获取主数据表、列、hint、显示名和默认组，维护照合组</td>
+</tr>
+<tr>
+<td>业务场景</td>
+<td>在 OCR抽出后配置「マスタ照合」节点</td>
+</tr>
+<tr>
+<td>批次执行</td>
+<td>一批文件对应一个业务批次，补件创建新批次，按批次异步执行和合并结果</td>
+</tr>
+<tr>
+<td>结果应用</td>
+<td>自动回填、人工确认、候选改选和单字段重新照合</td>
+</tr>
+<tr>
+<td>通用性与非功能</td>
+<td>不写主数据表专用逻辑，兼容动态 schema，并满足认证、超时和缓冲区要求</td>
+</tr>
+<tr>
+<td>追溯</td>
+<td>保存 groupsVersion、任务快照、组变更履历和任务执行记录</td>
+</tr>
+</tbody></table>
+<h3 id="section-4">1.3 本期更新功能清单</h3>
+<p>本章共 72 项，包含 28 项式样书 P0 业务功能、24 项 IDP 产品支撑功能、8 项文件批次与照合模式、5 项通用性与非功能要求、8 项第 5 期功能。</p>
+<h4>1.3.1 本期 P0 业务功能</h4>
+<p>S、Q、A、C、E、G、N 编号来自 Zurich API v1.1 §1.4。P 和 B 编号是 IDP 为落实这些编号补充的产品功能与批次场景。</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能名</th>
+<th>一句话</th>
+<th>PRD 章节</th>
+<th>配置或执行</th>
+<th>原型状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S-01</td>
+<td>照合组管理</td>
+<td>创建、修改、删除照合组，并保持稳定的 <code>groupId</code></td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-02</td>
+<td>主数据 schema 驱动</td>
+<td>主数据表、列、hint 和显示名由 API 一览生成，版本变化后无需重启</td>
+<td>5.2</td>
+<td>配置</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>S-03</td>
+<td>字段选择</td>
+<td>可以选择账票字段、表格列和案件标准字段，组内可以引用其他账票类型</td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-04</td>
+<td>多组复用与回填警告</td>
+<td>同一主数据表可以有多个组，同一字段可作为多个组输入，重复回填目标显示警告</td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-05</td>
+<td>保存前校验</td>
+<td>调用 <code>POST /v1/groups/validate</code>，按组和字段显示错误，有错误的组不保存</td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-06</td>
+<td>版本与变更履历</td>
+<td>保存 <code>groupsVersion</code> 和完整快照，保留组变更履历</td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-07</td>
+<td>默认组导入</td>
+<td>从 <code>GET /v1/groups/defaults</code> 获取默认组并作为 IDP 配置保存</td>
+<td>5.2</td>
+<td>配置</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>S-10</td>
+<td>回填目标配置</td>
+<td><code>OUTPUT</code> 和 <code>INPUT_OUTPUT</code> 可以使用可写主数据列。<code>inputRole=NONE</code> 的列本期按组处理规则只允许 <code>OUTPUT</code></td>
+<td>5.2</td>
+<td>配置</td>
+<td>待 Zurich 确认</td>
+</tr>
+<tr>
+<td>Q-01</td>
+<td>批次请求</td>
+<td>OCR抽出后，按当前业务批次发送文件、有效组和组版本，超过 50 份时拆分</td>
+<td>5.3</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>Q-02</td>
+<td>标准字段请求</td>
+<td>组使用 <code>CASE_FIELD</code> 时，请求发送案件标准字段容器 <code>caseResult</code>，字段值位于 <code>caseResult.fields[]</code></td>
+<td>5.3</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>Q-03</td>
+<td>请求重发与重新处理</td>
+<td>超时或 500 时使用相同 <code>clientRequestId</code> 重发，重新处理时创建新批次和新请求</td>
+<td>5.3</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>Q-04</td>
+<td>并发、限流与退避</td>
+<td>IDP 必须限制发送并发并处理退避，429/503 遵循 <code>Retry-After</code>。并发上限、退避间隔和最大重试次数待开发与测试确认</td>
+<td>5.3</td>
+<td>执行</td>
+<td>待实现</td>
+</tr>
+<tr>
+<td>Q-05</td>
+<td>完成轮询与游标</td>
+<td>查询已完成任务列表并保存 <code>nextCursor</code>，IDP 重启后继续查询</td>
+<td>5.3</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>Q-06</td>
+<td>终态读取与分页</td>
+<td>任务结束后读取结果，<code>items</code> 超过一页时继续获取</td>
+<td>5.3</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>Q-07</td>
+<td>Fallback 开关</td>
+<td>业务场景可以关闭兜底照合，关闭时发送 <code>options.fallback=false</code></td>
+<td>5.3</td>
+<td>配置、执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-01</td>
+<td>结果分支判断</td>
+<td>仅使用任务和账票状态、<code>needsReview</code>、<code>master.values</code>、<code>targets</code> 和 <code>selection</code> 处理结果</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-02</td>
+<td>自动回填</td>
+<td><code>needsReview=false</code> 时按 <code>targets</code> 写入值，并保存 <code>selection</code></td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-03</td>
+<td>待确认分流</td>
+<td><code>needsReview=true</code> 时不回填，进入 OCR抽出确认</td>
+<td>5.4</td>
+<td>执行</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>A-04</td>
+<td>阻断结果处理</td>
+<td>未知位置、<code>FAILED</code>、<code>INVALID_GROUP</code>、<code>MASTER_TABLE_NOT_ENABLED</code> 转人工，<code>CANCELLED</code> 不反映</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-05</td>
+<td>回填目标防重复采用</td>
+<td>回填目标项目不重复设置 IDP 的主数据匹配</td>
+<td>5.4</td>
+<td>执行</td>
+<td>待实现</td>
+</tr>
+<tr>
+<td>A-06</td>
+<td>采用记录保存</td>
+<td>按 <code>item</code> 保存所采用记录、<code>needsReview</code> 和原因，供确认、审计、输出和反馈使用</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-07</td>
+<td>不使用置信度阈值</td>
+<td><code>confidence</code> 不用于自动采用或转人工判断</td>
+<td>5.4</td>
+<td>执行</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>A-08</td>
+<td>Fallback 结果转人工</td>
+<td><code>groupId=FALLBACK</code> 必须转人工，并使用 <code>FALLBACK_USED</code> warning 识别未配置账票</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>A-09</td>
+<td>通用回填处理</td>
+<td>从所采用行的 <code>values</code> 按 <code>targets</code> 写入，不按主数据表或列编写专用逻辑</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>C-01</td>
+<td>确认信息展示</td>
+<td>显示识别值、主数据推定、候选、原因、依据和备注，并展示拆分要素</td>
+<td>5.4</td>
+<td>执行</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>C-02</td>
+<td>候选改选</td>
+<td>选择候选后按该候选的 <code>values</code> 和 <code>targets</code> 回填，并保存 <code>selection</code></td>
+<td>5.4</td>
+<td>执行</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>C-03</td>
+<td>字段级重新照合</td>
+<td>修改识别值后调用 <code>POST /v1/items/standardize</code> 并反映新结果</td>
+<td>5.4</td>
+<td>执行</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>C-05</td>
+<td>自动采用行改选</td>
+<td>自动采用的结果仍显示所采用行和候选，可以改选其他候选</td>
+<td>5.4</td>
+<td>执行</td>
+<td>已覆盖</td>
+</tr>
+</tbody></table>
+<h4>1.3.2 产品页面与支撑功能</h4>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能名</th>
+<th>一句话</th>
+<th>PRD 章节</th>
+<th>原型状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P-01</td>
+<td>外部API连接</td>
+<td>在 API設定中维护连接类型、Base URL、认证方式、API Key 和连接状态</td>
+<td>5.1</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-02</td>
+<td>主数据菜单替换</td>
+<td>四期入口显示「マスタデータ設定」，原主数据维护菜单隐藏并保留回滚入口</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-03</td>
+<td>主数据同步与下拉读取</td>
+<td>点击「マスタ同期」更新主数据和显示名，下拉展示当前可用定义，不清除现有映射</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-04</td>
+<td>照合组列表</td>
+<td>左侧显示组列表、搜索、追加和当前选中状态</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-05</td>
+<td>组操作</td>
+<td>支持复制、改名、删除和查看变更履历</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-06</td>
+<td>默认组差异更新</td>
+<td>显示「新規」「更新」「変更なし」状态，并以固定覆盖方式更新默认组</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-07</td>
+<td>组基本信息</td>
+<td>配置组名、一个主数据表和多个适用场景</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-08</td>
+<td>通常与标准字段切换</td>
+<td>在账票字段、表格列和案件标准字段之间切换</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-09</td>
+<td>hint 配置</td>
+<td>从主数据 hint 中选择补充判断信息，限制为只照合</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-10</td>
+<td>角色显示</td>
+<td>显示「主入力」「補助入力」「反映のみ」角色标签，并随配置重新计算</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-11</td>
+<td>设置验证</td>
+<td>执行本地规则和 <code>groups/validate</code>，错误按组和字段展示</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-12</td>
+<td>版本与履历</td>
+<td>保存整体版本和快照，查看组变更履历</td>
+<td>5.2</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-13</td>
+<td>主数据照合节点</td>
+<td>业务场景内可添加、删除和配置「マスタ照合」节点</td>
+<td>5.3</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-14</td>
+<td>场景自动读取组</td>
+<td>节点按当前场景读取适用组，只显示组数量和配置错误</td>
+<td>5.3</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-15</td>
+<td>节点双变量</td>
+<td>输出处理状态和通过或待确认的处理结果，并控制工作流前进</td>
+<td>5.3</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-16</td>
+<td>批次待办</td>
+<td>新文件和补件分别创建批次，批次结果分别进入 OCR抽出确认</td>
+<td>5.3、5.4</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-17</td>
+<td>多任务结果合并</td>
+<td>同一批次多个 <code>taskId</code> 合并为一个确认入口</td>
+<td>5.3、5.4</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-18</td>
+<td>同账票多逻辑文件</td>
+<td>主单据逐文件生成对象，表格列按行生成，辅助输入冲突转人工</td>
+<td>5.3</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-19</td>
+<td>OCR确认结果展示</td>
+<td>在同一待办中展示 OCR 原值、主数据、候选、原因、依据和备注</td>
+<td>5.4</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-20</td>
+<td>自动采用结果查看</td>
+<td>自动采用后仍可查看主数据行和候选并改选</td>
+<td>5.4</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-21</td>
+<td>单字段重新照合</td>
+<td>保存一个修改后的识别字段后提交 <code>items/standardize</code></td>
+<td>5.4</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>P-23</td>
+<td>审计与快照</td>
+<td>保存任务快照、采用记录、组变更履历和执行结果</td>
+<td>5.2、5.3、5.4</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>P-24</td>
+<td>空态与错误状态</td>
+<td>覆盖 API 未配置、主数据未加载、无组、无适用组、连接失败和校验失败</td>
+<td>5.1、5.2、5.3</td>
+<td>已覆盖</td>
+</tr>
+</tbody></table>
+<h4>1.3.3 文件批次与照合方式</h4>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>场景或模式</th>
+<th>处理规则</th>
+<th>PRD 章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>B-01</td>
+<td>追加文件到达</td>
+<td>创建新的独立业务批次，并生成该批次的 OCR抽出确认</td>
+<td>5.3、5.4</td>
+</tr>
+<tr>
+<td>B-02</td>
+<td>补件到达</td>
+<td>创建新的独立业务批次，不并入已处理批次</td>
+<td>5.3、5.4</td>
+</tr>
+<tr>
+<td>B-03</td>
+<td>批次重新处理</td>
+<td>业务上重新处理时按该批次提交时点的文件集合生成新请求，并使用新的请求序号</td>
+<td>5.3</td>
+</tr>
+<tr>
+<td>B-04</td>
+<td>多批次排队</td>
+<td>Zurich 在同一优先级内按受理顺序处理，并发量由 Zurich 控制（式样书 §2.7）</td>
+<td>5.3</td>
+</tr>
+<tr>
+<td>B-05</td>
+<td>超过 50 份</td>
+<td>使用相同 <code>caseNo</code> 拆分请求，多个 <code>taskId</code> 由一个业务批次合并展示</td>
+<td>5.3</td>
+</tr>
+<tr>
+<td>M-01</td>
+<td>照合のみ</td>
+<td>参与匹配，不回填。选择候选后保留 OCR 值</td>
+<td>5.2、5.4</td>
+</tr>
+<tr>
+<td>M-02</td>
+<td>照合して反映</td>
+<td>参与匹配并回填。选择候选后更新为目标列的值</td>
+<td>5.2、5.4</td>
+</tr>
+<tr>
+<td>M-03</td>
+<td>反映のみ</td>
+<td>不参与匹配，只回填。结果随同组主输入确认一起更新</td>
+<td>5.2、5.4</td>
+</tr>
+</tbody></table>
+<h4>1.3.4 本期 P0 通用性与非功能要求</h4>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能名</th>
+<th>一句话</th>
+<th>PRD 章节</th>
+<th>原型状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>G-01</td>
+<td>主数据通用处理</td>
+<td>配置、请求、回填、确认和输出均不写特定主数据表或列的逻辑</td>
+<td>5.6</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>G-02</td>
+<td>响应兼容性</td>
+<td>忽略未知字段，可扩展枚举按字符串处理，ID 保持字符串</td>
+<td>5.6</td>
+<td>待验证</td>
+</tr>
+<tr>
+<td>G-03</td>
+<td>显示名称来源</td>
+<td>显示名称从主数据表一览和目录获取</td>
+<td>5.2、5.6</td>
+<td>已覆盖</td>
+</tr>
+<tr>
+<td>N-01</td>
+<td>连接安全</td>
+<td>使用 HTTPS 和内部 CA，API Key 不在界面和日志中显示</td>
+<td>5.1、5.6</td>
+<td>部分覆盖</td>
+</tr>
+<tr>
+<td>N-02</td>
+<td>连接与接收限制</td>
+<td>连接、响应等待时间和接收缓冲区按 v1.1 §8.5 执行</td>
+<td>5.6</td>
+<td>待实现</td>
+</tr>
+</tbody></table>
+<h4>1.3.5 第 5 期功能</h4>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>功能名</th>
+<th>一句话</th>
+<th>PRD 章节</th>
+<th>原型状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S-08</td>
+<td>废弃项目标记</td>
+<td>对 <code>deprecated=true</code> 的列和 hint 显示标记，新建配置不可选择</td>
+<td>5.2</td>
+<td>第 5 期</td>
+</tr>
+<tr>
+<td>S-09</td>
+<td>组设置建议</td>
+<td>人工确认后导入 Zurich 的组设置建议</td>
+<td>5.2</td>
+<td>未覆盖</td>
+</tr>
+<tr>
+<td>C-04</td>
+<td>主数据检索</td>
+<td>通过 <code>POST /v1/masters/search</code> 查找其他候选</td>
+<td>5.4</td>
+<td>未覆盖</td>
+</tr>
+<tr>
+<td>E-01</td>
+<td>后续系统登记</td>
+<td>使用 <code>selection</code> 的 <code>object</code>、<code>recordType</code>、<code>recordId</code> 向后续系统登记</td>
+<td>5.4</td>
+<td>未覆盖</td>
+</tr>
+<tr>
+<td>E-03</td>
+<td>结果反馈</td>
+<td>通过 <code>POST /v1/standardizations/{taskId}/feedback</code> 返回人工确定结果</td>
+<td>5.4</td>
+<td>未覆盖</td>
+</tr>
+<tr>
+<td>P-25</td>
+<td>重复回填详情提示</td>
+<td>在字段行显示警告标签，并列出涉及的重复组名</td>
+<td>5.2</td>
+<td>未覆盖</td>
+</tr>
+<tr>
+<td>N-03</td>
+<td>通知脱敏</td>
+<td>Zurich 通知前可以去除个人信息项目</td>
+<td>5.6</td>
+<td>第 5 期</td>
+</tr>
+<tr>
+<td>§5.15</td>
+<td>完成通知 callback</td>
+<td>Zurich 在任务进入终态时通知 IDP，结果仍通过任务接口获取</td>
+<td>5.3</td>
+<td>未覆盖</td>
+</tr>
+</tbody></table>
+<h3 id="section-5">1.4 里程碑与优先级</h3>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>本期 P0</td>
+<td>S-01～S-07、S-10、Q-01～Q-07、A-01～A-09、C-01～C-03、C-05、G-01～G-03、N-01～N-02</td>
+</tr>
+<tr>
+<td>第 5 期</td>
+<td>S-08、S-09、C-04、E-01、E-03、P-25、N-03、完成通知 callback</td>
+</tr>
+</tbody></table>
+<p><code>items/standardize</code> 属于本期 P0，用于 OCR抽出确认中的单个字段重新照合。完成通知和通知脱敏在第 5 期接入，本期使用轮询获取结果。</p>
+<h3 id="section-6">1.5 上下游关系与依赖</h3>
+<table>
+<thead>
+<tr>
+<th>系统或模块</th>
+<th>关系</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>API設定 → 外部API</td>
+<td>提供 Zurich Base URL、API Key 和连接状态</td>
+</tr>
+<tr>
+<td>业务场景设定（「業務シーン設定」）</td>
+<td>提供 sceneId、账票类型和字段，供照合组匹配与节点读取</td>
+</tr>
+<tr>
+<td>OCR抽出</td>
+<td>提供需要照合的批次 OCR 快照</td>
+</tr>
+<tr>
+<td>OCR抽出确认</td>
+<td>承接普通 OCR 待确认项和主数据照合待确认项</td>
+</tr>
+<tr>
+<td>Zurich 标准化 API</td>
+<td>提供主数据 schema、默认组、组校验、批次标准化和单字段重新照合</td>
+</tr>
+</tbody></table>
+<p>接口基准为 Zurich 综合主数据名称标准化 API v1.1。配置期使用 GET /v1/masters、GET /v1/catalog、GET /v1/groups/defaults 和 POST /v1/groups/validate。执行期使用 POST /v1/standardizations、GET /v1/standardizations、GET /v1/standardizations/{taskId}、GET /v1/standardizations/{taskId}/items 和 POST /v1/items/standardize。</p>
+<p>接口的阶段、调用时机、同步性和字段定义统一放在分模块 API 与字段中。</p>
+<h2 id="section-7">第 2 章｜用户故事与旅程</h2>
+<h3 id="section-8">2.1 故事地图</h3>
+<table>
+<thead>
+<tr>
+<th>使用场景</th>
+<th>用户要完成的事</th>
+<th>对应需求</th>
+<th>版本</th>
+<th>功能模块</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>接入 Zurich</td>
+<td>配置地址、认证和 API Key，并确认连接可用</td>
+<td>P-01、N-01</td>
+<td>本期</td>
+<td>API连接</td>
+</tr>
+<tr>
+<td>准备主数据</td>
+<td>同步主数据定义和显示名，导入默认组</td>
+<td>P-03、S-07</td>
+<td>本期</td>
+<td>マスタ与照合组配置</td>
+</tr>
+<tr>
+<td>配置照合组</td>
+<td>选择业务场景、主数据和照合字段并保存</td>
+<td>S-01～S-06、S-10</td>
+<td>本期</td>
+<td>マスタ与照合组配置</td>
+</tr>
+<tr>
+<td>配置业务场景</td>
+<td>在 OCR抽出后加入「マスタ照合」节点</td>
+<td>P-13～P-15</td>
+<td>本期</td>
+<td>业务场景与批次照合</td>
+</tr>
+<tr>
+<td>处理业务批次</td>
+<td>提交 Zurich 任务，等待结果并合并到确认入口</td>
+<td>Q-01～Q-07、B-01～B-05</td>
+<td>本期</td>
+<td>业务场景与批次照合</td>
+</tr>
+<tr>
+<td>核对识别结果</td>
+<td>查看 master、候选项和 OCR 原值，并完成确认</td>
+<td>C-01、C-02、C-05</td>
+<td>本期</td>
+<td>OCR抽出确认与结果应用</td>
+</tr>
+<tr>
+<td>修改后重新照合</td>
+<td>修改一个识别值并重新照合当前 item</td>
+<td>C-03、P-21</td>
+<td>本期</td>
+<td>OCR抽出确认与结果应用</td>
+</tr>
+</tbody></table>
+<h3 id="section-9">2.2 原子用户故事</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>角色</th>
+<th>原子目标</th>
+<th>完成结果</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>US-01</td>
+<td>API管理员</td>
+<td>配置 Zurich 连接</td>
+<td>连接信息保存，API Key 脱敏显示，可单独执行连接测试</td>
+<td>P-01、N-01</td>
+</tr>
+<tr>
+<td>US-02</td>
+<td>マスタ管理员</td>
+<td>同步主数据定义</td>
+<td>masters 和 catalog 可用，已有组配置不被清除</td>
+<td>P-03</td>
+</tr>
+<tr>
+<td>US-03</td>
+<td>マスタ管理员</td>
+<td>导入默认组</td>
+<td>显示新規、更新、変更なし，并可覆盖导入</td>
+<td>S-07</td>
+</tr>
+<tr>
+<td>US-04</td>
+<td>配置管理员</td>
+<td>配置并保存照合组</td>
+<td>组通过校验后保存，生成 groupsVersion 和版本快照</td>
+<td>S-01～S-06、S-10</td>
+</tr>
+<tr>
+<td>US-05</td>
+<td>配置管理员</td>
+<td>查看变更履历</td>
+<td>可查看日時、操作、操作者、内容和所属版本</td>
+<td>S-06、P-12</td>
+</tr>
+<tr>
+<td>US-06</td>
+<td>业务场景管理员</td>
+<td>配置照合节点并处理业务批次</td>
+<td>节点按场景读取适用组，一个批次合并为一个确认入口</td>
+<td>P-13～P-15、Q-01～Q-07、B-01～B-05</td>
+</tr>
+<tr>
+<td>US-07</td>
+<td>OCR经办人</td>
+<td>核对主数据照合结果</td>
+<td>可查看推荐行、候选、OCR 原值、确认理由，并完成确认或改选</td>
+<td>C-01、C-02、C-05</td>
+</tr>
+<tr>
+<td>US-08</td>
+<td>OCR经办人</td>
+<td>修改识别值并重新照合</td>
+<td>只更新当前 item，不新建 task，不影响其他 item</td>
+<td>C-03、P-21</td>
+</tr>
+</tbody></table>
+<h3 id="section-10">2.3 现状旅程</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>现在的做法</th>
+<th>主要问题</th>
+<th>本期变化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>连接 API</td>
+<td>手工填写地址和密钥</td>
+<td>Key 暴露风险，连接是否可用不直观</td>
+<td>保存后脱敏显示，并提供独立连接测试</td>
+</tr>
+<tr>
+<td>配置主数据</td>
+<td>依赖旧主数据规则维护组</td>
+<td>配置项多，字段容易选错</td>
+<td>字段来自 Zurich schema，保存前统一校验</td>
+</tr>
+<tr>
+<td>执行业务批次</td>
+<td>任务和确认待办分散查看</td>
+<td>不清楚任务何时结束，多个 task 难以汇总</td>
+<td>批次内合并 task，统一进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>核对结果</td>
+<td>OCR 原值和多个候选混在一起</td>
+<td>不清楚哪个是推荐行、候选或 OCR 原值</td>
+<td>固定顺序显示推荐、候选、OCR 原值</td>
+</tr>
+<tr>
+<td>修改结果</td>
+<td>修改后重新执行整组照合</td>
+<td>影响范围大，等待时间长</td>
+<td>单字段保存后只重新照合当前 item</td>
+</tr>
+</tbody></table>
+<h3 id="section-11">2.4 目标旅程</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>角色</th>
+<th>动作</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>API管理员</td>
+<td>配置并测试 Zurich 连接</td>
+<td>连接可用于主数据配置和照合执行</td>
+</tr>
+<tr>
+<td>2</td>
+<td>マスタ管理员</td>
+<td>执行「マスタ同期」，按需导入默认组</td>
+<td>主数据定义、显示名和默认组可用</td>
+</tr>
+<tr>
+<td>3</td>
+<td>配置管理员</td>
+<td>创建照合组，选择适用场景、主数据和字段</td>
+<td>组校验通过并保存</td>
+</tr>
+<tr>
+<td>4</td>
+<td>业务场景管理员</td>
+<td>在 OCR抽出后放置「マスタ照合」节点</td>
+<td>节点按 sceneId 自动读取适用组</td>
+</tr>
+<tr>
+<td>5</td>
+<td>IDP</td>
+<td>批次 OCR 完成后提交 Zurich 并轮询结果</td>
+<td>多个 task 在批次内合并</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IDP</td>
+<td>根据 <code>needsReview</code> 分流</td>
+<td>自动采用结果回填，其他结果进入确认</td>
+</tr>
+<tr>
+<td>7</td>
+<td>OCR经办人</td>
+<td>核对结果、改选候选或修改单字段并重新照合</td>
+<td>当前 item 得到最终采用结果</td>
+</tr>
+<tr>
+<td>8</td>
+<td>IDP</td>
+<td>保存采用记录并更新批次</td>
+<td>OCR抽出确认完成，工作流继续</td>
+</tr>
+</tbody></table>
+<h2 id="section-12">第 3 章｜术语、数据结构与权限</h2>
+<h3 id="section-13">3.1 术语与词汇表</h3>
+<table>
+<thead>
+<tr>
+<th>中文</th>
+<th>日语或界面</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据</td>
+<td>マスタデータ</td>
+<td>Zurich 管理的数据表和业务记录。IDP 只读取定义和执行照合，不维护业务记录</td>
+</tr>
+<tr>
+<td>照合组</td>
+<td>照合グループ</td>
+<td>一组主数据与 IDP 字段的映射设置，包含一个主数据表、适用场景和照合字段</td>
+</tr>
+<tr>
+<td>主数据表</td>
+<td>マスタ</td>
+<td>一个照合组使用的一个 Zurich 主数据 schema，例如 DISEASE、DRUG</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>マスタ列</td>
+<td>Zurich <code>columns[]</code> 中的列，包含 <code>inputRole</code> 和 <code>writable</code></td>
+</tr>
+<tr>
+<td>提示信息</td>
+<td>ヒント</td>
+<td>Zurich <code>hints[]</code> 中的补充判断信息，只能用于 INPUT</td>
+</tr>
+<tr>
+<td>照合方式</td>
+<td>照合方式</td>
+<td>组成员使用 INPUT、OUTPUT 或 INPUT_OUTPUT</td>
+</tr>
+<tr>
+<td>角色</td>
+<td>ロール</td>
+<td>IDP 根据照合方式和主数据列属性计算的显示值</td>
+</tr>
+<tr>
+<td>主输入</td>
+<td>主入力</td>
+<td><code>inputRole=PRIMARY</code> 的组输入</td>
+</tr>
+<tr>
+<td>辅助输入</td>
+<td>補助入力</td>
+<td>除主输入外参与判断的主数据列或 hint</td>
+</tr>
+<tr>
+<td>回填</td>
+<td>反映</td>
+<td>IDP 按 item 的 <code>targets</code> 写入主数据值</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>適用シーン</td>
+<td>照合组生效的业务场景。节点按当前 <code>sceneId</code> 匹配</td>
+</tr>
+<tr>
+<td>业务批次</td>
+<td>批次</td>
+<td>IDP 定义的一次主数据照合处理单位</td>
+</tr>
+<tr>
+<td>Zurich 任务</td>
+<td>taskId</td>
+<td>一次 Zurich 标准化请求对应的异步任务</td>
+</tr>
+<tr>
+<td>照合对象</td>
+<td>item</td>
+<td>Zurich 返回的一个标准化对象</td>
+</tr>
+<tr>
+<td>候选</td>
+<td>candidates</td>
+<td>包含采用行在内的主数据候选，默认最多 5 条</td>
+</tr>
+<tr>
+<td>组整体版本</td>
+<td>groupsVersion</td>
+<td>全部照合组的一次保存快照版本</td>
+</tr>
+<tr>
+<td>默认组</td>
+<td>既定グループ</td>
+<td>Zurich 返回的推荐组模板</td>
+</tr>
+<tr>
+<td>兜底照合</td>
+<td>FALLBACK</td>
+<td>Zurich 对未配置组账票生成的临时照合结果</td>
+</tr>
+</tbody></table>
+<h3 id="section-14">3.2 模块与对象关系</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>负责内容</th>
+<th>主要入口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>API连接</td>
+<td>Zurich 连接、认证和连接状态</td>
+<td>API設定 → 外部API</td>
+</tr>
+<tr>
+<td>マスタ与照合组配置</td>
+<td>主数据同步、组配置、默认组、校验和版本</td>
+<td>マスタデータ設定</td>
+</tr>
+<tr>
+<td>业务场景与批次照合</td>
+<td>节点配置、批次执行、轮询和结果合并</td>
+<td>業務シーン設定</td>
+</tr>
+<tr>
+<td>OCR抽出确认与结果应用</td>
+<td>候选确认、字段回填和采用记录</td>
+<td>OCR抽出確認</td>
+</tr>
+</tbody></table>
+<pre><code class="language-mermaid">flowchart LR
+    MASTER[主数据表] --&gt;|1:N| GROUP[照合组]
+    SCENE[业务场景] --&gt;|N:M| GROUP
+    GROUP --&gt;|1:N| MEMBER[组成员]
+    MEMBER --&gt;|N:1| MASTER_ITEM[主数据列或 hint]
+    MEMBER --&gt;|N:1| IDP_FIELD[IDP 字段]
+    IDP_FIELD --&gt;|FIELD| DOC_FIELD[账票字段]
+    IDP_FIELD --&gt;|TABLE_COLUMN| TABLE[表格列]
+    IDP_FIELD --&gt;|CASE_FIELD| CASE[案件标准字段]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>关系</th>
+<th>基数</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据表与组</td>
+<td>1:N</td>
+<td>一个组只能选择一个主数据表，同一主数据表可以创建多个组</td>
+</tr>
+<tr>
+<td>组与适用场景</td>
+<td>N:M</td>
+<td>一个组可以适用多个场景，一个场景可以命中多个组</td>
+</tr>
+<tr>
+<td>组与成员</td>
+<td>1:N</td>
+<td>一个组包含一个或多个组成员</td>
+</tr>
+<tr>
+<td>成员与主数据项目</td>
+<td>N:1</td>
+<td>每个成员选择一个主数据列或一个 hint</td>
+</tr>
+<tr>
+<td>IDP 字段与组输入</td>
+<td>1:N</td>
+<td>同一个 IDP 字段可以作为多个组的输入</td>
+</tr>
+<tr>
+<td>IDP 字段与回填目标</td>
+<td>1:N</td>
+<td>多个组回填同一位置时允许保存并显示警告，运行时冲突转人工</td>
+</tr>
+</tbody></table>
+<h3 id="section-15">3.3 主数据、组与字段结构</h3>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>关系</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据表与列</td>
+<td>1:N</td>
+<td>列来自 Zurich <code>columns[]</code></td>
+</tr>
+<tr>
+<td>主数据表与 hint</td>
+<td>1:N</td>
+<td>hint 来自 Zurich <code>hints[]</code>，只用于补充判断</td>
+</tr>
+<tr>
+<td>主数据行与列值</td>
+<td>1:N</td>
+<td><code>values</code> 包含该主数据行的全部列值</td>
+</tr>
+<tr>
+<td>组成员与 IDP 字段</td>
+<td>N:1</td>
+<td>每个成员选择一个 IDP 字段和一个主数据项目</td>
+</tr>
+<tr>
+<td>组成员与照合方式</td>
+<td>N:1</td>
+<td>每个成员选择一个 <code>INPUT</code>、<code>OUTPUT</code> 或 <code>INPUT_OUTPUT</code></td>
+</tr>
+</tbody></table>
+<p>IDP 字段有三种类型。</p>
+<table>
+<thead>
+<tr>
+<th>IDP 字段类型</th>
+<th>含义</th>
+<th>结果位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FIELD</td>
+<td>单据普通字段</td>
+<td><code>FIELD</code></td>
+</tr>
+<tr>
+<td>TABLE_COLUMN</td>
+<td>表格整列配置</td>
+<td>每个表格行生成 <code>TABLE_CELL</code> 位置</td>
+</tr>
+<tr>
+<td>CASE_FIELD</td>
+<td>案件级标准字段</td>
+<td><code>CASE_FIELD</code></td>
+</tr>
+</tbody></table>
+<p>主数据侧有两种可选项目。</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>用途</th>
+<th>可用照合方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据列</td>
+<td>可作为输入或回填目标</td>
+<td>受 <code>inputRole</code>、<code>writable</code> 和组配置限制</td>
+</tr>
+<tr>
+<td>hint</td>
+<td>只作为补充判断信息</td>
+<td>只能使用 <code>INPUT</code></td>
+</tr>
+</tbody></table>
+<p>hint 会进入 item 的 <code>inputs[]</code>，不会进入 <code>targets</code>，因此不能回填。</p>
+<p>组结构约束：</p>
+<ul>
+<li>同一组内，同一主数据列或 hint 只能出现一次。</li>
+<li>同一主数据列或 hint 可以在不同组中复用。</li>
+<li>同一个 IDP 字段可以作为多个组的输入。</li>
+<li>同一个 IDP 字段作为多个组的回填目标时允许保存并警告，运行时冲突转人工。</li>
+<li><code>INPUT</code> 只参与判断，<code>OUTPUT</code> 只回填，<code>INPUT_OUTPUT</code> 同时参与判断和回填。</li>
+</ul>
+<h3 id="section-16">3.4 批次、任务与结果结构</h3>
+<pre><code class="language-mermaid">flowchart LR
+    BATCH[业务批次] --&gt;|1:N| TASK[Zurich task]
+    BATCH --&gt;|1:N| DOC[账票]
+    TASK --&gt;|1:N| ITEM[照合对象]
+    DOC --&gt;|1:N| ITEM
+    GROUP[照合组] --&gt;|1:N| ITEM
+    ITEM --&gt;|1:N| INPUT[inputs]
+    ITEM --&gt;|1:N| TARGET[targets]
+    ITEM --&gt;|0:1| MASTER_ROW[master]
+    ITEM --&gt;|0:N| CANDIDATE[candidates]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>关系</th>
+<th>基数</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业务批次与 task</td>
+<td>1:N</td>
+<td>一个批次因请求拆分可以对应多个 taskId</td>
+</tr>
+<tr>
+<td>业务批次与账票</td>
+<td>1:N</td>
+<td>一个批次包含本次处理的账票快照</td>
+</tr>
+<tr>
+<td>task 与组</td>
+<td>N:M</td>
+<td>task 保存本次提交使用的组设置快照</td>
+</tr>
+<tr>
+<td>task 与 item</td>
+<td>1:N</td>
+<td>一个 task 返回多个照合对象</td>
+</tr>
+<tr>
+<td>组与 item</td>
+<td>1:N</td>
+<td>一个组可以生成 0 个、1 个或多个 item</td>
+</tr>
+<tr>
+<td>item 与 inputs</td>
+<td>1:N</td>
+<td>本次参与判断的输入可以有多个</td>
+</tr>
+<tr>
+<td>item 与 targets</td>
+<td>1:N</td>
+<td>本次回填目标可以有多个</td>
+</tr>
+<tr>
+<td>item 与 master</td>
+<td>1:0..1</td>
+<td>无法确定主数据行时为 null</td>
+</tr>
+<tr>
+<td>item 与 candidates</td>
+<td>1:N</td>
+<td>包含采用行，默认最多 5 条</td>
+</tr>
+</tbody></table>
+<p><code>itemId</code> 在 task 内唯一，列表顺序没有业务意义。<code>FALLBACK</code> 和 <code>ADHOC</code> 是特殊 groupId，不对应 IDP 保存的普通组。</p>
+<h3 id="section-17">3.5 数据结构常见问题</h3>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一个主数据表能否配置多个组？</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>一个组能否配置多个主数据表？</td>
+<td>不可以</td>
+</tr>
+<tr>
+<td>同一个场景能否命中多个组？</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>不同组能否复用同一主数据列或 hint？</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>同一组内能否重复使用同一主数据列或 hint？</td>
+<td>不可以</td>
+</tr>
+<tr>
+<td>一个 item 能否回填多个 IDP 字段？</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>一个组是否有独立版本？</td>
+<td>没有，使用整体 groupsVersion</td>
+</tr>
+<tr>
+<td>hint 是否产生回填目标？</td>
+<td>不会</td>
+</tr>
+<tr>
+<td>已运行任务是否受组配置修改影响？</td>
+<td>不会，任务使用提交时快照</td>
+</tr>
+</tbody></table>
+<h3 id="section-18">3.6 权限</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>配置端</th>
+<th>工作流节点</th>
+<th>OCR抽出确认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>配置管理员</td>
+<td>查看、编辑、保存、同步、查看履历</td>
+<td>查看</td>
+<td>查看</td>
+</tr>
+<tr>
+<td>业务场景管理员</td>
+<td>查看</td>
+<td>添加、删除和连接节点</td>
+<td>查看</td>
+</tr>
+<tr>
+<td>OCR经办人</td>
+<td>无</td>
+<td>无</td>
+<td>确认、修正和重新照合</td>
+</tr>
+</tbody></table>
+<h2 id="section-19">第 4 章｜API 契约</h2>
+<p>字段名称、类型和必填性以 <a href="/attachments/zurich-standardization-api-v1.1-zh-CN.md">综合主数据名称标准化 API 规格书 v1.1 中文版</a> 为准。本章只列 IDP 实际发送或使用的字段，不新增 API 字段。</p>
+<p>标记说明：<code>必填</code> 和 <code>条件必填</code> 取自式样书；<code>可选</code> 不表示 IDP 不发送；<code>IDP发送</code> 只说明实现策略。</p>
+<h3 id="section-20">4.1 API 调用总览</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>接口</th>
+<th>IDP阶段</th>
+<th>调用时机</th>
+<th>同步性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>配置</td>
+<td><code>GET /v1/masters</code></td>
+<td>本期</td>
+<td>点击标题栏「マスタ同期」</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>配置</td>
+<td><code>GET /v1/catalog</code></td>
+<td>本期</td>
+<td>点击标题栏「マスタ同期」</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>配置</td>
+<td><code>GET /v1/groups/defaults</code></td>
+<td>本期</td>
+<td>点击「既定グループ」</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>配置</td>
+<td><code>POST /v1/groups/validate</code></td>
+<td>本期</td>
+<td>点击「検証」或「保存」且本地校验通过</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>照合执行</td>
+<td><code>POST /v1/standardizations</code></td>
+<td>本期</td>
+<td>一个业务批次提交</td>
+<td>异步，可由 <code>waitSeconds</code> 同步返回</td>
+</tr>
+<tr>
+<td>照合执行</td>
+<td><code>GET /v1/standardizations</code></td>
+<td>本期</td>
+<td>轮询已完成任务</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>照合执行</td>
+<td><code>GET /v1/standardizations/{taskId}</code></td>
+<td>本期</td>
+<td>任务进入终态或查询状态</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>照合执行</td>
+<td><code>GET /v1/standardizations/{taskId}/items</code></td>
+<td>本期</td>
+<td><code>itemsNextCursor</code> 存在</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>照合执行</td>
+<td><code>POST /v1/standardizations/{taskId}/cancel</code></td>
+<td>本期</td>
+<td>业务明确中止任务</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>人工确认</td>
+<td><code>POST /v1/items/standardize</code></td>
+<td>本期</td>
+<td>修改识别值并保存成功后</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>运维</td>
+<td><code>GET /v1/health</code></td>
+<td>按需</td>
+<td>连接排障或运行状态确认</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>后续</td>
+<td><code>POST /v1/standardizations/{taskId}/feedback</code></td>
+<td>第 5 期</td>
+<td>本期不调用</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>后续</td>
+<td><code>POST /v1/masters/search</code></td>
+<td>第 5 期</td>
+<td>本期不调用</td>
+<td>同步</td>
+</tr>
+<tr>
+<td>后续</td>
+<td><code>POST /v1/groups/suggest</code></td>
+<td>第 5 期</td>
+<td>本期不调用</td>
+<td>同步</td>
+</tr>
+</tbody></table>
+<p>完成通知 <code>callbackUrl</code> 在第 5 期接入，本期使用轮询。<code>GET /v1/health</code> 不进入本期页面流程。</p>
+<h3 id="section-21">4.2 公共响应与对象</h3>
+<h4>公共响应 <code>code / msg / requestId / warnings / data</code></h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>code</code></td>
+<td>Integer</td>
+<td>成功为 0，失败时与 HTTP 状态码一致</td>
+</tr>
+<tr>
+<td><code>msg</code></td>
+<td>String</td>
+<td>错误或提示说明</td>
+</tr>
+<tr>
+<td><code>requestId</code></td>
+<td>String</td>
+<td>排障编号</td>
+</tr>
+<tr>
+<td><code>warnings</code></td>
+<td>Object[]</td>
+<td>响应警告。公共响应和单据警告含 <code>code</code>、<code>message</code>；任务级 <code>data.warnings[]</code> 在组相关警告时还含 <code>groupId</code></td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>Object</td>
+<td>当前接口业务数据</td>
+</tr>
+</tbody></table>
+<h4>公共对象</h4>
+<ul>
+<li><code>Group</code>：<code>groupId</code>必填、<code>label</code>可选、<code>masterTable</code>必填、<code>members</code>必填。</li>
+<li><code>Member</code>：<code>column</code> 或 <code>hint</code>条件必填、<code>mode</code>必填、<code>field</code>必填。</li>
+<li><code>Member.field</code>：<code>type</code>必填，<code>documentTypeId</code>、<code>fieldName</code>、<code>tableName</code>、<code>columnName</code>按字段类型条件必填。</li>
+<li><code>Document</code>：<code>documentId</code>、<code>documentTypeId</code>、<code>format</code>必填；<code>result</code> 或 <code>fields</code>按格式条件必填。</li>
+<li><code>Item</code>：<code>itemId</code>、<code>groupId</code>、<code>masterTable</code>、<code>source</code>、<code>inputs</code>、<code>targets</code>、<code>status</code>、<code>needsReview</code> 为核心字段；<code>master</code>、<code>proposedName</code>、<code>confidence</code>、<code>candidates</code>、<code>reviewReasons</code>、<code>notices</code>、<code>reason</code>、<code>notesForAssessor</code>、<code>alternatives</code>、<code>splitItems</code>、<code>webEvidence</code> 按结果使用。</li>
+<li><code>caseReview</code> 是任务级字段，位于任务结果的 <code>data.caseReview</code>，不属于单个 <code>Item</code>。</li>
+</ul>
+<h4>字段归属</h4>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>来源</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sceneId</code></td>
+<td>Zurich 请求字段，值来自 IDP 业务场景</td>
+<td>当前业务场景 ID</td>
+</tr>
+<tr>
+<td><code>groupsVersion</code></td>
+<td>IDP 生成，作为 Zurich 请求字段发送</td>
+<td>组配置整体版本。Zurich 在 <code>data.versions.groups</code> 中回显</td>
+</tr>
+<tr>
+<td><code>sourceDefaultGroupId</code></td>
+<td>IDP 内部字段</td>
+<td>IDP 保存的 Zurich 默认组来源 ID，不发送给 Zurich</td>
+</tr>
+<tr>
+<td><code>masterStatus</code>、<code>masterResult</code></td>
+<td>IDP 工作流节点输出变量</td>
+<td>节点处理状态和业务结果，不是 Zurich 返回字段</td>
+</tr>
+<tr>
+<td>组快照、组变更履历</td>
+<td>IDP 内部数据</td>
+<td>用于版本留痕和审计，不是 Zurich 返回字段</td>
+</tr>
+</tbody></table>
+<h3 id="section-22">4.3 配置接口</h3>
+<h4><code>GET /v1/masters</code></h4>
+<p>调用条件：点击标题栏「マスタ同期」。请求无业务参数。</p>
+<table>
+<thead>
+<tr>
+<th>IDP读取并使用的返回字段（式样书字段子集）</th>
+<th>类型</th>
+<th>必填性</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data.schemaVersion</code></td>
+<td>String</td>
+<td>返回</td>
+<td>判断 schema 是否更新</td>
+</tr>
+<tr>
+<td><code>data.masterTables[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>主数据表列表</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].masterTable</code></td>
+<td>String</td>
+<td>返回</td>
+<td>组引用的主数据表键</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].label</code></td>
+<td>String</td>
+<td>返回</td>
+<td>主数据表显示名</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].enabled</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>是否可用于新配置</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].deprecated</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>废弃标记，本期不使用</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>该主数据表的列定义</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[].column</code></td>
+<td>String</td>
+<td>返回</td>
+<td>列键</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[].label</code></td>
+<td>String</td>
+<td>返回</td>
+<td>列显示名</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[].inputRole</code></td>
+<td>String</td>
+<td>返回</td>
+<td><code>PRIMARY</code>、<code>SUPPORTING</code>、<code>NONE</code></td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[].writable</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>是否可回填</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].columns[].deprecated</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>废弃标记，本期不使用</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].hints[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>该主数据表的 hint 定义</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].hints[].hint</code></td>
+<td>String</td>
+<td>返回</td>
+<td>hint 键</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].hints[].label</code></td>
+<td>String</td>
+<td>返回</td>
+<td>hint 显示名</td>
+</tr>
+<tr>
+<td><code>data.masterTables[].hints[].deprecated</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>废弃标记，本期不使用</td>
+</tr>
+</tbody></table>
+<h4><code>GET /v1/catalog</code></h4>
+<p>调用条件：点击标题栏「マスタ同期」。请求无业务参数。</p>
+<table>
+<thead>
+<tr>
+<th>IDP读取并使用的返回字段（式样书字段子集）</th>
+<th>类型</th>
+<th>必填性</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data.catalogVersion</code></td>
+<td>String</td>
+<td>返回</td>
+<td>枚举版本</td>
+</tr>
+<tr>
+<td><code>data.enums</code></td>
+<td>Object</td>
+<td>返回</td>
+<td>枚举值和显示名</td>
+</tr>
+</tbody></table>
+<h4><code>GET /v1/groups/defaults</code></h4>
+<p>调用条件：点击「既定グループ」。请求无业务参数。</p>
+<table>
+<thead>
+<tr>
+<th>IDP读取并使用的返回字段（式样书字段子集）</th>
+<th>类型</th>
+<th>必填性</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data.version</code></td>
+<td>String</td>
+<td>返回</td>
+<td>默认组版本</td>
+</tr>
+<tr>
+<td><code>data.groups[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>默认组模板</td>
+</tr>
+<tr>
+<td><code>data.groups[].groupId</code></td>
+<td>String</td>
+<td>返回</td>
+<td>Zurich 默认组 ID</td>
+</tr>
+<tr>
+<td><code>data.groups[].label</code></td>
+<td>String</td>
+<td>返回</td>
+<td>组名</td>
+</tr>
+<tr>
+<td><code>data.groups[].masterTable</code></td>
+<td>String</td>
+<td>返回</td>
+<td>主数据表键</td>
+</tr>
+<tr>
+<td><code>data.groups[].members[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>组成员</td>
+</tr>
+</tbody></table>
+<h4><code>POST /v1/groups/validate</code></h4>
+<p>调用条件：本地校验通过后点击「検証」。本期只发送 <code>groups</code>，不发送 <code>documents</code>、<code>caseResult</code>。</p>
+<table>
+<thead>
+<tr>
+<th>请求字段</th>
+<th>类型</th>
+<th>必填性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>groups</code></td>
+<td>Object[]</td>
+<td>必填</td>
+<td>要校验的组，结构见公共对象</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>IDP读取并使用的返回字段（式样书字段子集）</th>
+<th>类型</th>
+<th>必填性</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data.groups[].groupId</code></td>
+<td>String</td>
+<td>返回</td>
+<td>对应请求组</td>
+</tr>
+<tr>
+<td><code>data.groups[].valid</code></td>
+<td>Boolean</td>
+<td>返回</td>
+<td>是否有错误</td>
+</tr>
+<tr>
+<td><code>data.groups[].errors[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td><code>code</code>、<code>message</code>、<code>memberIndex</code></td>
+</tr>
+<tr>
+<td><code>data.groups[].warnings[]</code></td>
+<td>Object[]</td>
+<td>返回</td>
+<td>不阻止保存的警告</td>
+</tr>
+</tbody></table>
+<h3 id="section-23">4.4 照合执行接口</h3>
+<h4><code>POST /v1/standardizations</code></h4>
+<p>调用条件：一个业务批次 OCR抽出完成。</p>
+<table>
+<thead>
+<tr>
+<th>请求字段</th>
+<th>类型</th>
+<th>必填性</th>
+<th>IDP发送策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>clientRequestId</code></td>
+<td>String</td>
+<td>可选</td>
+<td>每次请求发送，用于幂等</td>
+</tr>
+<tr>
+<td><code>caseNo</code></td>
+<td>String</td>
+<td>必填</td>
+<td>IDP 案件编号</td>
+</tr>
+<tr>
+<td><code>sceneId</code></td>
+<td>String</td>
+<td>可选</td>
+<td>当前业务场景 ID</td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>Object[]</td>
+<td>可选</td>
+<td>IDP 有有效组时发送</td>
+</tr>
+<tr>
+<td><code>groupsVersion</code></td>
+<td>String</td>
+<td>可选</td>
+<td>发送当前保存版本</td>
+</tr>
+<tr>
+<td><code>waitSeconds</code></td>
+<td>Integer</td>
+<td>可选</td>
+<td>IDP 设置同步等待秒数</td>
+</tr>
+<tr>
+<td><code>options.fallback</code></td>
+<td>Boolean</td>
+<td>可选</td>
+<td>跟随业务场景开关</td>
+</tr>
+<tr>
+<td><code>options.maxCandidates</code></td>
+<td>Integer</td>
+<td>可选</td>
+<td>默认值 5，可设置范围 1 至 10，候选数包含 <code>isMaster=true</code> 的主数据行</td>
+</tr>
+<tr>
+<td><code>caseResult</code></td>
+<td>Object</td>
+<td>可选</td>
+<td>案件标准字段容器，组使用 <code>CASE_FIELD</code> 时发送</td>
+</tr>
+<tr>
+<td><code>caseResult.fields[]</code></td>
+<td>Object[]</td>
+<td>条件必填</td>
+<td>标准字段数组，<code>CASE_FIELD.fieldName</code> 与其中 <code>name</code> 对应</td>
+</tr>
+<tr>
+<td><code>caseResult.fields[].name</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>案件标准字段名</td>
+</tr>
+<tr>
+<td><code>caseResult.fields[].value</code></td>
+<td>JSON value</td>
+<td>条件必填</td>
+<td>案件标准字段值，按 IDP 输出原样发送</td>
+</tr>
+<tr>
+<td><code>documents</code></td>
+<td>Object[]</td>
+<td>必填</td>
+<td>当前批次账票</td>
+</tr>
+<tr>
+<td><code>documents[].documentId</code></td>
+<td>String</td>
+<td>必填</td>
+<td>逻辑文件 ID</td>
+</tr>
+<tr>
+<td><code>documents[].documentTypeId</code></td>
+<td>String</td>
+<td>必填</td>
+<td>账票类别 ID</td>
+</tr>
+<tr>
+<td><code>documents[].format</code></td>
+<td>String</td>
+<td>必填</td>
+<td>IDP 使用 <code>IDP_RESULT_JSON</code></td>
+</tr>
+<tr>
+<td><code>documents[].result</code></td>
+<td>Object</td>
+<td>条件必填</td>
+<td><code>format=IDP_RESULT_JSON</code> 时必填</td>
+</tr>
+</tbody></table>
+<p><code>FIELDS</code> 和 <code>documents[].fields</code> 属于式样书能力，本期 IDP 不发送。</p>
+<p>IDP读取并使用的返回字段（式样书字段子集）：<code>data.taskId</code>、<code>data.clientRequestId</code>、<code>data.caseNo</code>、<code>data.status</code>、<code>data.queue</code>、<code>data.progress</code>、<code>data.pollAfterMs</code>、<code>data.versions</code>、<code>data.summary</code>、<code>data.warnings</code>、<code>data.failure</code>、<code>data.documents</code>、<code>data.items</code>、<code>data.itemsNextCursor</code>、<code>data.caseReview</code>。</p>
+<h4><code>GET /v1/standardizations</code></h4>
+<table>
+<thead>
+<tr>
+<th>查询参数</th>
+<th>类型</th>
+<th>必填性</th>
+<th>IDP发送策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>finishedAfter</code></td>
+<td>Long</td>
+<td>条件必填</td>
+<td>首次查询发送</td>
+</tr>
+<tr>
+<td><code>cursor</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>第二次起发送上次 <code>nextCursor</code></td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>Integer</td>
+<td>可选</td>
+<td>IDP 使用 100</td>
+</tr>
+</tbody></table>
+<p>IDP读取并使用的返回字段（式样书字段子集）：<code>data.tasks[].taskId</code>、<code>data.tasks[].clientRequestId</code>、<code>data.tasks[].caseNo</code>、<code>data.tasks[].status</code>、<code>data.tasks[].completedAt</code>、<code>data.nextCursor</code>。</p>
+<h4><code>GET /v1/standardizations/{taskId}</code></h4>
+<table>
+<thead>
+<tr>
+<th>Path/查询参数</th>
+<th>类型</th>
+<th>必填性</th>
+<th>IDP使用方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>taskId</code></td>
+<td>String</td>
+<td>必填</td>
+<td>Path 参数</td>
+</tr>
+<tr>
+<td><code>includeItems</code></td>
+<td>Boolean</td>
+<td>可选</td>
+<td>IDP 发送 <code>true</code></td>
+</tr>
+</tbody></table>
+<p>IDP读取并使用的返回字段（式样书字段子集）：完整 <code>data</code> 任务对象，使用 <code>data.status</code>、<code>data.documents</code>、<code>data.items</code>、<code>data.itemsNextCursor</code>、<code>data.caseReview</code>、<code>data.warnings</code> 驱动流程和展示。</p>
+<h4><code>GET /v1/standardizations/{taskId}/items</code></h4>
+<table>
+<thead>
+<tr>
+<th>Path/查询参数</th>
+<th>类型</th>
+<th>必填性</th>
+<th>IDP使用方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>taskId</code></td>
+<td>String</td>
+<td>必填</td>
+<td>Path 参数</td>
+</tr>
+<tr>
+<td><code>cursor</code></td>
+<td>String</td>
+<td>可选</td>
+<td>存在后续页时发送</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>Integer</td>
+<td>可选</td>
+<td>IDP 使用 100</td>
+</tr>
+</tbody></table>
+<p>IDP读取并使用的返回字段（式样书字段子集）：<code>data.items[]</code>、<code>data.nextCursor</code>。</p>
+<h4><code>POST /v1/standardizations/{taskId}/cancel</code></h4>
+<p>请求只有 Path 参数 <code>taskId</code>，无请求体。IDP读取并使用的返回字段（式样书字段子集）：<code>data.status</code>。</p>
+<h3 id="section-24">4.5 人工确认与重新照合接口</h3>
+<h4><code>POST /v1/items/standardize</code></h4>
+<table>
+<thead>
+<tr>
+<th>请求字段</th>
+<th>类型</th>
+<th>必填性</th>
+<th>IDP发送策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>clientRequestId</code></td>
+<td>String</td>
+<td>可选</td>
+<td>IDP 发送</td>
+</tr>
+<tr>
+<td><code>caseNo</code></td>
+<td>String</td>
+<td>可选</td>
+<td>IDP 发送用于审计</td>
+</tr>
+<tr>
+<td><code>ref</code></td>
+<td>Object</td>
+<td>可选</td>
+<td>原任务与 item 的引用容器</td>
+</tr>
+<tr>
+<td><code>ref.taskId</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>指定 <code>ref</code> 时发送</td>
+</tr>
+<tr>
+<td><code>ref.itemId</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>指定 <code>ref</code> 时发送</td>
+</tr>
+<tr>
+<td><code>masterTable</code></td>
+<td>String</td>
+<td>必填</td>
+<td>当前 item 的主数据表</td>
+</tr>
+<tr>
+<td><code>inputs[]</code></td>
+<td>Object[]</td>
+<td>必填</td>
+<td>修改后的输入</td>
+</tr>
+<tr>
+<td><code>inputs[].column</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>与 <code>hint</code> 二选一</td>
+</tr>
+<tr>
+<td><code>inputs[].hint</code></td>
+<td>String</td>
+<td>条件必填</td>
+<td>与 <code>column</code> 二选一</td>
+</tr>
+<tr>
+<td><code>inputs[].value</code></td>
+<td>String</td>
+<td>必填</td>
+<td>修改后的值</td>
+</tr>
+<tr>
+<td><code>targets</code></td>
+<td>Object</td>
+<td>可选</td>
+<td>IDP 有明确 targets 时发送</td>
+</tr>
+<tr>
+<td><code>options.timeoutSeconds</code></td>
+<td>Integer</td>
+<td>可选</td>
+<td>IDP 发送超时设置</td>
+</tr>
+</tbody></table>
+<p>IDP读取并使用的返回字段（式样书字段子集）：<code>data.itemId</code>、<code>data.groupId</code>、<code>data.masterTable</code>、<code>data.source</code>、<code>data.inputs</code>、<code>data.targets</code>、<code>data.status</code>、<code>data.needsReview</code>、<code>data.master</code>、<code>data.proposedName</code>、<code>data.candidates</code>、<code>data.reviewReasons</code>、<code>data.notices</code>、<code>data.reason</code>、<code>data.notesForAssessor</code>、<code>data.alternatives</code>、<code>data.splitItems</code>、<code>data.ref</code>。</p>
+<p>重新照合不创建任务，不重跑组，也不修改批次任务状态。</p>
+<h2 id="section-25">第 5 章｜功能详情</h2>
+<h3 id="section-26">5.1 标准化 API 连接</h3>
+<h4>页面与入口</h4>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>入口</td>
+<td>API設定 → 外部API</td>
+</tr>
+<tr>
+<td>使用者</td>
+<td>配置管理员</td>
+</tr>
+<tr>
+<td>连接使用方</td>
+<td>主数据设定和主数据照合节点通过 IDP 后端使用该连接</td>
+</tr>
+</tbody></table>
+<h4>字段与参数规格</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必填</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>连接类型</td>
+<td>是</td>
+<td>下拉选择。默认不选中任何值，当前选项包含 Zurich</td>
+</tr>
+<tr>
+<td>连接名</td>
+<td>是</td>
+<td>用于外部API列表显示</td>
+</tr>
+<tr>
+<td>Base URL</td>
+<td>是</td>
+<td>Zurich 提供的 HTTPS 环境 URL，与 /v1/{resource} 组合使用</td>
+</tr>
+<tr>
+<td>认证方式</td>
+<td>是</td>
+<td>按连接类型选择。Zurich 使用 Bearer API Key</td>
+</tr>
+<tr>
+<td>API Key</td>
+<td>是</td>
+<td>后端保存受保护引用，前端只显示「登録済み」和脱敏预览</td>
+</tr>
+<tr>
+<td>接続テスト</td>
+<td>否</td>
+<td>保存连接后手动执行，不阻断连接配置保存</td>
+</tr>
+</tbody></table>
+<p>连接名称、提供商、认证方式、Base URL 和首次输入的 API Key 显示「必須」标签。页面底部显示已保存凭证的脱敏预览。浏览器不得持有或直接使用 Zurich Token。「登録済み」只表示 API Key 已保存，不表示连接已验证。</p>
+<h4>状态与按钮</h4>
+<table>
+<thead>
+<tr>
+<th>按钮或状态</th>
+<th>条件</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>保存</td>
+<td>必填项完整</td>
+<td>保存 Base URL、连接类型和 API Key 的受保护引用。连接状态保持「未確認」，或在 endpoint 与 API Key 未变化时沿用上一次测试结果</td>
+</tr>
+<tr>
+<td>接続テスト</td>
+<td>连接已保存</td>
+<td>调用 Zurich 接口确认连接</td>
+</tr>
+<tr>
+<td>登録済み</td>
+<td>API Key 已保存</td>
+<td>只表示凭证已登记，显示脱敏预览，不代表连接有效</td>
+</tr>
+<tr>
+<td>未確認</td>
+<td>尚未测试，或 Base URL、连接类型、API Key 已修改</td>
+<td>可以保存，主数据加载前需要确认连接</td>
+</tr>
+<tr>
+<td>有効</td>
+<td>接続テスト成功</td>
+<td>可以作为主数据设定的数据源</td>
+</tr>
+<tr>
+<td>無効</td>
+<td>接続テスト失败</td>
+<td>显示连接错误，主数据加载失败</td>
+</tr>
+</tbody></table>
+<h4>异常与边界</h4>
+<ul>
+<li>未配置标准化 API 时，「マスタデータ設定」显示「標準化APIが設定されていません」和「API設定へ」入口。</li>
+<li>API 连接失败时，显示「標準化APIに接続できません」。</li>
+<li>Base URL、连接类型或 API Key 变化后，原连接测试状态失效。</li>
+<li>Zurich API Key 有效期为 1 年。到期前签发新 Key，切换期间新旧两个 Key 均可使用。依据式样书 §2.2。</li>
+<li>连接使用 HTTPS，TLS 版本不低于 1.2。IDP 服务器配置 Zurich 内部 CA 证书。依据式样书 N-01 和 §2.1。</li>
+</ul>
+<h3 id="section-27">5.2 マスタ与照合组配置</h3>
+<h4>页面与入口</h4>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>菜单</td>
+<td>業務ルール設定 → マスタデータ設定</td>
+</tr>
+<tr>
+<td>原主数据维护菜单</td>
+<td>四期隐藏。源码和路由保留用于回滚</td>
+</tr>
+<tr>
+<td>使用者</td>
+<td>配置管理员</td>
+</tr>
+</tbody></table>
+<h4>页面结构</h4>
+<table>
+<thead>
+<tr>
+<th>区域</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>左侧</td>
+<td>照合组搜索、追加、既定グループ、组列表和组菜单</td>
+</tr>
+<tr>
+<td>右侧</td>
+<td>グループ名、適用シーン、マスタ、照合フィールド</td>
+</tr>
+<tr>
+<td>底部</td>
+<td>閉じる、検証、保存</td>
+</tr>
+</tbody></table>
+<p>左侧只显示照合组列表，不显示主数据表列表。组内部 groupId 不在界面显示。</p>
+<h4>接口调用时机</h4>
+<table>
+<thead>
+<tr>
+<th>用户动作</th>
+<th>Zurich 接口调用</th>
+<th>调用后处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>打开或刷新页面</td>
+<td>不调用</td>
+<td>只读取 API 连接状态和 IDP 已保存的数据</td>
+</tr>
+<tr>
+<td>点击标题栏「マスタ同期」</td>
+<td>同时发起 <code>GET /v1/masters</code> 和 <code>GET /v1/catalog</code>，两者独立处理</td>
+<td>masters 成功后刷新主数据缓存。catalog 成功后刷新显示名。任一个失败都保留该部分原数据</td>
+</tr>
+<tr>
+<td>点击「既定グループ」</td>
+<td>调用 <code>GET /v1/groups/defaults</code></td>
+<td>打开默认组差异弹窗。点击「更新」只更新组配置，不更新 master 定义</td>
+</tr>
+<tr>
+<td>点击「検証」</td>
+<td>本地校验通过后调用 <code>POST /v1/groups/validate</code></td>
+<td>显示组和字段级错误。本地校验失败时不调用 Zurich</td>
+</tr>
+<tr>
+<td>点击「保存」</td>
+<td>先执行本地校验，再调用 <code>POST /v1/groups/validate</code></td>
+<td>校验通过或仅有警告时保存，生成 <code>groupsVersion</code> 和版本快照；有错误时停止保存</td>
+</tr>
+<tr>
+<td>新增、复制、改名、删除组或编辑字段</td>
+<td>不调用</td>
+<td>只修改 IDP 本地配置，保存前通过「検証」统一校验</td>
+</tr>
+<tr>
+<td>批量执行照合任务</td>
+<td>调用 <code>POST /v1/standardizations</code></td>
+<td>发送当前批次文件、有效组和 <code>groupsVersion</code></td>
+</tr>
+</tbody></table>
+<h4>主数据同步规则</h4>
+<ul>
+<li>masters 和 catalog 独立处理。一个接口失败时，保留该部分上次成功的数据，不使用失败结果覆盖另一部分。</li>
+<li>同步和刷新不清除现有组的 masterTable、members 或默认组配置。</li>
+<li><code>enabled=false</code> 的主数据表不进入新建配置。<code>deprecated=true</code> 的显示标记和禁止选择属于第 5 期，本期读取该字段但不据此禁用选项。</li>
+<li>主数据表、列、hint、输入角色和可写属性全部来自 API 一览，IDP 不维护固定副本。</li>
+<li>新的 <code>schemaVersion</code> 到达后，配置页面无需重启即可使用新的主数据定义。</li>
+<li>可见 UI 不显示 <code>schemaVersion</code>。</li>
+</ul>
+<p>「マスタ同期」位于标题栏右侧，使用蓝底白字主按钮。按钮不显示常驻状态标签。点击后按钮显示 loading，结束后只用 toast 告知成功或失败。失败时保留上一次有效缓存。</p>
+<h4>空态与异常</h4>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>页面表现</th>
+<th>可用操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未配置标准化 API</td>
+<td>显示「標準化APIが設定されていません」</td>
+<td>前往 API設定</td>
+</tr>
+<tr>
+<td>无照合组</td>
+<td>右侧显示空态和两步引导</td>
+<td>第一步「既定グループを取得」，第二步「マスタ同期」</td>
+</tr>
+<tr>
+<td>无主数据缓存</td>
+<td>主数据下拉不可展开，提示先执行「マスタ同期」</td>
+<td>点击标题栏「マスタ同期」</td>
+</tr>
+<tr>
+<td>主数据同步中</td>
+<td>按钮显示 loading，已有缓存和组配置保留</td>
+<td>等待完成</td>
+</tr>
+<tr>
+<td>主数据同步失败</td>
+<td>保留最近一次有效缓存</td>
+<td>查看 toast，再次点击「マスタ同期」</td>
+</tr>
+<tr>
+<td>默认组取得中</td>
+<td>按钮显示 loading</td>
+<td>等待完成</td>
+</tr>
+<tr>
+<td>默认组取得失败</td>
+<td>不修改现有组配置</td>
+<td>查看 toast，再次点击「既定グループ」</td>
+</tr>
+<tr>
+<td>当前场景无适用组</td>
+<td>工作流节点显示配置错误</td>
+<td>前往設定</td>
+</tr>
+</tbody></table>
+<h4>照合组列表</h4>
+<p>左侧列表按组名显示，支持搜索。组菜单包含以下操作。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>コピー</td>
+<td>复制组名、主数据、适用场景和字段。生成新 groupId 和字段 ID</td>
+</tr>
+<tr>
+<td>名称変更</td>
+<td>输入新组名后更新列表并记录履历</td>
+</tr>
+<tr>
+<td>削除</td>
+<td>二次确认后删除组。确认按钮为「OK」</td>
+</tr>
+<tr>
+<td>変更履歴</td>
+<td>查看组级变更记录</td>
+</tr>
+</tbody></table>
+<h4>组基本配置</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必填</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>グループ名</td>
+<td>是</td>
+<td>界面显示名称</td>
+</tr>
+<tr>
+<td>適用シーン</td>
+<td>是</td>
+<td>多选。「全シーン」与其他具体场景互斥，最多直接显示 5 个标签，超出后通过折叠标签查看</td>
+</tr>
+<tr>
+<td>マスタ</td>
+<td>是</td>
+<td>从 GET /v1/masters 获取。一个组只能选择一个主数据表</td>
+</tr>
+</tbody></table>
+<p>「適用シーン」是 IDP 配置字段，不发送给 Zurich。提交任务前从组对象中移除 sceneIds。all 表示「全シーン」，运行时匹配任意当前场景。</p>
+<p>选择「全シーン」时清空其他具体场景。选择任一具体场景时取消「全シーン」。多场景配置的字段范围取所有已选场景账票类型的交集。</p>
+<p>场景后续删除账票或字段时，已有组字段保留。保存时发现字段不在已选场景交集中，系统提示不兼容错误并阻止保存。</p>
+<h4>默认组</h4>
+<p>默认组只在管理员点击左侧「既定グループ」按钮时获取。页面打开、主数据下拉读取和「マスタ同期」都不调用默认组接口。前端不直接调用 Zurich，由 IDP 后端调用 GET /v1/groups/defaults。</p>
+<p>「既定グループ」按钮在执行中显示 loading，结束后只用 toast 告知成功或失败。差异状态「新規」「更新」「変更なし」只在默认组弹窗内展示。</p>
+<p>首次导入默认组时，IDP 为每个默认组生成 groupId，并将 Zurich 的 groupId 保存为 sourceDefaultGroupId。后续同步优先使用 sourceDefaultGroupId 匹配，不受组名、适用场景和成员修改影响。默认组以「全シーン」导入，管理员可以按账票交集调整适用场景。</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>弹窗标题</td>
+<td>既定グループの更新</td>
+</tr>
+<tr>
+<td>表头</td>
+<td>グループ名、マスタ、項目数、状態</td>
+</tr>
+<tr>
+<td>状態</td>
+<td>新規、更新、変更なし</td>
+</tr>
+<tr>
+<td>执行按钮</td>
+<td>更新</td>
+</tr>
+<tr>
+<td>更新方式</td>
+<td>固定覆盖。不提供追加或覆盖方式选择</td>
+</tr>
+</tbody></table>
+<p>点击「更新」后，「新規」组加入左侧列表。「更新」组覆盖 label、masterTable、members，保留本地 groupId 和「適用シーン」。「変更なし」组不修改。Zurich 本次未返回的默认组不自动删除。</p>
+<p>没有 sourceDefaultGroupId 的组视为 IDP 自建组，不参与默认组比对，也不会被默认组覆盖。旧数据缺少来源 ID 时，只有名称、主数据表和成员定义完全一致，才识别为同一默认组并补齐来源关联。</p>
+<h4>照合字段</h4>
+<table>
+<thead>
+<tr>
+<th>页面字段</th>
+<th>API 字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>帳票タイプ</td>
+<td>field.documentTypeId</td>
+</tr>
+<tr>
+<td>フィールド</td>
+<td>field.type、field.fieldName、field.tableName、field.columnName</td>
+</tr>
+<tr>
+<td>マスタ項目</td>
+<td>column 或 hint</td>
+</tr>
+<tr>
+<td>照合方式</td>
+<td>mode</td>
+</tr>
+</tbody></table>
+<p>表格列顺序为 No.、「フィールド」「マスタ項目」「照合方式」「ロール」「操作」。表头左对齐。No. 从 1 开始连续显示。</p>
+<p>「フィールド」列的显示规则如下。普通字段显示为「帳票 › フィールド」。表格列显示为「帳票 › テーブル › 列」。标准字段显示为「標準フィールド › 標準項目」。路径使用纯文字和 <code>›</code> 分隔，不添加边框、背景或胶囊标签。</p>
+<p>「マスタ項目」下拉为一组项目名称，不显示「マスタ列」「ヒント」来源分组，也不在名称旁显示 PRIMARY、SUPPORTING、NONE 或 HINT。<code>data.masterTables[].columns[].label</code> 和 <code>data.masterTables[].hints[].label</code> 是具体项目名称。GET /v1/catalog 只返回枚举显示名，不返回主数据列名。项目在组内的用途只在「ロール」列显示。</p>
+<table>
+<thead>
+<tr>
+<th>照合方式</th>
+<th>API 值</th>
+<th>日文显示</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>照合のみ</td>
+<td>INPUT</td>
+<td>照合のみ</td>
+<td>参与匹配，不回填</td>
+</tr>
+<tr>
+<td>反映のみ</td>
+<td>OUTPUT</td>
+<td>反映のみ</td>
+<td>不参与匹配，只接收回填</td>
+</tr>
+<tr>
+<td>照合して反映</td>
+<td>INPUT_OUTPUT</td>
+<td>照合して反映</td>
+<td>参与匹配并回填</td>
+</tr>
+</tbody></table>
+<p>「照合方式」表头提供说明图标。提示分三行显示。</p>
+<ul>
+<li>照合のみ：判定に使用</li>
+<li>照合して反映：判定と値の反映に使用</li>
+<li>反映のみ：判定に使用せず値だけを反映</li>
+</ul>
+<p>「フィールド」保留「通常／標準」二选一开关。通常字段对应 FIELD 或 TABLE_COLUMN，从当前适用场景的账票和字段中选择。标准字段对应 CASE_FIELD，从数据映射的标准字段中选择。组内使用 CASE_FIELD 时，请求发送 caseResult。</p>
+<p>一个组可以使用其他账票类型的字段。可用账票范围仍受已选适用场景的交集限制。写入目标可以选择账票字段、与主输入同一张表内的列，或案件标准字段。</p>
+<p>组内字段编辑统一使用弹窗。弹窗顺序为「マスタ項目」→「照合方式」→「フィールド」。底部按钮为「キャンセル」和「OK」。</p>
+<p>组内每一行把「一个主数据列或 hint」对应到「一个 IDP 字段」，并指定一种照合方式。</p>
+<table>
+<thead>
+<tr>
+<th>配置对象</th>
+<th>用途</th>
+<th>是否参与判断</th>
+<th>是否回填</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据列 + <code>INPUT</code></td>
+<td>用 OCR 值帮助确定主数据行</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>主数据列 + <code>OUTPUT</code></td>
+<td>不参与判断，只把选中行的值写回</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>主数据列 + <code>INPUT_OUTPUT</code></td>
+<td>既参与判断，也把选中行的值写回</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>hint + <code>INPUT</code></td>
+<td>作为补充条件帮助判断</td>
+<td>是</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<p>hint 只能使用 <code>INPUT</code>。hint 的值会出现在结果的 <code>inputs[]</code> 中，但不会出现在 <code>targets</code> 中，因此不能回填。</p>
+<p><code>targets</code> 表示“哪一个主数据列的值要写到哪个 IDP 字段”。这个映射来自组里配置的 <code>OUTPUT</code> 或 <code>INPUT_OUTPUT</code> 行。一个组的所有输入共同确定一行主数据，随后每个回填目标都从这一行取值写入。</p>
+<p>例如药品组：</p>
+<ul>
+<li>商品名配置为 <code>INPUT_OUTPUT</code>：用商品名帮助找到药品行，并把规范商品名回填到 <code>商品名</code>。</li>
+<li>一般名配置为 <code>INPUT</code>：只帮助判断，不回填。</li>
+<li>ATC分類配置为 <code>OUTPUT</code>：不参与判断，但从确定下来的药品行取出 ATC 分类，回填到账票的 <code>ATC分類</code>。</li>
+</ul>
+<p><code>inputRole=NONE</code> 表示该主数据列不能用于判断，只允许使用 <code>OUTPUT</code> 作为回填目标。<code>writable=false</code> 的列不能回填。式样书 S-10 与 §5.1 对 <code>INPUT_OUTPUT</code> 的表述存在冲突，本期按组处理规则采用更严格的限制，待 Zurich 确认。</p>
+<h4>角色显示</h4>
+<p>「ロール」显示值由 IDP 派生，不是 API 返回值，也不作为 Zurich 字段持久化。默认组导入后立即计算。字段弹窗保存、点击「検証」或切换组后重新计算。编辑弹窗打开期间不持续刷新。</p>
+<table>
+<thead>
+<tr>
+<th>输入类型</th>
+<th>inputRole</th>
+<th>mode</th>
+<th>writable</th>
+<th>ロール</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>hint</td>
+<td>无</td>
+<td>INPUT</td>
+<td>无</td>
+<td>補助入力</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>PRIMARY</td>
+<td>INPUT</td>
+<td>true/false</td>
+<td>主入力</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>PRIMARY</td>
+<td>INPUT_OUTPUT</td>
+<td>true</td>
+<td>主入力</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>SUPPORTING</td>
+<td>INPUT</td>
+<td>true/false</td>
+<td>補助入力</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>SUPPORTING</td>
+<td>INPUT_OUTPUT</td>
+<td>true</td>
+<td>補助入力</td>
+</tr>
+<tr>
+<td>主数据列</td>
+<td>PRIMARY/SUPPORTING/NONE</td>
+<td>OUTPUT</td>
+<td>true</td>
+<td>反映のみ</td>
+</tr>
+</tbody></table>
+<p>前端会直接禁用矩阵外的组合，因此「ロール」列只会出现主入力、補助入力、反映のみ三种结果。角色标签本身不显示悬停说明；如果 Zurich 返回校验错误，在对应字段行显示错误信息，不修改角色文字。</p>
+<p>角色尚未计算或主数据定义尚未加载时，「ロール」列显示空态「—」。</p>
+<h4>按钮与启用条件</h4>
+<table>
+<thead>
+<tr>
+<th>按钮</th>
+<th>条件</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>フィールドを追加</td>
+<td>已选择适用场景，且场景交集存在可用账票</td>
+<td>打开新增字段弹窗。蓝底白字</td>
+</tr>
+<tr>
+<td>編集</td>
+<td>当前字段存在</td>
+<td>打开编辑字段弹窗</td>
+</tr>
+<tr>
+<td>削除</td>
+<td>当前字段存在</td>
+<td>删除字段</td>
+</tr>
+<tr>
+<td>検証</td>
+<td>当前组存在</td>
+<td>执行本地规则校验和 POST /v1/groups/validate。橙色两字</td>
+</tr>
+<tr>
+<td>保存</td>
+<td>当前组存在</td>
+<td>先自动执行「検証」，通过或仅有警告时生成新 groupsVersion 和版本快照</td>
+</tr>
+<tr>
+<td>閉じる</td>
+<td>页面可关闭</td>
+<td>关闭配置页</td>
+</tr>
+</tbody></table>
+<p>组内容修改后，验证状态回到「未検証」。保存按钮仍可点击，点击后会重新执行本地校验和 groups/validate。校验有错误时停留在配置页，成功或仅有警告时保存。保存成功后显示「保存済み」。</p>
+<h4>前端控制与校验</h4>
+<p>前端只使用已同步的 masters、catalog、场景和账票定义。能在控件层拦截的条件直接禁用或限制选择，不提交给后端判断。</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>条件</th>
+<th>前端行为</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>F-01</td>
+<td>组名不能为空</td>
+<td>显示必填错误，阻止验证和保存</td>
+<td>IDP界面</td>
+</tr>
+<tr>
+<td>F-02</td>
+<td>必须选择一个マスタ</td>
+<td>只显示可用マスタ；未选择时阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-03</td>
+<td>必须选择適用シーン</td>
+<td>未选择时提示并阻止验证和保存</td>
+<td>IDP场景</td>
+</tr>
+<tr>
+<td>F-04</td>
+<td>至少配置一个照合字段</td>
+<td>无字段时阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-05</td>
+<td>同一组不能重复使用同一主数据列或 hint</td>
+<td>已使用的选项在下拉中禁用</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-06</td>
+<td>hint 只能使用 <code>INPUT</code></td>
+<td>其他照合方式禁用</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-07</td>
+<td><code>inputRole=NONE</code> 只能使用 <code>OUTPUT</code></td>
+<td><code>INPUT</code> 和 <code>INPUT_OUTPUT</code> 禁用</td>
+<td>式样书 §5.1，S-10 待确认</td>
+</tr>
+<tr>
+<td>F-08</td>
+<td><code>writable=false</code> 只能使用 <code>INPUT</code></td>
+<td><code>OUTPUT</code> 和 <code>INPUT_OUTPUT</code> 禁用</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-09</td>
+<td><code>inputRole=NONE</code> 且 <code>writable=false</code></td>
+<td>所有照合方式禁用，不允许保存该字段</td>
+<td>IDP前置规则</td>
+</tr>
+<tr>
+<td>F-10</td>
+<td>至少有一个主输入</td>
+<td>校验后提示，阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-11</td>
+<td>多个主输入必须为同一账票类型</td>
+<td>校验后提示，阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-12</td>
+<td>多个表格主输入必须位于同一张表</td>
+<td>校验后提示，阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-13</td>
+<td>同账票类型表格列必须与主输入同表</td>
+<td>校验后提示，阻止验证和保存</td>
+<td>式样书</td>
+</tr>
+<tr>
+<td>F-14</td>
+<td>字段必须属于所选场景交集</td>
+<td>选项只显示可用字段；历史配置不合法时提示</td>
+<td>IDP场景</td>
+</tr>
+<tr>
+<td>F-15</td>
+<td>账票、字段、表、列必须存在</td>
+<td>选项来自已同步定义；历史配置只有失效项时提示</td>
+<td>式样书 + IDP定义</td>
+</tr>
+<tr>
+<td>F-16</td>
+<td>标准字段必须来自数据映射</td>
+<td>下拉只显示现有标准字段</td>
+<td>IDP跨模块</td>
+</tr>
+<tr>
+<td>F-17</td>
+<td>多组将同一 IDP 字段设为回填目标</td>
+<td>显示重复警告，允许继续保存</td>
+<td>式样书 S-04</td>
+</tr>
+</tbody></table>
+<p>处理顺序：</p>
+<ol>
+<li>点击「検証」或「保存」后，清除旧校验结果，并根据当前 <code>hint / inputRole / writable / mode</code> 重新计算角色。</li>
+<li>前端检查 F-01 至 F-17。</li>
+<li>F-01 至 F-16 中存在 Error 时，不发送 Zurich 请求，不保存。</li>
+<li>F-17 只是 Warning，不阻止后续接口调用。</li>
+<li>前端检查通过后，由后端调用 <code>POST /v1/groups/validate</code>。</li>
+<li>Zurich 返回 errors 时，前端显示组级和字段级错误，不保存。</li>
+<li>Zurich 无错误但存在 warning 时，底部显示「警告あり（N件）」，并用停留 8 秒的 toast 显示涉及的组名，允许保存。</li>
+<li>保存成功后生成 <code>groupsVersion</code> 和版本快照。</li>
+</ol>
+<p>后端不复刻 F-02、F-05 至 F-09、F-14 至 F-16 等前端选择限制，只负责保持请求字段正确、调用 Zurich、保存通过校验的结果和返回错误。</p>
+<h4>版本与变更履历</h4>
+<p>groupsVersion 是全部组配置的整体版本。保存成功后生成形如 2026-11-19-01 的新版本，并保存完整组快照。节点默认使用最近保存版本。任务提交时保存实际使用的 groupsVersion 和组快照。已运行任务不因后续配置修改而变化。</p>
+<p>API 请求中的 <code>groupsVersion</code> 在结果 <code>data.versions.groups</code> 中回显，IDP 原样保存。</p>
+<table>
+<thead>
+<tr>
+<th>履历字段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日時</td>
+<td>操作时间</td>
+</tr>
+<tr>
+<td>操作</td>
+<td>本次操作名称</td>
+</tr>
+<tr>
+<td>操作者</td>
+<td>执行操作的当前用户</td>
+</tr>
+<tr>
+<td>内容</td>
+<td>组级变更摘要</td>
+</tr>
+</tbody></table>
+<p>组变更履历按以下两类记录。</p>
+<table>
+<thead>
+<tr>
+<th>操作分类</th>
+<th>记录时机</th>
+<th>内容示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>作成</td>
+<td>新增或复制组后</td>
+<td>照合グループ「傷病名A」を作成、「傷病名A」からコピー</td>
+</tr>
+<tr>
+<td>更新</td>
+<td>组名、マスタ、适用场景或字段保存后，或导入、覆盖默认组后</td>
+<td>グループ名を「A」から「B」に変更、照合フィールドを追加：診断書 › 傷病名1、既定グループ「傷病名（全シーン）」を取り込み／更新</td>
+</tr>
+</tbody></table>
+<p>删除组后不再保留该组的可查看履历。照合字段的新增、编辑和删除不逐条写入履历。点击「保存」后，系统比较上一版本和当前组配置，按组生成一条「更新」记录。内容写明组名、マスタ、适用场景以及字段的具体变化。マスタ同期、検証和页面浏览不写入组履历。</p>
+<p>履历内部同时保存 groupId、操作时的组名和 groupsVersion，用于定位组和审计。界面表格只展示「日時」「操作」「操作者」「内容」四列。</p>
+<p>第 5 期显示 <code>deprecated=true</code> 的列和 hint 标记，并在新建配置中禁止选择。已有组继续运行。</p>
+<h4>5.2.1 配置与接口调用流程</h4>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Admin as 配置管理员
+    participant IDP as IDP 设置服务
+    participant API as 主数据照合 API
+    Admin-&gt;&gt;IDP: 打开主数据设定页面
+    IDP--&gt;&gt;Admin: 不调用 Zurich，读取本地配置
+    Admin-&gt;&gt;IDP: 点击「マスタ同期」
+    par 并行获取
+        IDP-&gt;&gt;API: GET /v1/masters
+        API--&gt;&gt;IDP: 主数据表、列、hint、schemaVersion
+    and
+        IDP-&gt;&gt;API: GET /v1/catalog
+        API--&gt;&gt;IDP: 枚举值和显示名
+    end
+    IDP--&gt;&gt;Admin: 更新本地缓存和显示名，不清空映射
+    opt 获取默认组
+        Admin-&gt;&gt;IDP: 点击「既定グループ」
+        IDP-&gt;&gt;API: GET /v1/groups/defaults
+        API--&gt;&gt;IDP: 默认组模板
+        IDP--&gt;&gt;Admin: 显示「新規」「更新」「変更なし」状态
+    end
+    Admin-&gt;&gt;IDP: 编辑照合组
+        Admin-&gt;&gt;IDP: 点击「検証」
+    IDP-&gt;&gt;IDP: 本地规则校验
+    alt 本地校验失败
+        IDP--&gt;&gt;Admin: 显示字段错误，不调用 API
+    else 本地校验通过
+        IDP-&gt;&gt;API: POST /v1/groups/validate
+        API--&gt;&gt;IDP: 组级 errors、warnings
+        alt API 校验失败
+            IDP--&gt;&gt;Admin: 显示错误并保持未検証
+        else API 校验通过
+            IDP--&gt;&gt;Admin: 校验通过（「検証済み」或「警告あり」）
+            Admin-&gt;&gt;IDP: 保存
+            IDP-&gt;&gt;IDP: 生成 groupsVersion 和版本快照
+        end
+    end
+</code></pre>
+<h3 id="section-28">5.3 业务场景与批次照合</h3>
+<h4>5.3.1 业务场景与主数据照合节点</h4>
+<h5>节点定义</h5>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>节点名称</td>
+<td>マスタ照合</td>
+</tr>
+<tr>
+<td>节点位置</td>
+<td>OCR抽出之后、OCR抽出确认之前</td>
+</tr>
+<tr>
+<td>节点分类</td>
+<td>業務 Agent</td>
+</tr>
+<tr>
+<td>执行单位</td>
+<td>业务批次</td>
+</tr>
+<tr>
+<td>节点颜色</td>
+<td>独立颜色，不与其他节点重复</td>
+</tr>
+</tbody></table>
+<h5>节点配置</h5>
+<p>节点不展示组列表，也不提供组选择下拉框。适用组数量显示在「対象照合グループ（N件）」标题内，不单独占一行。节点正文只保留账票 fallback 开关和原有文字链接「設定ページへ」。</p>
+<p>节点说明不常驻在正文中，统一放在节点标题旁的「i」注释里，精简为：</p>
+<ul>
+<li>当前业务场景会自动获取适用的照合组。</li>
+<li>设置变更通过「設定ページへ」进行。</li>
+<li><code>ON</code> 时使用 Zurich 默认规则照合并进入确认待ち，<code>OFF</code> 时保持 OCR 抽出值。</li>
+</ul>
+<p>兜底照合只处理当前批次中“没有被任何适用照合组引用”的账票类型。账票类型已出现在任一适用组的任一字段配置中时，仍按该组正常处理，不受此开关影响。</p>
+<p>开关只决定未配置账票的处理方式。</p>
+<table>
+<thead>
+<tr>
+<th>开关</th>
+<th>请求值</th>
+<th>已配置账票</th>
+<th>未配置账票</th>
+<th>是否进入人工确认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ON</td>
+<td><code>options.fallback=true</code></td>
+<td>按组正常照合</td>
+<td>Zurich 使用内部默认项目名规则，生成 <code>groupId=FALLBACK</code> 的临时照合对象</td>
+<td>仅 fallback 生成的 item 固定为 <code>needsReview=true</code></td>
+</tr>
+<tr>
+<td>OFF</td>
+<td><code>options.fallback=false</code></td>
+<td>按组正常照合</td>
+<td>不执行主数据照合</td>
+<td>不因主数据照合产生待确认</td>
+</tr>
+</tbody></table>
+<p>无论开关是否启用，当前批次都必须至少有一个适用组。没有适用组时，节点显示配置错误，不能依靠 fallback 代替照合组配置。批次中全部账票类型都已被适用组覆盖时，开关不产生实际影响。</p>
+<p><code>FALLBACK</code> 不是匹配到的既有组，也不是 Zurich 临时返回的组配置。IDP 不需要、也不能从 fallback 结果中导入或保存照合组。fallback item 只是按 Zurich 内部默认规则生成了 <code>masterTable</code>、<code>source</code>、<code>inputs</code>、<code>targets</code>、<code>master</code> 和 <code>candidates</code>，供人工确认时使用。确认后仍按该 item 的 <code>targets</code> 和所选候选的 <code>values</code> 回填。</p>
+<p>执行顺序：</p>
+<ol>
+<li>根据当前 <code>sceneId</code> 获取已保存且校验通过的适用组。</li>
+<li>从适用组中收集全部 <code>member.field.documentTypeId</code>，得到已配置账票类型。</li>
+<li>批次内不在该集合中的账票类型视为未配置账票。</li>
+<li>IDP 提交批次内全部账票和适用组，并发送与节点开关一致的 <code>options.fallback</code>。</li>
+<li>已配置账票按组结果处理，正常执行自动回填或按 <code>needsReview</code> 进入确认。</li>
+<li>未配置账票在 ON 时由 Zurich 使用内部默认规则推测，不套用现有组。若生成 fallback item，则该 item 固定进入 OCR抽出确认。</li>
+<li>未配置账票在 OFF 时不生成主数据照合结果，相关字段保持 OCR 抽出值。</li>
+<li>账票 warnings 出现 <code>FALLBACK_USED</code> 时，记录该账票类型未配置，并提示管理员补充照合组。</li>
+</ol>
+<p>例如，当前场景只配置了「保険金請求書」的照合组，批次中还有一张「領収書」：</p>
+<ul>
+<li>ON 时，请求发送 <code>options.fallback=true</code>。請求書走已配置组，領収書由 Zurich 尝试推测。由 fallback 生成的 item 固定进入确认，<code>needsReview=true</code>。</li>
+<li>OFF 时，请求发送 <code>options.fallback=false</code>。請求書仍走已配置组，領収書不做主数据照合，字段保持 OCR 抽出值。</li>
+<li>如果该批次没有領収書，或領収書已被某个适用组引用，则该开关对这批结果没有作用。</li>
+</ul>
+<p>节点根据当前 sceneId 查询 sceneIds 包含该场景或 all 且校验通过的照合组。实际执行使用当前已保存的最新组版本。</p>
+<p>原型中，业务场景页面读取「マスタデータ設定」保存到浏览器存储的组配置。真实实现必须让业务场景和照合组引用同一套稳定 sceneId，不能依赖名称映射。</p>
+<h5>异步执行规则</h5>
+<p>节点输出两个变量：<code>masterStatus</code> 表示批次执行状态，<code>masterResult</code> 表示业务结果。判定顺序如下。</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>masterStatus</th>
+<th>masterResult</th>
+<th>后续</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提交后仍有 task 为 <code>PENDING</code> / <code>PROCESSING</code>，或正在重试、轮询</td>
+<td>processing</td>
+<td>不计算</td>
+<td>等待</td>
+</tr>
+<tr>
+<td>输入 OCR 尚未确认，暂时不能采用结果</td>
+<td>processing</td>
+<td>不计算</td>
+<td>等待输入确认</td>
+</tr>
+<tr>
+<td>全部 task 为 <code>SUCCEEDED</code>，全部 item 可自动采用，账票均成功且无阻断 warning</td>
+<td>success</td>
+<td>passed</td>
+<td>进入下一节点</td>
+</tr>
+<tr>
+<td>全部 task 为 <code>SUCCEEDED</code>，任一 item 需要人工确认、账票失败或存在阻断 warning</td>
+<td>success</td>
+<td>reviewRequired</td>
+<td>进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>任一 task 为 <code>FAILED</code></td>
+<td>failed</td>
+<td>不计算</td>
+<td>失败 task 对应目标人工处理，不进入 passed 分支</td>
+</tr>
+<tr>
+<td>任一 task 为 <code>CANCELLED</code></td>
+<td>failed</td>
+<td>不计算</td>
+<td>不应用该批次结果</td>
+</tr>
+<tr>
+<td>提交失败、重试耗尽、轮询无法恢复或无可执行组</td>
+<td>failed</td>
+<td>不计算</td>
+<td>进入失败处理</td>
+</tr>
+</tbody></table>
+<p>节点提交后保存业务批次 ID、taskId 列表、clientRequestId、轮询状态和下次查询时间。页面刷新或服务重启后恢复轮询。终态更新必须原子化，避免重复推进下游。</p>
+<p>已完成任务列表首次查询使用 <code>finishedAfter</code>，后续查询使用上一次返回的 <code>nextCursor</code>。同一业务批次全部 task 进入终态后，再统一汇总节点状态和业务结果。</p>
+<h4>5.3.2 批次任务与结果合并</h4>
+<h5>批次模型</h5>
+<p>“业务批次”由 IDP 定义，Zurich 不返回批次实体。批次是同一时点要交给主数据照合的一组文件及其快照，业务批次与 Zurich task 的关系如下：</p>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>所有者</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>案件</td>
+<td>IDP</td>
+<td>业务案件。一个案件可以包含多个批次</td>
+</tr>
+<tr>
+<td>业务批次</td>
+<td>IDP</td>
+<td>一次主数据照合处理单位。以 <code>batchId</code> 标识</td>
+</tr>
+<tr>
+<td>请求</td>
+<td>IDP 发往 Zurich</td>
+<td>一次 POST 请求。受 50 份账票和 10 MB 上限约束</td>
+</tr>
+<tr>
+<td>任务 task</td>
+<td>Zurich</td>
+<td>一个请求对应的处理任务，通过 <code>taskId</code> 标识</td>
+</tr>
+<tr>
+<td>照合对象 item</td>
+<td>Zurich</td>
+<td>任务内的一个标准化对象</td>
+</tr>
+</tbody></table>
+<ol>
+<li>首次上传的一批文件完成 OCR 后创建一个业务批次。</li>
+<li>补件文件到达后创建新的业务批次。</li>
+<li>案件处理中止后重新开始时创建新的业务批次。</li>
+<li>一个业务批次可以对应一个或多个 Zurich task。超过 50 份或 10 MB 时，使用相同 <code>caseNo</code> 拆分请求，并在 <code>clientRequestId</code> 增加序号。</li>
+<li>不同业务批次的 task、确认待办和回填结果分别保存，不互相覆盖。</li>
+<li>旧批次结果晚到时，只更新该批次自己的结果和待办，不修改其他批次。</li>
+<li>批次保存 <code>batchId</code>、<code>caseNo</code>、文件快照、OCR 结果版本、groupsVersion、组快照、fallback 设置、taskId 列表、clientRequestId 列表和当前状态。</li>
+<li><code>batchId</code> 是 IDP 内部字段，不新增到 Zurich API 请求。task 通过保存的关联关系归属到批次。</li>
+<li>同一优先级的多个请求由 Zurich 按受理顺序排队处理，并发量由 Zurich 控制（式样书 §2.7）。</li>
+</ol>
+<h5>请求内容</h5>
+<ol>
+<li>请求发送当前业务批次内的 OCR 结果。文件内容按 RESULT JSON 原样发送，并附带账票类型 ID。</li>
+<li>请求发送当前业务场景中有效的全部照合组和实际使用的 <code>groupsVersion</code>。</li>
+<li>组里选择「標準フィールド」时，这一项引用的是案件级标准字段，不是某张账票的字段。提交时把案件标准字段统一放入 <code>caseResult.fields[]</code>，每项包含 <code>name</code> 和 <code>value</code>。组项目的 <code>CASE_FIELD.fieldName</code> 与 <code>caseResult.fields[].name</code> 一致。</li>
+</ol>
+<p>提交前检查当前适用组实际引用的标准字段。存在冲突时，从本次请求的组副本中排除对应 <code>CASE_FIELD</code>，使用同组已有的 FIELD 或 TABLE_COLUMN 普通字段继续照合，并且不把冲突值放入 <code>caseResult</code>。如果排除后该组没有任何可用输入，则不调用 Zurich，设置 <code>masterStatus=failed</code>，不推进下游节点。这个回退只影响当前请求，不修改已保存的组配置。</p>
+<h5>请求编号与重试</h5>
+<ol>
+<li>每个请求附带 <code>clientRequestId</code>。</li>
+<li>请求超时或返回 500 时，使用相同的 <code>clientRequestId</code> 重发。</li>
+<li>返回 429 或 503 时，按照响应中的 <code>Retry-After</code> 等待后重试。</li>
+<li>IDP 必须限制同时发送的请求数。该并发上限由开发、测试和运维结合 IDP 资源及 Zurich 环境配额确认。</li>
+<li>请求超时或返回 500 时，IDP 使用递增退避并加入随机波动。具体间隔和最大重试次数待开发和测试确认。</li>
+<li>返回 429 或 503 时，以响应中的 <code>Retry-After</code> 秒数为准。该类重试也计入确认后的最大重试次数。</li>
+<li>达到确认后的最大重试次数时停止自动重试，保留请求记录和批次状态，设置 <code>masterStatus=failed</code>，不推进下游节点。</li>
+<li>案件处理中止后重新开始时，系统创建新的业务批次和新请求。旧批次继续按自身批次处理，不修改新批次。</li>
+</ol>
+<h5>待开发与测试确认</h5>
+<p>以下参数尚未确认，不能直接作为开发和验收依据。</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>待确认参数</th>
+<th>当前候选值</th>
+<th>确认方</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>R-01</td>
+<td>IDP 同时发送请求上限</td>
+<td>10</td>
+<td>开发、测试、运维</td>
+</tr>
+<tr>
+<td>R-02</td>
+<td>超时或 500 的退避间隔</td>
+<td>10 秒、30 秒、60 秒，每次乘 0.8 至 1.2</td>
+<td>开发、测试</td>
+</tr>
+<tr>
+<td>R-03</td>
+<td>最大自动重试次数</td>
+<td>3 次</td>
+<td>开发、测试</td>
+</tr>
+</tbody></table>
+<p>Zurich 式样书只给出“同时最多 10 件”的示例，并说明具体流量限制按环境通知。Zurich 内部处理并发由 Zurich 控制，IDP 只控制自己同时发出的请求数。</p>
+<h5>50 份以上拆分</h5>
+<ol>
+<li>单次 Zurich 请求最多 50 份文件。</li>
+<li>同一业务批次超过 50 份时拆成多个请求。</li>
+<li>多个请求使用相同 caseNo，分别使用不同请求序号的 clientRequestId。</li>
+<li>Zurich 返回多个 taskId，由 IDP 关联到同一个业务批次并合并展示。</li>
+<li>同一批次内部的拆分只产生一个 OCR抽出确认入口，不产生多条独立待办。</li>
+</ol>
+<h5>同一账票类型的多个逻辑文件</h5>
+<ol>
+<li>组的主输入位于该账票类型的普通字段时，每个逻辑文件生成一个 item。</li>
+<li>组的主输入是该账票类型中的表格列时，按每个逻辑文件的每个表格行直接生成一个 item，不再创建额外的账票父级 item。</li>
+<li>该账票类型只作为其他账票的辅助输入时，如果同类型的多个逻辑文件值相同，Zurich 用该共同值参与匹配，但不会把辅助账票作为回填目标；值不同时返回 <code>AMBIGUOUS_SOURCE</code>，进入人工确认。</li>
+<li>每个 item 由独立 <code>itemId</code> 标识。<code>source</code> 指向具体字段或表格单元格，<code>groupId</code> 指向生成该 item 的组。普通字段和表格单元格的 <code>source</code> 带 <code>documentId</code>，案件标准字段的 <code>source.type=CASE_FIELD</code>，不带 <code>documentId</code>。</li>
+</ol>
+<p>例如一次请求包含 1 份請求書、5 份診断書和 3 份診療明細書。以下三项表示三种不同的组配置，不是同时相加：</p>
+<ul>
+<li>组的主输入是「診断書.傷病名」时，生成 5 个 item。</li>
+<li>组的主输入是「診療明細書.薬剤情報.商品名」时，3 份診療明細書的每个表格行分别生成一个 item。</li>
+<li>組把診断書只作为請求書的辅助输入时，5 份診断書值相同则共同参与匹配，值不同则转人工确认。</li>
+</ul>
+<p>账票数量不等于 item 数量。一个账票可能生成多个 item，也可能只作为其他 item 的辅助输入而不单独生成 item。只要这些文件在同一个请求中，生成的全部 item 都属于同一个 <code>taskId</code> 对应的任务；单次超过 50 份拆成多个请求时，才会产生多个任务。</p>
+<h5>请求与结果上限</h5>
+<p>以下数值全部来自 Zurich API v1.1 式样书 §2.6。</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>上限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单次请求体</td>
+<td>10 MB</td>
+</tr>
+<tr>
+<td>单次请求账票数</td>
+<td>50 件</td>
+</tr>
+<tr>
+<td>单次请求组数</td>
+<td>200 件</td>
+</tr>
+<tr>
+<td>单个任务处理照合对象数</td>
+<td>500 件，超出部分不处理并转人工</td>
+</tr>
+<tr>
+<td>照合对象结果每页</td>
+<td>100 件</td>
+</tr>
+<tr>
+<td>单个照合对象结果大小</td>
+<td>100 KB</td>
+</tr>
+</tbody></table>
+<p>其中只有请求体、账票数和组数是请求上限。500 件是单个任务的处理上限，100 件是结果分页上限，100 KB 是单个结果大小上限。</p>
+<h5>任务接口顺序</h5>
+<ol>
+<li>POST /v1/standardizations 提交批次请求。</li>
+<li>立即返回 SUCCEEDED、FAILED 或 CANCELLED 时直接处理结果。</li>
+<li>返回 PENDING 或 PROCESSING 时保存任务编号并轮询。</li>
+<li>GET /v1/standardizations 获取已完成任务和 nextCursor。IDP 保存最近一次 <code>nextCursor</code>。</li>
+<li>GET /v1/standardizations/{taskId} 获取任务、账票、items 和 caseReview。</li>
+<li>items 超过一页时，使用 GET /v1/standardizations/{taskId}/items?cursor=... 继续读取。</li>
+<li>同一业务批次的全部任务完成后合并结果。</li>
+</ol>
+<p>IDP 重启后从最近保存的 <code>nextCursor</code> 继续查询。完成通知 callback 在第 5 期接入，本期以轮询为准。</p>
+<h4>5.3.3 业务场景与批次流程图</h4>
+<pre><code class="language-mermaid">flowchart TD
+    A[业务场景配置] --&gt; B[OCR抽出后放置主数据照合节点]
+    B --&gt; C{当前场景存在适用组}
+    C --&gt;|否| D[节点显示配置错误]
+    C --&gt;|是| E[本批次 OCR 完成]
+    E --&gt; F[冻结批次快照]
+    F --&gt; G[提交 master 照合任务]
+    G --&gt; H{是否存在待确认结果}
+    H --&gt;|否| I[自动回填并继续工作流]
+    H --&gt;|是| J[进入 OCR抽出确认]
+    J --&gt; K{是否需要重新照合}
+    K --&gt;|否| L[人工确认后完成]
+    K --&gt;|是| M[保存单字段后 items/standardize]
+    M --&gt; J
+    L --&gt; Z[完成]
+    I --&gt; Z[完成]
+</code></pre>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant IDP as IDP 案件服务
+    participant API as 主数据照合 API
+    IDP-&gt;&gt;IDP: OCR抽出完成并冻结批次快照
+    IDP-&gt;&gt;API: POST /v1/standardizations
+    API--&gt;&gt;IDP: SUCCEEDED / FAILED / CANCELLED
+    API--&gt;&gt;IDP: PENDING / PROCESSING + taskId
+    alt 任务立即结束
+        IDP-&gt;&gt;IDP: 校验并处理结果
+    else 异步等待
+        IDP-&gt;&gt;IDP: 保存 taskId、clientRequestId、pollAfterMs
+        loop 每 5 至 10 秒
+            IDP-&gt;&gt;API: GET /v1/standardizations
+            API--&gt;&gt;IDP: 已完成任务和 nextCursor
+        end
+        IDP-&gt;&gt;API: GET /v1/standardizations/{taskId}
+        API--&gt;&gt;IDP: task、documents、items、caseReview
+        opt itemsNextCursor 存在
+            IDP-&gt;&gt;API: GET /v1/standardizations/{taskId}/items
+            API--&gt;&gt;IDP: 后续 items 和 nextCursor
+        end
+        IDP-&gt;&gt;IDP: 校验后应用结果
+    end
+</code></pre>
+<pre><code class="language-mermaid">flowchart LR
+    A[新文件到达] --&gt; B[创建业务批次 A]
+    C[补件到达] --&gt; D[创建业务批次 B]
+    B --&gt; E[OCR抽出]
+    D --&gt; F[OCR抽出]
+    E --&gt; G[主数据照合]
+    F --&gt; H[主数据照合]
+    G --&gt; I[批次 A OCR抽出確認]
+    H --&gt; J[批次 B OCR抽出確認]
+    I -.只更新批次 A.-&gt; I
+    J -.只更新批次 B.-&gt; J
+</code></pre>
+<h3 id="section-29">5.4 OCR抽出确认与结果应用</h3>
+<h4>5.4.1 范围与入口</h4>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>入口</td>
+<td>マイタスク → OCR抽出確認</td>
+</tr>
+<tr>
+<td>使用者</td>
+<td>OCR经办人</td>
+</tr>
+<tr>
+<td>待办单位</td>
+<td>业务批次</td>
+</tr>
+<tr>
+<td>待办类型</td>
+<td>沿用现有 OCR抽出确认，不新增主数据照合待办</td>
+</tr>
+</tbody></table>
+<p>一个业务批次拆分出的多个 Zurich task 在批次内合并，只生成一个 OCR抽出确认入口。普通 OCR 待确认字段和主数据照合待确认字段在同一个任务中处理。确认完成后，批次继续工作流。</p>
+<h5>账票类别规则</h5>
+<ul>
+<li>主数据照合只保留处理方式「マスタ照合」，不再选择主数据表和字段。</li>
+<li>保留 5 个确认规则。前 4 个 OCR 人工确认规则继续可配置并生效。</li>
+<li>「マスタ照合結果の確認」保留显示但取消勾选并禁用，自动采用阈值不参与主数据照合判定。</li>
+<li>主数据照合是否需要人工确认，只使用 Zurich 返回的 <code>needsReview</code>。</li>
+</ul>
+<h5>字段更新范围</h5>
+<table>
+<thead>
+<tr>
+<th>字段类型</th>
+<th>参与照合</th>
+<th>回填</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>组内 INPUT</td>
+<td>是</td>
+<td>否</td>
+<td>保持 OCR 值</td>
+</tr>
+<tr>
+<td>组内 OUTPUT</td>
+<td>否</td>
+<td>是</td>
+<td>跟随同一 item 采用行更新</td>
+</tr>
+<tr>
+<td>组内 INPUT_OUTPUT</td>
+<td>是</td>
+<td>是</td>
+<td>参与判断，并跟随同一 item 采用行更新</td>
+</tr>
+<tr>
+<td>组外字段</td>
+<td>否</td>
+<td>否</td>
+<td>保持 OCR 值</td>
+</tr>
+</tbody></table>
+<p>改选候选后，同一 item 的全部 <code>OUTPUT</code> 和 <code>INPUT_OUTPUT</code> 字段一起更新，<code>INPUT</code> 字段保持 OCR 值。其他 item 和其他组不受影响。</p>
+<h4>5.4.2 处理顺序</h4>
+<p>每条 item 按以下顺序判断。命中人工确认条件后，不再进入自动采用。</p>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>判断</th>
+<th>条件</th>
+<th>处理结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>上游结果是否可用</td>
+<td>task 未成功、账票失败、无效组、主数据表不可用或 item 未正常返回</td>
+<td>进入异常处理，不按正常 item 自动回填</td>
+</tr>
+<tr>
+<td>2</td>
+<td>是否明确要求确认</td>
+<td><code>needsReview=true</code></td>
+<td>进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>3</td>
+<td>确认标记是否缺失</td>
+<td><code>needsReview=null</code> 或省略</td>
+<td>强制进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>4</td>
+<td>状态与结果是否一致</td>
+<td><code>needsReview=false</code>，但返回组合不满足自动采用条件</td>
+<td>强制进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>5</td>
+<td>是否可以自动处理</td>
+<td><code>needsReview=false</code>，且状态、<code>master</code>、<code>targets</code> 均满足对应条件</td>
+<td>自动回填或保持 OCR 值；输入 OCR 未确认时延后采用</td>
+</tr>
+</tbody></table>
+<p><code>needsReview</code> 决定是否进入人工确认。<code>item.status</code> 决定结果类型、确认页展示内容和自动处理方式，不单独形成另一套互斥分支。<code>confidence</code> 只用于显示和排序，不作为人工确认阈值。</p>
+<h4>5.4.3 进入人工确认的场景</h4>
+<h5>Zurich 明确要求确认</h5>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发条件</th>
+<th>页面必须展示的信息</th>
+<th>操作与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>主数据推定确认</td>
+<td><code>status=MATCHED</code> 且 <code>needsReview=true</code>，<code>master!==null</code></td>
+<td>推定的 master、candidates、<code>reviewReasons[].message</code>、<code>reason</code>、<code>notesForAssessor</code></td>
+<td>确认推定行，或改选其他候选</td>
+</tr>
+<tr>
+<td>拆分确认</td>
+<td><code>status=SPLIT</code> 且 <code>needsReview=true</code></td>
+<td>全部 <code>splitItems</code>、主要素、各要素的 master、<code>reviewReasons[].message</code>、<code>reason</code></td>
+<td>确认主要素和拆分结果</td>
+</tr>
+<tr>
+<td>不适用确认</td>
+<td><code>status=NOT_APPLICABLE</code> 且 <code>needsReview=true</code>，<code>master===null</code></td>
+<td><code>reviewReasons[].message</code>、<code>reason</code>，有值时显示 <code>proposedName</code></td>
+<td>确认是否作为非标准化对象处理</td>
+</tr>
+<tr>
+<td>新名称提案</td>
+<td><code>status=NEW_CANDIDATE</code>，<code>needsReview=true</code>，<code>master===null</code></td>
+<td><code>proposedName</code>、candidates、<code>reviewReasons[].message</code>、<code>reason</code></td>
+<td>确认建议名称，或选择已有候选</td>
+</tr>
+<tr>
+<td>无法判断</td>
+<td><code>status=UNRESOLVED</code>，<code>needsReview=true</code>，<code>master===null</code></td>
+<td>candidates、<code>reviewReasons[].message</code>、<code>reason</code>、<code>notesForAssessor</code></td>
+<td>根据候选和原因人工判断</td>
+</tr>
+<tr>
+<td>未配置账票的兜底结果</td>
+<td><code>groupId=FALLBACK</code>，且 <code>needsReview=true</code></td>
+<td>兜底来源、candidates、<code>reviewReasons[].message</code>、<code>reason</code></td>
+<td>不自动采用，确认后按当前 item 的 <code>values</code> 和 <code>targets</code> 回填</td>
+</tr>
+</tbody></table>
+<h5>阻断 warning 强制确认</h5>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发条件</th>
+<th>页面必须展示的信息</th>
+<th>操作与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>回填冲突</td>
+<td><code>reviewReasons</code> 包含 <code>WRITE_CONFLICT</code></td>
+<td>冲突原因、当前推定行和候补</td>
+<td>不覆盖已有回填，由操作员确认</td>
+</tr>
+<tr>
+<td>辅助输入来源冲突</td>
+<td><code>reviewReasons</code> 包含 <code>AMBIGUOUS_SOURCE</code></td>
+<td>多来源不一致的原因、candidates</td>
+<td>同一账票类型的多个逻辑文件值不同，不能自动判断</td>
+</tr>
+<tr>
+<td>未知位置</td>
+<td><code>targets</code> 或输入位置不在当前组快照中</td>
+<td>原始位置、<code>reviewReasons</code>、<code>reason</code></td>
+<td>不自动回填，进入人工处理</td>
+</tr>
+</tbody></table>
+<h5>返回契约异常时强制确认</h5>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发条件</th>
+<th>页面必须展示的信息</th>
+<th>操作与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>确认标记缺失</td>
+<td><code>needsReview=null</code> 或省略</td>
+<td>原始 <code>needsReview</code>、<code>reviewReasons</code>、<code>reason</code></td>
+<td>按需要确认处理</td>
+</tr>
+<tr>
+<td>状态要求确认但返回不确认</td>
+<td><code>NEW_CANDIDATE</code> 或 <code>UNRESOLVED</code> 返回 <code>needsReview=false</code></td>
+<td>原始 <code>status</code>、<code>needsReview</code>、<code>reviewReasons</code></td>
+<td>不自动采用，强制人工确认</td>
+</tr>
+<tr>
+<td>自动采用缺少主数据行</td>
+<td><code>MATCHED</code> 或 <code>SPLIT</code> 返回 <code>needsReview=false</code>，但 <code>master===null</code></td>
+<td>原始 <code>status</code>、<code>master</code>、<code>reviewReasons</code></td>
+<td>不自动采用，强制人工确认</td>
+</tr>
+<tr>
+<td>拆分缺少主要素</td>
+<td><code>SPLIT</code> 返回 <code>needsReview=false</code>，但没有 <code>primary=true</code> 的要素</td>
+<td><code>splitItems</code>、<code>reviewReasons</code></td>
+<td>不自动采用，强制人工确认</td>
+</tr>
+<tr>
+<td>兜底结果返回不确认</td>
+<td><code>groupId=FALLBACK</code>，但 <code>needsReview=false</code></td>
+<td>兜底来源、原始 <code>needsReview</code>、<code>reviewReasons</code></td>
+<td>按式样书强制人工确认</td>
+</tr>
+<tr>
+<td>未知状态</td>
+<td><code>item.status</code> 不在已知枚举中</td>
+<td>原始 <code>status</code>、<code>master</code>、<code>reviewReasons</code></td>
+<td>不自动采用，避免新增枚举被误处理</td>
+</tr>
+</tbody></table>
+<h4>5.4.4 不进入人工确认的场景</h4>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发条件</th>
+<th>系统处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>普通照合自动采用</td>
+<td><code>status=MATCHED</code> 且 <code>needsReview=false</code> 且 <code>master!==null</code></td>
+<td>按 <code>master.values</code> 和 <code>targets</code> 自动回填</td>
+</tr>
+<tr>
+<td>唯一正确拆分</td>
+<td><code>status=SPLIT</code> 且 <code>needsReview=false</code> 且 <code>master!==null</code>，同时存在 <code>primary=true</code> 的要素</td>
+<td>只自动采用主要素，按主要素对应的 item <code>targets</code> 回填</td>
+</tr>
+<tr>
+<td>不适用</td>
+<td><code>status=NOT_APPLICABLE</code> 且 <code>needsReview=false</code> 且 <code>master===null</code></td>
+<td>不采用主数据值，保持 OCR 值</td>
+</tr>
+</tbody></table>
+<p>不进入人工确认的 item 仍要保存返回结果和采用记录。自动采用结果在确认页可见，操作员仍可展开候选并改选。</p>
+<p>即使 Zurich 返回 <code>needsReview=false</code>，如果该 item 的 <code>inputs[]</code> 中存在 <code>idpNeedReview=1</code>，也只是延后采用，不新增 Zurich 的需确认分支。需求定义见 API 式样书 A-02 与 §8.4。操作员完成对应 OCR 输入确认后，IDP 再自动采用该结果。输入值没有变化时，采用原标准化结果。输入值被修改时，保存后通过 <code>POST /v1/items/standardize</code> 重新照合当前 item，并以新结果决定是否采用。</p>
+<h4>5.4.5 自动采用与回填</h4>
+<p>自动采用需要同时满足以下条件。</p>
+<ul>
+<li>任务和账票处理成功。</li>
+<li><code>needsReview=false</code>。</li>
+<li>输入 OCR 字段已经确认。</li>
+<li>不存在失败、无效组、主数据表不可用、回填冲突或未知位置。</li>
+</ul>
+<p>处理步骤如下。</p>
+<ol>
+<li>IDP 从所采用行的 <code>master.values</code> 取值。</li>
+<li>按照 item 的 <code>targets</code> 写入目标字段。</li>
+<li><code>selection</code> 非空时保存，供审计和后续系统登记。</li>
+<li>同一个 item 的目标字段一起更新。</li>
+</ol>
+<p>Zurich 不直接修改 IDP 的 OCR 字段。任务和账票 <code>status</code> 用于结果处理，不在字段行显示「自動採用」「確定」等状态标签。</p>
+<h4>5.4.6 确认页面</h4>
+<h5>候选与主数据</h5>
+<ul>
+<li><code>candidates</code> 在自动采用和需要确认时都显示，按 API 返回顺序排列。</li>
+<li>默认最多 5 条，包含所采用的主数据行。</li>
+<li>所采用行标记 <code>isMaster=true</code>，显示「マスタ推奨」。</li>
+<li>其他候选显示「マスタ候補」。</li>
+<li>OCR 原值不属于 API candidates，固定追加到候选列表最后一行。</li>
+<li>确认页最多显示 6 条，即 5 条 API 候选加 1 条 OCR 原值。</li>
+<li>自动采用结果仍可展开候选并改选。改选后更新同一 item 的全部目标字段。</li>
+<li><code>proposedName</code> 不是候选。<code>NEW_CANDIDATE</code> 时在候选列表外显示「名称提案：proposedName」。</li>
+</ul>
+<h5>确认理由与展示顺序</h5>
+<ul>
+<li>所有需要确认的字段显示红色边框。</li>
+<li>主数据照合需要确认时，显示 Zurich 的 <code>reviewReasons[].message</code>，并覆盖同时命中的低置信度等 OCR 确认理由。</li>
+<li>主数据照合不需要确认时，继续显示低置信度、必填为空等现有 OCR 确认理由。</li>
+<li>本期只显示第一条确认理由。「確認理由：」与原因显示在同一行。</li>
+<li>删除通用理由「マスタ照合結果の確認」。</li>
+<li>字段信息按確認理由、名称提案、追加要素、照合根拠、確認メモ的顺序显示。</li>
+<li>名称提案、追加要素、照合根拠和確認メモ使用固定宽度标签与内容对齐，标签使用深色加粗。</li>
+</ul>
+<h5>SPLIT</h5>
+<ol>
+<li>一个 OCR 字段包含多个业务对象时返回多个 <code>splitItems[]</code>。</li>
+<li>每个要素都有自己的 <code>master</code>。第一项为主要素，<code>primary=true</code>。item 顶层 <code>master</code> 与主要素对应。</li>
+<li><code>needsReview=false</code> 时，只回填和登记主要素，其他要素作为参考信息。</li>
+<li><code>needsReview=true</code> 时，整个 item 进入人工确认。页面显示全部要素并标记主要素。</li>
+<li>主要素通过上方「マスタ推奨」及候选区展示，SPLIT 区域不重复展示主要素。</li>
+<li>追加要素使用单行文本，格式为「追加要素　拆分文本　照合結果：照合结果」。</li>
+<li>式样书未定义逐要素 targets 和人工确认后的追加要素登记方式，原型不自行增加独立回填控件。</li>
+</ol>
+<h5>操作</h5>
+<ul>
+<li>主输入字段作为确认入口。</li>
+<li>与主输入属于同一 item 的 OUTPUT 和 INPUT_OUTPUT 字段跟随主输入确认，不单独计数，不显示独立候选和确认按钮。</li>
+<li>人工选择候选后，按当前 item 的 <code>values</code> 和 <code>targets</code> 回填。</li>
+<li>保存保留当前进度，全部待确认项处理完成后才可办结 OCR抽出确认。</li>
+</ul>
+<h4>5.4.7 采用记录</h4>
+<p>每个 item 保存以下数据。</p>
+<ul>
+<li><code>itemId</code>、<code>groupId</code></li>
+<li>所采用记录的 <code>object</code>、<code>masterId</code>、<code>selection</code></li>
+<li><code>values</code>、<code>needsReview</code></li>
+<li>采用原因</li>
+</ul>
+<p>采用记录用于人工确认展示、审计、输出和后续结果反馈。回填目标字段不再重复设置 IDP 原有的「主数据匹配」。</p>
+<h4>5.4.8 异常与边界</h4>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>系统处理</th>
+<th>页面表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>INPUT 组件的 targets 为空</td>
+<td>视为正常无回填</td>
+<td>保持 OCR 值</td>
+</tr>
+<tr>
+<td>DRUG 的 selection 为 null</td>
+<td>只回填 values，不生成登记记录</td>
+<td>正常显示</td>
+</tr>
+<tr>
+<td>NOT_APPLICABLE</td>
+<td>不回填主数据值</td>
+<td>保持 OCR 值</td>
+</tr>
+<tr>
+<td>任务 FAILED</td>
+<td>不应用结果，相关目标转人工</td>
+<td>显示失败原因</td>
+</tr>
+<tr>
+<td>任务 CANCELLED</td>
+<td>不应用任何结果</td>
+<td>不进入正常结果页</td>
+</tr>
+<tr>
+<td>账票部分失败</td>
+<td>其他成功账票继续处理</td>
+<td>显示失败账票及对应组</td>
+</tr>
+<tr>
+<td>输入 OCR 尚未确认</td>
+<td>暂停采用该 item</td>
+<td>保持待确认</td>
+</tr>
+<tr>
+<td>未知 status 或位置类型</td>
+<td>停止自动采用</td>
+<td>转人工确认</td>
+</tr>
+</tbody></table>
+<h4>5.4.9 单字段重新照合</h4>
+<p>单字段重新照合只处理 OCR经办人修改后的当前字段，不重新执行整组照合，也不重新生成业务批次。</p>
+<h5>触发条件</h5>
+<p>OCR经办人修改一个识别字段并点击保存。保存成功后，系统才对该字段调用 <code>POST /v1/items/standardize</code>。编辑过程中不调用 API。</p>
+<h5>请求规则</h5>
+<ol>
+<li><code>ref</code> 提交原 <code>taskId</code> 和 <code>itemId</code>。</li>
+<li><code>inputs</code> 只提交本次修改的字段。</li>
+<li>API 同步返回当前 item 的新结果，不创建 task。</li>
+<li>新结果只更新当前 item，不重跑组，不修改其他 item、其他组或原批次状态。</li>
+<li>选择新主数据行后，按该行 <code>values</code> 和当前 item <code>targets</code> 回填。</li>
+</ol>
+<h5>并发与范围</h5>
+<p>同一 item 在前一次重新照合完成前不能再次提交。旧响应不得覆盖新结果。本期只支持单字段重新照合。</p>
+<h5>流程</h5>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User as OCR经办人
+    participant IDP as OCR抽出確認
+    participant API as 主数据照合 API
+    IDP--&gt;&gt;User: 显示 OCR 原值、master、candidates、原因
+    alt 选择候选
+        User-&gt;&gt;IDP: 选择候选
+        IDP-&gt;&gt;IDP: 按 values 和 targets 回填
+    else 修改识别值
+        User-&gt;&gt;IDP: 修改单个输入
+        User-&gt;&gt;IDP: 保存
+        IDP-&gt;&gt;API: POST /v1/items/standardize
+        API--&gt;&gt;IDP: 当前 item 的新结果
+        IDP--&gt;&gt;User: 更新 master、candidates 和 targets
+        User-&gt;&gt;IDP: 选择候选或确认
+    end
+    User-&gt;&gt;IDP: 完成批次确认
+    IDP-&gt;&gt;IDP: 保存采用记录并继续工作流
+</code></pre>
+<h3 id="section-30">5.5 端到端流程与模块交接</h3>
+<h4>5.5.1 端到端流程</h4>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Admin as 配置管理员
+    participant Scene as 业务场景管理员
+    participant IDP as IDP
+    participant API as 主数据照合 API
+    participant User as OCR经办人
+
+    Admin-&gt;&gt;IDP: 打开主数据设定页面
+    Admin-&gt;&gt;IDP: 点击「マスタ同期」
+    par 并行加载
+        IDP-&gt;&gt;API: GET /v1/masters
+        API--&gt;&gt;IDP: 主数据表和列
+    and
+        IDP-&gt;&gt;API: GET /v1/catalog
+        API--&gt;&gt;IDP: 枚举和显示名
+    end
+    opt 获取默认组
+        Admin-&gt;&gt;IDP: 点击「既定グループ」
+        IDP-&gt;&gt;API: GET /v1/groups/defaults
+        API--&gt;&gt;IDP: 默认组模板
+    end
+    Admin-&gt;&gt;IDP: 编辑照合组
+    Admin-&gt;&gt;IDP: 点击「検証」
+    IDP-&gt;&gt;IDP: 本地校验
+    IDP-&gt;&gt;API: POST /v1/groups/validate
+    API--&gt;&gt;IDP: errors、warnings
+    Admin-&gt;&gt;IDP: 保存
+    IDP-&gt;&gt;IDP: 生成 groupsVersion
+
+    Scene-&gt;&gt;IDP: 在业务场景放置主数据照合节点
+    IDP-&gt;&gt;IDP: OCR抽出并冻结批次快照
+    IDP-&gt;&gt;API: POST /v1/standardizations
+    alt 立即完成
+        API--&gt;&gt;IDP: SUCCEEDED 和结果
+    else 异步处理
+        API--&gt;&gt;IDP: PENDING/PROCESSING 和 taskId
+        loop 轮询
+            IDP-&gt;&gt;API: GET /v1/standardizations
+            API--&gt;&gt;IDP: tasks 和 nextCursor
+        end
+        IDP-&gt;&gt;API: GET /v1/standardizations/{taskId}
+        API--&gt;&gt;IDP: documents、items、caseReview
+        opt items 分页
+            IDP-&gt;&gt;API: GET /v1/standardizations/{taskId}/items
+            API--&gt;&gt;IDP: items 和 nextCursor
+        end
+    end
+    IDP-&gt;&gt;IDP: 自动回填或生成确认项
+    opt 需要人工确认
+        User-&gt;&gt;IDP: 选择候选
+        opt 修改识别值
+            User-&gt;&gt;IDP: 修改并保存单个字段
+            IDP-&gt;&gt;API: POST /v1/items/standardize
+            API--&gt;&gt;IDP: 当前 item 的新结果
+        end
+        User-&gt;&gt;IDP: 确认完成
+    end
+    IDP-&gt;&gt;IDP: 保存采用记录并更新批次待办
+</code></pre>
+<h4>5.5.2 模块间数据交接</h4>
+<table>
+<thead>
+<tr>
+<th>来源模块</th>
+<th>交接数据</th>
+<th>接收模块</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>配置模块</td>
+<td>有效组、groupsVersion、组快照</td>
+<td>业务场景与批次执行</td>
+</tr>
+<tr>
+<td>业务场景</td>
+<td>sceneId、适用组、fallback 设置</td>
+<td>工作流节点</td>
+</tr>
+<tr>
+<td>批次执行</td>
+<td>taskId、tasks、documents、items、caseReview</td>
+<td>结果应用</td>
+</tr>
+<tr>
+<td>结果应用</td>
+<td>needsReview=true 的 item、reviewReasons</td>
+<td>OCR抽出确认</td>
+</tr>
+</tbody></table>
+<h3 id="section-31">5.6 跨模块通用性与非功能要求</h3>
+<h4>通用处理</h4>
+<ul>
+<li>配置界面、请求、回填和确认界面都不编写针对特定主数据表或列的分支。</li>
+<li>新增主数据表或列时，通过 API schema 和配置即可使用。</li>
+<li>响应中的未知字段忽略，不因新增字段导致处理失败。</li>
+<li>可能增加的枚举值按字符串接收，不将当前枚举集合固定为唯一值。</li>
+<li>所有 ID 按字符串处理。</li>
+<li>主数据表、列、hint 和枚举显示名从 GET /v1/masters 与 GET /v1/catalog 获取。</li>
+</ul>
+<h4>前后端职责边界</h4>
+<table>
+<thead>
+<tr>
+<th>范围</th>
+<th>前端负责</th>
+<th>后端负责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>API连接</td>
+<td>表单输入、必填提示、Key 脱敏预览、显示连接状态</td>
+<td>保存 Key 受保护引用、执行连接测试、代理 Zurich 请求</td>
+</tr>
+<tr>
+<td>マスタ与默认组</td>
+<td>触发同步、展示选项和差异、处理 loading 和错误提示</td>
+<td>调用 masters、catalog、defaults；保存定义和组配置</td>
+</tr>
+<tr>
+<td>照合组配置</td>
+<td>限制字段和照合方式选项、执行前端控制与本地校验、显示错误和警告</td>
+<td>保持请求结构正确、调用 groups/validate、保存通过的配置</td>
+</tr>
+<tr>
+<td>版本与履历</td>
+<td>显示版本和变更履历</td>
+<td>生成 groupsVersion、快照和履历记录</td>
+</tr>
+<tr>
+<td>业务场景与批次</td>
+<td>配置节点、显示节点状态</td>
+<td>提交批次、轮询任务、保存游标、合并结果</td>
+</tr>
+<tr>
+<td>OCR抽出确认</td>
+<td>展示候选项和原因、接收用户选择、提交修改后的输入</td>
+<td>调用 items/standardize、保存采用记录、应用 targets</td>
+</tr>
+</tbody></table>
+<p>前端已经能够可靠限制的选项和组合，后端不再重复实现同一套界面规则。后端仍负责请求字段完整性、接口调用、状态持久化和 Zurich 返回结果处理。</p>
+<h4>连接与数据处理</h4>
+<ul>
+<li>通信使用 HTTPS，并信任 Zurich 内部证书颁发机构的证书。</li>
+<li>API Key 作为机密信息保管，不在界面和日志中显示。</li>
+<li>连接超时、响应等待时间和接收缓冲区大小按 Zurich API v1.1 §8.5 执行。</li>
+<li>通知脱敏随完成通知在第 5 期实现，本期不设置 callbackUrl，不发送完成通知。</li>
+</ul>
+<h2 id="section-32">第 6 章｜异常、注意点与附件</h2>
+<h3 id="section-33">6.1 跨模块异常情况</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>触发条件</th>
+<th>系统结果</th>
+<th>用户可见结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>API 连接</td>
+<td>未配置或连接无效</td>
+<td>不调用 Zurich</td>
+<td>显示未配置或连接错误</td>
+</tr>
+<tr>
+<td>masters</td>
+<td>同步失败</td>
+<td>保留最近一次主数据缓存</td>
+<td>显示同步失败，可再次点击「マスタ同期」</td>
+</tr>
+<tr>
+<td>catalog</td>
+<td>同步失败</td>
+<td>保留最近一次显示名，不影响 masters 缓存</td>
+<td>显示显示名更新失败</td>
+</tr>
+<tr>
+<td>默认组</td>
+<td>请求失败</td>
+<td>不修改本地组配置</td>
+<td>显示默认组获取失败</td>
+</tr>
+<tr>
+<td>组校验</td>
+<td>本地校验失败</td>
+<td>不调用 groups/validate</td>
+<td>显示字段级错误</td>
+</tr>
+<tr>
+<td>组校验</td>
+<td>Zurich 返回 errors</td>
+<td>不更新 groupsVersion</td>
+<td>显示组级错误，保持未验证</td>
+</tr>
+<tr>
+<td>重复回填目标</td>
+<td>多个组写同一 IDP 字段</td>
+<td>不阻止保存，产生配置警告</td>
+<td>后续冲突结果转人工</td>
+</tr>
+<tr>
+<td>批次提交</td>
+<td>超时或 500</td>
+<td>使用相同 clientRequestId 重试</td>
+<td>节点保持 processing</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>429 或 503</td>
+<td>按 Retry-After 重试</td>
+<td>节点保持 processing</td>
+</tr>
+<tr>
+<td>批次提交</td>
+<td>达到已确认的最大重试次数</td>
+<td>停止自动重试，保留请求记录，节点转为 failed</td>
+<td>显示提交失败，不推进下游</td>
+</tr>
+<tr>
+<td>标准字段</td>
+<td>被适用组引用的 <code>CASE_FIELD</code> 存在冲突</td>
+<td>排除冲突的标准字段，使用同组普通字段继续照合</td>
+<td>照合继续进行</td>
+</tr>
+<tr>
+<td>标准字段</td>
+<td>排除冲突字段后没有可用输入</td>
+<td>不调用 Zurich，设置 <code>masterStatus=failed</code></td>
+<td>显示照合失败，不推进下游</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>FAILED</td>
+<td>相应目标项目转人工</td>
+<td>显示失败原因并进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>CANCELLED</td>
+<td>不应用任何结果</td>
+<td>批次不继续应用结果</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>部分账票 FAILED</td>
+<td>任务仍可为 SUCCEEDED，相关组转人工</td>
+<td>显示对应账票失败</td>
+</tr>
+<tr>
+<td>结果分流</td>
+<td>needsReview 缺失或 null</td>
+<td>按需确认处理</td>
+<td>进入 OCR抽出确认</td>
+</tr>
+<tr>
+<td>结果分流</td>
+<td>ITEM 为 UNRESOLVED 或 NEW_CANDIDATE</td>
+<td>不自动回填</td>
+<td>显示候选、原因和备注</td>
+</tr>
+<tr>
+<td>兜底照合</td>
+<td>groupId=FALLBACK</td>
+<td>必须人工确认</td>
+<td>显示 FALLBACK 结果</td>
+</tr>
+<tr>
+<td>候选冲突</td>
+<td>WRITE_CONFLICT</td>
+<td>不自动覆盖</td>
+<td>后续组结果转人工</td>
+</tr>
+<tr>
+<td>重新照合</td>
+<td>同一 item 前一次请求未结束</td>
+<td>不再提交下一次</td>
+<td>不允许旧响应覆盖新结果</td>
+</tr>
+<tr>
+<td>重新照合</td>
+<td>接口超时</td>
+<td>保留原结果并显示超时</td>
+<td>可再次提交</td>
+</tr>
+<tr>
+<td>分页</td>
+<td>itemsNextCursor 存在</td>
+<td>继续获取 pages</td>
+<td>页面等待完整结果</td>
+</tr>
+<tr>
+<td>IDP 重启</td>
+<td>存在未完成轮询</td>
+<td>从保存的 nextCursor 继续</td>
+<td>节点保持 processing</td>
+</tr>
+</tbody></table>
+<h3 id="section-34">6.2 注意点</h3>
+<ol>
+<li>Zurich 原始 status 和 needsReview 必须原样保存，IDP 状态只用于页面和流程分支。</li>
+<li>组配置保存后生成新的 groupsVersion，已运行任务使用冻结版本。</li>
+<li>同一业务批次拆成多个 taskId 时只生成一个 OCR抽出确认入口。</li>
+<li>组外字段和未选择照合的字段保持 OCR抽出原值。</li>
+</ol>
+<hr>
+<h3 id="section-35">6.3 接口规格书附件</h3>
+<ul>
+<li><a href="/attachments/zurich-standardization-api-v1.1-zh-CN.md">綜合主データ名称標準化 API 仕様書 v1.1 中文版（下载）</a></li>
+</ul>
+<p>完整接口、公共对象、枚举、错误码和通知格式以该附件为准。本 PRD 只列 IDP 实际发送或使用的字段。</p>
+</article></main><script type="module">
+import mermaid from '/vendor/mermaid.js';
+import { enhanceDiagrams } from '/diagram-zoom.js';
+for(const code of document.querySelectorAll('pre code.language-mermaid')){const container=document.createElement('div');container.className='diagram';const diagram=document.createElement('div');diagram.className='mermaid';diagram.textContent=code.textContent;container.append(diagram);code.parentElement.replaceWith(container)}
+mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral',flowchart:{useMaxWidth:false,htmlLabels:false}});try{await mermaid.run({querySelector:'.mermaid'})}catch(error){console.error('Mermaid rendering failed',error)}
+enhanceDiagrams(document.querySelector('article'));
+const links=[...document.querySelectorAll('nav a')];new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){links.forEach(link=>link.classList.toggle('active',link.hash==='#'+entry.target.id))}}},{rootMargin:'-5% 0px -75% 0px'}).observe(document.querySelector('h2'));
+const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){links.forEach(link=>link.classList.toggle('active',link.hash==='#'+entry.target.id))}}},{rootMargin:'-5% 0px -75% 0px'});document.querySelectorAll('h2,h3').forEach(heading=>observer.observe(heading));
+</script></body></html>

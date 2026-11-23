@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env*
+!.env.example
+.prd-history/
+.run/
+.DS_Store
+*.log
+interaction-prd/*/exports/
+.vercel/
+.vercel-data/

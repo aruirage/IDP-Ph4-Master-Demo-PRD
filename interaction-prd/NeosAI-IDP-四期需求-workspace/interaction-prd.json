@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "NeosAI IDP 四期需求",
+    "type": "Web",
+    "status": "design-review",
+    "source": {
+      "mode": "idea"
+    }
+  },
+  "modules": [
+    {
+      "id": "chapter-01",
+      "title": "第1章｜本期范围与优先级",
+      "prd": "prd/chapter-01.md",
+      "kind": "prd",
+      "pages": [],
+      "status": "draft"
+    },
+    {
+      "id": "chapter-02",
+      "title": "第2章｜用户故事与旅程",
+      "prd": "prd/chapter-02.md",
+      "kind": "prd",
+      "pages": [],
+      "status": "draft"
+    },
+    {
+      "id": "chapter-03",
+      "title": "第3章｜术语、数据结构与权限",
+      "prd": "prd/chapter-03.md",
+      "kind": "prd",
+      "pages": [],
+      "status": "draft"
+    },
+    {
+      "id": "chapter-04",
+      "title": "第4章｜API 契约",
+      "prd": "prd/chapter-04.md",
+      "kind": "prd",
+      "pages": [],
+      "status": "draft"
+    },
+    {
+      "id": "chapter-05",
+      "title": "第5章｜功能详情",
+      "prd": "prd/chapter-05.md",
+      "kind": "prd",
+      "pages": [
+        "api-settings",
+        "ocr-confirmation",
+        "master-standardization-config"
+      ],
+      "status": "draft"
+    },
+    {
+      "id": "chapter-06",
+      "title": "第6章｜异常、注意点与附件",
+      "prd": "prd/chapter-06.md",
+      "kind": "prd",
+      "pages": [],
+      "status": "draft"
+    }
+  ],
+  "pages": [
+    {
+      "id": "api-settings",
+      "title": "外部API连接",
+      "moduleId": "chapter-05",
+      "file": "prototypes/pages/api-settings.html",
+      "annotationFile": "annotations/api-settings.json",
+      "kind": "page",
+      "device": "desktop",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 80,
+        "y": 480
+      }
+    },
+    {
+      "id": "ocr-confirmation",
+      "title": "OCR抽出确认",
+      "moduleId": "chapter-05",
+      "file": "prototypes/pages/ocr-confirmation.html",
+      "annotationFile": "annotations/ocr-confirmation.json",
+      "kind": "page",
+      "device": "desktop",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 700,
+        "y": 1280
+      }
+    },
+    {
+      "id": "master-standardization-config",
+      "title": "主数据标准化配置端",
+      "moduleId": "chapter-05",
+      "file": "prototypes/pages/master-standardization-config.html",
+      "annotationFile": "annotations/master-standardization-config.json",
+      "kind": "page",
+      "device": "desktop",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 80,
+        "y": 1680
+      }
+    }
+  ],
+  "relations": [
+    {
+      "id": "api-standardization-config",
+      "from": "api-settings",
+      "to": "master-standardization-config",
+      "label": "标准化 API 连接",
+      "trigger": "外部API连接保存后，主数据设定读取该连接"
+    },
+    {
+      "id": "standardization-config-ocr",
+      "from": "master-standardization-config",
+      "to": "ocr-confirmation",
+      "label": "照合结果确认",
+      "trigger": "批次照合完成后，按需进入 OCR抽出确认"
+    }
+  ]
+}
