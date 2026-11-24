@@ -1394,7 +1394,7 @@ Zurich 不直接修改 IDP 的 OCR 字段。任务和账票 `status` 用于结�
 ##### 操作
 
 - 主输入字段作为整条 item 的人工确认入口。同一 item 只计一次。
-- 有候选时，`INPUT` 和 `INPUT_OUTPUT` 字段都可展开同一份 `item.candidates`，需确认和自动采用均适用。`OUTPUT` 字段不展示候选入口。改选候选只更新回填目标，`INPUT` 保留原值。
+- 有候选时，`INPUT_OUTPUT` 字段可展开 `item.candidates`，需确认和自动采用均适用。`INPUT` 和 `OUTPUT` 字段不展示候选下拉。改选候选只更新回填目标，`INPUT` 保留 OCR 原值。
 - 人工选择候选后，按当前 item 的 `values` 和 `targets` 回填。
 - 保存保留当前进度，全部待确认项处理完成后才可办结 OCR抽出确认。
 

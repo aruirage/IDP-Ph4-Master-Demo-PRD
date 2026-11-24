@@ -93,8 +93,8 @@ function isRestandardizing(fieldId: string): boolean {
   return (props.restandardizingFieldIds ?? []).includes(fieldId)
 }
 function candidateOwner(field: OcrExtractionField): OcrExtractionField | undefined {
+  if (field.memberMode === 'INPUT' || field.memberMode === 'OUTPUT') return undefined
   if (!field.standardizationItemId) return field.masterMatchLinkedTo ? undefined : field
-  if (field.memberMode === 'OUTPUT') return undefined
   if (field.standardizationReview) return field
   return props.fields.find((member) =>
     member.standardizationItemId === field.standardizationItemId && member.standardizationReview

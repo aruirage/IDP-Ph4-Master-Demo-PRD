@@ -3409,7 +3409,7 @@
 <h5>操作</h5>
 <ul>
 <li>主输入字段作为整条 item 的人工确认入口。同一 item 只计一次。</li>
-<li>有候选时，<code>INPUT</code> 和 <code>INPUT_OUTPUT</code> 字段都可展开同一份 <code>item.candidates</code>，需确认和自动采用均适用。<code>OUTPUT</code> 字段不展示候选入口。改选候选只更新回填目标，<code>INPUT</code> 保留原值。</li>
+<li>有候选时，<code>INPUT_OUTPUT</code> 字段可展开 <code>item.candidates</code>，需确认和自动采用均适用。<code>INPUT</code> 和 <code>OUTPUT</code> 字段不展示候选下拉。改选候选只更新回填目标，<code>INPUT</code> 保留 OCR 原值。</li>
 <li>人工选择候选后，按当前 item 的 <code>values</code> 和 <code>targets</code> 回填。</li>
 <li>保存保留当前进度，全部待确认项处理完成后才可办结 OCR抽出确认。</li>
 </ul>
