@@ -172,11 +172,6 @@ async function remove(row: ExternalConnection) {
         </template>
       </el-table-column>
       <el-table-column prop="creator" :label="t('phase3.creator')" width="120" />
-      <el-table-column :label="t('phase3.connectionAudit')" min-width="180">
-        <template #default="{ row }">
-          {{ row.updated || '—' }}<span v-if="row.updatedBy"> / {{ row.updatedBy }}</span>
-        </template>
-      </el-table-column>
       <el-table-column :label="t('phase3.actions')" width="280">
         <template #default="{ row }">
           <el-button
