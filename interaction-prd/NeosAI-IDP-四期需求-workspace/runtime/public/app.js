@@ -290,7 +290,16 @@ function setView(view) {
   $$('.tab').forEach(node=>node.setAttribute('aria-selected',String(node.dataset.view===view)));
   $('#review-tools').hidden=view==='canvas';
   $('.prd-role-picker').hidden=view==='canvas';
-  if (view === 'prototype') {updateReviewLayout();if(enteringPrototype&&!state.module?.id.startsWith('detail-')){const page=state.page||state.manifest.pages[0];if(page)selectModule(page.moduleId);else clearPrototype()}else renderPrototype()}
+  if (view === 'prototype') {
+    updateReviewLayout();
+    if (enteringPrototype && !state.module?.id.startsWith('detail-')) {
+      const page = state.page || state.manifest.pages[0];
+      if (page) void selectModule(page.moduleId).then(() => selectPage(page.id));
+      else clearPrototype();
+    } else {
+      renderPrototype();
+    }
+  }
   if (view === 'canvas') renderCanvas();
 }
 
@@ -541,7 +550,10 @@ async function refreshExternalChanges() {
 function bind() {
   $$('.tab').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
   enablePrototypeWindow(resizePrototype);
-  $('#page-select').addEventListener('change',event=>{const page=state.manifest.pages.find(p=>p.id===event.target.value);if(page)selectModule(page.moduleId)});
+  $('#page-select').addEventListener('change',event=>{
+    const page=state.manifest.pages.find(p=>p.id===event.target.value);
+    if(page) void selectModule(page.moduleId).then(()=>selectPage(page.id));
+  });
   $('#prd-section-select').addEventListener('change',event=>selectModule(event.target.value));
   $('#compare-button').addEventListener('click', () => { if (state.page) { state.prototypeExpanded = false; state.inspectorOpen = true; state.inspectorTab = 'prd'; setView('prototype'); } });
   $('#exit-compare').addEventListener('click', () => setView('document'));

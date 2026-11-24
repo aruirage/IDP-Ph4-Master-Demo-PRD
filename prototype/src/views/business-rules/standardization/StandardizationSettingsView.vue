@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import MasterDataNavigation from '@/views/business-rules/master-data/MasterDataNavigation.vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Loading, MoreFilled, Plus, QuestionFilled, Refresh, WarningFilled } from '@element-plus/icons-vue'
@@ -8,18 +9,15 @@ import { CURRENT_USER } from '@/constants/currentUser'
 import VerificationStandardFieldToggle from '@/views/business-rules/verification-settings/components/VerificationStandardFieldToggle.vue'
 import { dataMappingRules } from '@/mocks/dataMapping'
 import {
-  createStandardizationMockGroups,
   findStandardizationDocumentType,
-  findStandardizationMaster,
   fetchStandardizationCatalog,
   fetchStandardizationDefaultGroups,
   fetchStandardizationMasters,
   standardizationBusinessScenes,
   standardizationDocumentTypes,
-  standardizationGroups,
+  standardizationGroups as savedGroups,
   standardizationGroupsVersion,
   standardizationMasters,
-  validateStandardizationGroups,
   type StandardizationCatalog,
   type StandardizationDefaultGroups,
   type StandardizationMaster,
@@ -30,12 +28,8 @@ import { p3 } from '@/mocks/phase3'
 
 const { t, locale } = useI18n()
 const dateLocale = computed(() => (locale.value === 'zh-CN' ? 'zh-CN' : 'ja-JP'))
-const MEMBER_MODE_OPTIONS = computed<{ value: StandardizationGroupMember['mode']; label: string }[]>(() => [
-  { value: 'INPUT', label: t('standardization.modeInput') },
-  { value: 'OUTPUT', label: t('standardization.modeOutput') },
-  { value: 'INPUT_OUTPUT', label: t('standardization.modeInputOutput') }
-])
-const CONFIG_STORAGE_KEY = 'neosai-standardization-config-v12'
+const MEMBER_MODE_OPTIONS: StandardizationGroupMember['mode'][] = ['INPUT', 'OUTPUT', 'INPUT_OUTPUT']
+const CONFIG_STORAGE_KEY = 'neosai-standardization-config-v13'
 const MOCK_DATA_SEED = 'drug-v1.1-candidate-contract-v3'
 const initialState = new URLSearchParams(window.location.search).get('state')
 const forceEmptyState = initialState === 'empty'
@@ -87,16 +81,10 @@ interface WriteTargetConflict {
   }>
 }
 
-if (!configIsCurrent || forceEmptyState) {
-  standardizationGroups.value = forceEmptyState ? [] : createStandardizationMockGroups()
-  standardizationGroupsVersion.value = forceEmptyState ? '' : '2026-11-22-01'
-}
-if (configIsCurrent && !forceEmptyState && persistedConfig?.groups?.length) {
-  standardizationGroups.value = persistedConfig.groups
-}
-if (configIsCurrent && !forceEmptyState && persistedConfig?.version) {
-  standardizationGroupsVersion.value = persistedConfig.version
-}
+const hasSavedConfig = configIsCurrent && !forceEmptyState && Array.isArray(persistedConfig?.groups)
+savedGroups.value = hasSavedConfig ? persistedConfig.groups : []
+standardizationGroupsVersion.value = hasSavedConfig ? persistedConfig.version ?? '' : ''
+const standardizationGroups = ref(cloneGroups(savedGroups.value))
 const groupKeyword = ref('')
 const activeGroupId = ref(standardizationGroups.value[0]?.groupId ?? '')
 const editingGroupId = ref('')
@@ -107,14 +95,15 @@ const editingMemberId = ref('')
 const fetchingMasters = ref(false)
 const fetchingCatalog = ref(false)
 const fetchingDefaultGroups = ref(false)
-const validating = ref(false)
 const saving = ref(false)
 const syncedAt = ref(configIsCurrent ? persistedConfig?.schema?.syncedAt ?? '' : '')
 const catalogSyncedAt = ref(configIsCurrent ? persistedConfig?.catalogSyncedAt ?? '' : '')
 const defaultGroupsFetchedAt = ref(configIsCurrent ? persistedConfig?.defaultGroupsFetchedAt ?? '' : '')
 const schemaVersion = ref(configIsCurrent ? persistedConfig?.schema?.schemaVersion ?? '' : '')
 const masterOptions = ref<StandardizationMaster[]>(
-  configIsCurrent && !forceEmptyState ? persistedConfig?.schema?.masterTables ?? [] : []
+  configIsCurrent && !forceEmptyState
+    ? persistedConfig?.schema?.masterTables ?? standardizationMasters
+    : standardizationMasters
 )
 const catalog = ref<StandardizationCatalog | null>(configIsCurrent ? persistedConfig?.catalog ?? null : null)
 const historyVisible = ref(false)
@@ -122,9 +111,6 @@ const historyGroupId = ref('')
 type ValidationState = 'idle' | 'validating' | 'valid' | 'warning' | 'invalid' | 'saved'
 const validationState = ref<ValidationState>('idle')
 const validationMessage = ref('')
-const validationWarnings = ref<string[]>([])
-const memberValidationMessages = ref<Record<string, string>>({})
-const memberRoleSnapshot = ref<Record<string, { key: string; label: string }>>({})
 const defaultGroupDialogVisible = ref(false)
 const defaultGroupDiff = ref<DefaultGroupDiffRow[]>([])
 const defaultGroupPreviewVersion = ref('')
@@ -144,25 +130,12 @@ if (configIsCurrent && persistedConfig?.history?.length) {
 }
 
 watch(
-  [
-    standardizationGroups,
-    standardizationGroupsVersion,
-    groupHistory,
-    masterOptions,
-    syncedAt,
-    catalogSyncedAt,
-    defaultGroupsFetchedAt,
-    schemaVersion,
-    catalog,
-    versionSnapshots,
-    defaultGroupsVersion,
-    importedDefaultGroupIds
-  ],
+  [savedGroups, standardizationGroupsVersion],
   () => {
     if (forceEmptyState) return
     localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({
       mockDataSeed: MOCK_DATA_SEED,
-      groups: standardizationGroups.value,
+      groups: savedGroups.value,
       version: standardizationGroupsVersion.value,
       history: groupHistory.value,
       schema: {
@@ -186,8 +159,6 @@ watch(
   () => {
     validationState.value = 'idle'
     validationMessage.value = ''
-    validationWarnings.value = []
-    memberValidationMessages.value = {}
   },
   { deep: true }
 )
@@ -195,13 +166,9 @@ watch(
 const forceNoApi = initialState === 'no-api'
 const apiConfigured = computed(() => {
   if (forceNoApi) return false
-  const connection = p3.connections.find((item) => item.connector === 'standardization')
-  return Boolean(connection)
+  const connection = p3.connections.find((item) => item.module === 'master-matching')
+  return connection?.testStatus === 'success' && connection.testedUrl === connection.url
 })
-const schemaReady = computed(() => masterOptions.value.length > 0)
-const syncingMasterDefinitions = computed(
-  () => fetchingMasters.value || fetchingCatalog.value
-)
 const defaultGroupNewCount = computed(
   () => defaultGroupDiff.value.filter((row) => row.action === 'new').length
 )
@@ -240,9 +207,6 @@ const activeGroup = computed(() =>
   standardizationGroups.value.find((group) => group.groupId === activeGroupId.value) ?? null
 )
 
-const validationCanSave = computed(
-  () => validationState.value === 'valid' || validationState.value === 'warning'
-)
 
 const writeTargetConflicts = computed<WriteTargetConflict[]>(() => {
   const buckets = new Map<string, {
@@ -291,12 +255,6 @@ const activeMaster = computed(() =>
     : null
 )
 
-watch(
-  [activeGroupId, () => activeGroup.value?.masterTable, masterOptions],
-  () => refreshActiveMemberRoles(),
-  { flush: 'post', deep: true }
-)
-
 function commonSceneDocumentTypeIds(sceneIds: string[]) {
   const scenes = sceneIds
     .map((sceneId) => standardizationBusinessScenes.find((scene) => scene.id === sceneId))
@@ -322,18 +280,14 @@ const canAddField = computed(
   () => Boolean(activeGroup.value?.sceneIds.length && availableDocumentTypes.value.length)
 )
 
-function catalogLabel(key: string, value: string, fallback: string) {
-  return catalog.value?.enums[key]?.find((item) => item.value === value)?.label ?? fallback
-}
-
 function masterTableLabel(master: StandardizationMaster) {
-  return catalogLabel('masterTable', master.masterTable, master.label)
+  return master.label
 }
 
 function masterTableDisplayLabel(masterTable: string) {
   const master = masterOptions.value.find((item) => item.masterTable === masterTable)
   const mockMaster = standardizationMasters.find((item) => item.masterTable === masterTable)
-  return catalogLabel('masterTable', masterTable, master?.label ?? mockMaster?.label ?? masterTable)
+  return master?.label ?? mockMaster?.label ?? masterTable
 }
 
 function cloneGroups(groups: StandardizationGroup[]) {
@@ -564,6 +518,11 @@ function onDocumentTypeChange() {
   memberDraft.field.columnName = ''
 }
 
+function selectMasterTable(value: string) {
+  if (!activeGroup.value) return
+  activeGroup.value.masterTable = value
+}
+
 function onSceneSelectionChange(sceneIds: string[]) {
   if (!activeGroup.value) return
   const previous = activeGroup.value.sceneIds
@@ -594,6 +553,7 @@ function openMemberDialog(member?: StandardizationGroupMember) {
     return
   }
   editingMemberId.value = member?.id ?? ''
+  memberDraft.externalFieldName = member?.externalFieldName
   Object.assign(memberDraft, member
     ? { ...member, field: { ...member.field } }
     : {
@@ -636,7 +596,8 @@ function saveMember() {
   const duplicate = activeGroup.value.members.some(
     (member) =>
       member.id !== editingMemberId.value &&
-      (member.column === memberDraft.column || member.hint === memberDraft.hint)
+      ((memberDraft.column && member.column === memberDraft.column) ||
+        (memberDraft.hint && member.hint === memberDraft.hint))
   )
   if (duplicate) {
     ElMessage.warning(t('standardization.alertDuplicateMasterItem'))
@@ -654,13 +615,11 @@ function saveMember() {
   if (index >= 0) activeGroup.value.members[index] = next
   else activeGroup.value.members.push(next)
   memberDialogVisible.value = false
-  refreshActiveMemberRoles()
 }
 
 function removeMember(memberId: string) {
   if (!activeGroup.value) return
   activeGroup.value.members = activeGroup.value.members.filter((member) => member.id !== memberId)
-  refreshActiveMemberRoles()
 }
 
 function getMasterItem(member: StandardizationGroupMember) {
@@ -682,6 +641,9 @@ function isMasterItemUsedInGroup(value: string) {
 }
 
 function getMemberFieldLabel(member: StandardizationGroupMember) {
+  if (!member.field.fieldName && !member.field.columnName) {
+    return ''
+  }
   if (member.field.type === 'CASE_FIELD') {
     const standard = dataMappingRules.value.find(
       (rule) => rule.standardField === member.field.fieldName
@@ -700,10 +662,6 @@ function memberFieldKey(member: StandardizationGroupMember) {
     return `${member.field.documentTypeId}:table:${member.field.tableName}:${member.field.columnName}`
   }
   return `${member.field.documentTypeId}:field:${member.field.fieldName ?? ''}`
-}
-
-function modeLabel(mode: StandardizationGroupMember['mode']) {
-  return MEMBER_MODE_OPTIONS.value.find((option) => option.value === mode)?.label ?? mode
 }
 
 function actionLabel(action: GroupHistoryEntry['action']) {
@@ -741,64 +699,6 @@ function displayHistoryDetail(detail: string) {
   }).join('、')
 }
 
-function memberValidationKey(groupId: string, memberId: string) {
-  return `${groupId}:${memberId}`
-}
-
-function memberPurposeForGroup(group: StandardizationGroup, member: StandardizationGroupMember) {
-  const master = masterOptions.value.find((item) => item.masterTable === group.masterTable)
-  const masterItem = member.column
-    ? master?.columns.find((item) => item.column === member.column)
-    : member.hint
-      ? master?.hints.find((item) => item.hint === member.hint)
-      : undefined
-  if (!masterItem) return { key: 'idle', label: '—' }
-  if (member.hint) {
-    return member.mode === 'INPUT'
-      ? { key: 'supporting', label: t('standardization.roleSupporting') }
-      : { key: 'idle', label: '—' }
-  }
-  if (!('inputRole' in masterItem) || !('writable' in masterItem)) {
-    return { key: 'idle', label: '—' }
-  }
-  if (!masterItem.writable && member.mode !== 'INPUT') {
-    return { key: 'idle', label: '—' }
-  }
-  if (masterItem.inputRole === 'NONE' && member.mode !== 'OUTPUT') {
-    return { key: 'idle', label: '—' }
-  }
-  if (member.mode === 'OUTPUT') return { key: 'output', label: t('standardization.roleOutput') }
-  if (masterItem.inputRole === 'PRIMARY') {
-    return { key: 'primary', label: t('standardization.rolePrimary') }
-  }
-  return { key: 'supporting', label: t('standardization.roleSupporting') }
-}
-
-function activeMemberStateKey(member: StandardizationGroupMember) {
-  return activeGroup.value ? memberValidationKey(activeGroup.value.groupId, member.id) : ''
-}
-
-function refreshActiveMemberRoles() {
-  const group = activeGroup.value
-  if (!group) {
-    memberRoleSnapshot.value = {}
-    return
-  }
-  const next: Record<string, { key: string; label: string }> = {}
-  group.members.forEach((member) => {
-    next[memberValidationKey(group.groupId, member.id)] = memberPurposeForGroup(group, member)
-  })
-  memberRoleSnapshot.value = next
-}
-
-function memberValidationMessage(member: StandardizationGroupMember) {
-  return memberValidationMessages.value[activeMemberStateKey(member)] ?? ''
-}
-
-function memberValidationDisplay(member: StandardizationGroupMember) {
-  return memberRoleSnapshot.value[activeMemberStateKey(member)] ?? { key: 'idle', label: '—' }
-}
-
 function writeTargetConflictMessage(conflict: WriteTargetConflict) {
   const labelCounts = new Map<string, number>()
   conflict.groups.forEach((group) => {
@@ -822,9 +722,9 @@ function modeDisabled(mode: StandardizationGroupMember['mode']) {
 
 function validateGroup(group: StandardizationGroup) {
   const errors: string[] = []
-  const master = findStandardizationMaster(group.masterTable)
+  const master = masterOptions.value.find((item) => item.masterTable === group.masterTable)
   if (!group.label.trim()) errors.push(t('standardization.validationGroupName'))
-  if (!group.masterTable) errors.push(t('standardization.validationMaster'))
+  if (!master) errors.push(t('standardization.validationMaster'))
   if (!group.sceneIds.length) errors.push(t('standardization.validationScenes'))
   if (!group.members.length) errors.push(t('standardization.validationFields'))
   const refs = group.members.map((member) => member.column || member.hint).filter(Boolean)
@@ -877,6 +777,9 @@ function validateGroup(group: StandardizationGroup) {
 
   for (const member of group.members) {
     const masterColumn = master?.columns.find((column) => column.column === member.column)
+    if (!masterColumn && !master?.hints.some((hint) => hint.hint === member.hint)) {
+      errors.push(t('standardization.alertSelectMasterItem'))
+    }
     if (member.hint && member.mode !== 'INPUT') {
       errors.push(t('standardization.validationHintInputOnly'))
     }
@@ -916,81 +819,23 @@ function validateGroup(group: StandardizationGroup) {
   return errors
 }
 
-async function validateSettings() {
-  if (!activeGroup.value) return
-  validationState.value = 'validating'
-  validationMessage.value = t('standardization.validating')
-  validationWarnings.value = []
-  memberValidationMessages.value = {}
-  refreshActiveMemberRoles()
-  const errors = standardizationGroups.value.flatMap((group) =>
-    validateGroup(group).map((message) => `${group.label}：${message}`)
-  )
-  const warnings = writeTargetConflicts.value.map(writeTargetConflictMessage)
-  if (errors.length) {
-    validationState.value = 'invalid'
-    validationMessage.value = errors[0]
-    ElMessage.warning(errors[0])
-    return
-  }
-  validating.value = true
-  try {
-    const results = await validateStandardizationGroups(standardizationGroups.value)
-    const invalid = results.find((result) => !result.valid)
-    if (invalid) {
-      const group = standardizationGroups.value.find((item) => item.groupId === invalid.groupId)
-      invalid.errors.forEach((error) => {
-        if (error.memberIndex === null) return
-        const member = group?.members[error.memberIndex]
-        if (group && member) {
-          memberValidationMessages.value[memberValidationKey(group.groupId, member.id)] = error.message
-        }
-      })
-      const message = `${group?.label ?? invalid.groupId}：${invalid.errors[0]?.message ?? t('standardization.validationCheckConfig')}`
-      validationState.value = 'invalid'
-      validationMessage.value = message
-      ElMessage.warning(message)
-      return
-    }
-    validationState.value = warnings.length ? 'warning' : 'valid'
-    validationMessage.value = warnings.length
-      ? t('standardization.warningCount', { count: warnings.length })
-      : t('standardization.verified')
-    validationWarnings.value = warnings
-    memberValidationMessages.value = {}
-    refreshActiveMemberRoles()
-    if (warnings.length) {
-      const groupLabels = Array.from(new Set(
-        writeTargetConflicts.value.flatMap((conflict) =>
-          conflict.groups.map((group) => `「${group.groupLabel}」`)
-        )
-      ))
-      ElMessage({
-        type: 'warning',
-        message: groupLabels.join('、'),
-        duration: 8000
-      })
-    } else {
-      ElMessage.success(t('standardization.validationVerified'))
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : t('standardization.validationFailed')
-    validationState.value = 'invalid'
-    validationMessage.value = message
-    memberValidationMessages.value = {}
-    ElMessage.error(message)
-  } finally {
-    validating.value = false
-  }
-}
-
 async function saveSettings() {
   if (!activeGroup.value) return
   saving.value = true
   try {
-    await validateSettings()
-    if (!validationCanSave.value) return
-    const previousGroups = cloneGroups(versionSnapshots.value[0]?.groups ?? [])
+    const firstError = standardizationGroups.value.flatMap((group) =>
+      validateGroup(group).map((message) => `${group.label}：${message}`)
+    )[0]
+    if (firstError) {
+      validationState.value = 'invalid'
+      validationMessage.value = firstError
+      ElMessage.warning(firstError)
+      return
+    }
+    const warnings = writeTargetConflicts.value.map(writeTargetConflictMessage)
+    if (warnings.length) ElMessage.warning(warnings.join('、'))
+    const previousGroups = savedGroups.value
+    savedGroups.value = cloneGroups(standardizationGroups.value)
     standardizationGroupsVersion.value = nextGroupsVersion()
     createVersionSnapshot()
     standardizationGroups.value.forEach((group) => {
@@ -1000,7 +845,6 @@ async function saveSettings() {
     })
     validationState.value = 'saved'
     validationMessage.value = t('standardization.saved')
-    validationWarnings.value = []
     ElMessage.success(t('standardization.saveSuccess'))
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : t('standardization.saveFailed'))
@@ -1074,25 +918,8 @@ async function fetchDefaultGroups(options: { silent?: boolean } = {}) {
   }
 }
 
-onMounted(() => {
-  refreshActiveMemberRoles()
-})
-
-async function syncMasterDefinitions() {
-  if (syncingMasterDefinitions.value) return
-  const [mastersLoaded, catalogLoaded] = await Promise.all([
-    fetchMasters({ silent: true }),
-    fetchCatalog({ silent: true })
-  ])
-  if (mastersLoaded && catalogLoaded) {
-    ElMessage.success(t('standardization.syncSuccess'))
-  } else {
-    ElMessage.warning(t('standardization.syncPartialFailed'))
-  }
-}
-
 async function ensureMasterDataLoaded(visible: boolean) {
-  if (!visible || !apiConfigured.value || syncingMasterDefinitions.value) return
+  if (!visible || !apiConfigured.value) return
   const [mastersLoaded, catalogLoaded] = await Promise.all([
     fetchMasters({ silent: true }),
     fetchCatalog({ silent: true })
@@ -1185,20 +1012,7 @@ function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultG
         localGroupId: mappedGroup.groupId,
         label: template.label,
         masterTable: template.masterTable,
-        action: groupSignature(mappedGroup) === groupSignature(template) ? 'unchanged' : 'update',
-        template
-      }
-    }
-    const duplicate = standardizationGroups.value.find(
-      (group) => groupSignature(group) === groupSignature(template)
-    )
-    if (duplicate) {
-      return {
-        sourceGroupId: template.groupId,
-        localGroupId: duplicate.groupId,
-        label: template.label,
-        masterTable: template.masterTable,
-        action: 'unchanged',
+        action: (mappedGroup.sourceDefaultSignature ?? groupSignature(mappedGroup)) === groupSignature(template) ? 'unchanged' : 'update',
         template
       }
     }
@@ -1213,11 +1027,11 @@ function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultG
 }
 
 function templateMembers(template: StandardizationDefaultGroupTemplate): StandardizationGroupMember[] {
-  const idMap = new Map(template.members.map((member) => [member.id, newMemberId()]))
   return template.members.map((member) => ({
     ...member,
-    id: idMap.get(member.id) ?? newMemberId(),
-    field: { ...member.field }
+    id: newMemberId(),
+    externalFieldName: member.field.columnName ?? member.field.fieldName,
+    field: { type: member.field.type, documentTypeId: '' }
   }))
 }
 
@@ -1242,14 +1056,14 @@ function applyDefaultGroups() {
         const group: StandardizationGroup = {
           groupId: crypto.randomUUID(),
           sourceDefaultGroupId: row.sourceGroupId,
+          sourceDefaultSignature: groupSignature(row.template),
           label: row.template.label,
           masterTable: row.template.masterTable,
-          sceneIds: row.template.sceneIds?.length ? [...row.template.sceneIds] : ['all'],
+          sceneIds: [],
           members: templateMembers(row.template)
         }
         standardizationGroups.value.unshift(group)
         importedDefaultGroupIds.value[row.sourceGroupId] = group.groupId
-        recordHistory(group, '更新', t('standardization.historyDefaultImported', { name: group.label }))
         inserted += 1
         return
       }
@@ -1260,13 +1074,12 @@ function applyDefaultGroups() {
       localGroup.masterTable = row.template.masterTable
       localGroup.members = templateMembers(row.template)
       localGroup.sourceDefaultGroupId = row.sourceGroupId
-      recordHistory(localGroup, '更新', t('standardization.historyDefaultUpdated', { name: localGroup.label }))
+      localGroup.sourceDefaultSignature = groupSignature(row.template)
       updated += 1
     })
     defaultGroupsVersion.value = defaultGroupPreviewVersion.value
     defaultGroupDialogVisible.value = false
     activeGroupId.value = activeGroupId.value || standardizationGroups.value[0]?.groupId || ''
-    refreshActiveMemberRoles()
     ElMessage.success(t('standardization.defaultUpdated', { inserted, updated }))
   } finally {
     applyingDefaultGroups.value = false
@@ -1277,19 +1090,7 @@ function applyDefaultGroups() {
 
 <template>
   <div class="standardization-page v-content-wrap">
-    <header class="standardization-page__header">
-      <h1>{{ $t('standardization.title') }}</h1>
-      <div class="standardization-page__header-actions">
-        <el-button
-          type="primary"
-          :icon="Refresh"
-          :loading="syncingMasterDefinitions"
-          @click="syncMasterDefinitions"
-        >
-          {{ $t('standardization.syncMasters') }}
-        </el-button>
-      </div>
-    </header>
+    <MasterDataNavigation />
 
     <div v-if="apiConfigured" class="standardization-page__layout">
       <ConfigListAside
@@ -1386,11 +1187,11 @@ function applyDefaultGroups() {
             </AppFormItem>
             <AppFormItem :label="$t('standardization.master')" required>
               <el-select
-                :model-value="schemaReady ? activeGroup.masterTable : ''"
+                :model-value="activeGroup.masterTable"
                 :loading="fetchingMasters"
-                :placeholder="schemaReady ? $t('standardization.selectMaster') : $t('standardization.loadMaster')"
+                :placeholder="$t('standardization.selectMaster')"
                 @visible-change="ensureMasterDataLoaded"
-                @update:model-value="(value: string) => activeGroup && (activeGroup.masterTable = value)"
+                @update:model-value="selectMasterTable"
               >
                 <el-option
                   v-for="master in masterOptions"
@@ -1441,15 +1242,15 @@ function applyDefaultGroups() {
             <el-table-column :label="$t('standardization.no')" width="64">
               <template #default="{ $index }">{{ $index + 1 }}</template>
             </el-table-column>
-            <el-table-column :label="$t('standardization.field')" min-width="220">
-              <template #default="{ row }">{{ getMemberFieldLabel(row) }}</template>
-            </el-table-column>
             <el-table-column :label="$t('standardization.masterItem')" min-width="160">
               <template #default="{ row }">
                 <span class="standardization-page__master-column-name">
                   {{ getMasterItem(row)?.label ?? row.column ?? row.hint ?? '—' }}
                 </span>
               </template>
+            </el-table-column>
+            <el-table-column :label="$t('standardization.field')" min-width="220">
+              <template #default="{ row }">{{ getMemberFieldLabel(row) }}</template>
             </el-table-column>
             <el-table-column width="150">
               <template #header>
@@ -1467,37 +1268,15 @@ function applyDefaultGroups() {
                   </el-tooltip>
                 </span>
               </template>
-              <template #default="{ row }">{{ modeLabel(row.mode) }}</template>
+              <template #default="{ row }">{{ row.mode }}</template>
             </el-table-column>
-            <el-table-column width="150">
-              <template #header>
-                <span class="standardization-page__column-heading">
-                  {{ $t('standardization.role') }}
-                </span>
-              </template>
-              <template #default="{ row }">
-                <el-tooltip
-                  v-if="memberValidationMessage(row)"
-                  :content="memberValidationMessage(row)"
-                  placement="top"
-                >
-                  <span
-                    class="standardization-page__validation-role"
-                    :class="`is-${memberValidationDisplay(row).key}`"
-                  >
-                    <i />{{ memberValidationDisplay(row).label }}
-                  </span>
-                </el-tooltip>
-                <span
-                  v-else
-                  class="standardization-page__validation-role"
-                  :class="`is-${memberValidationDisplay(row).key}`"
-                >
-                  <i />{{ memberValidationDisplay(row).label }}
-                </span>
-              </template>
+            <el-table-column :label="$t('standardization.role')" width="135">
+              <template #default="{ row }">{{ row.column ? getMasterItem(row)?.role ?? '—' : '—' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('standardization.actions')" width="120" align="right" fixed="right">
+            <el-table-column :label="$t('standardization.writable')" width="130">
+              <template #default="{ row }">{{ row.column ? getMasterItem(row)?.writable ?? '—' : '—' }}</template>
+            </el-table-column>
+            <el-table-column :label="$t('standardization.actions')" width="120" align="right" header-align="left" fixed="right">
               <template #default="{ row }">
                 <div class="standardization-page__row-actions">
                   <el-button link type="primary" @click="openMemberDialog(row)">{{ $t('standardization.edit') }}</el-button>
@@ -1511,6 +1290,7 @@ function applyDefaultGroups() {
 
         <footer class="standardization-page__footer">
           <div
+            v-if="validationMessage"
             class="standardization-page__validation"
             :class="`is-${validationState}`"
             aria-live="polite"
@@ -1518,22 +1298,14 @@ function applyDefaultGroups() {
             <el-icon v-if="validationState === 'validating'" class="is-spinning"><Loading /></el-icon>
             <el-icon v-else-if="validationState === 'valid' || validationState === 'saved'"><CircleCheck /></el-icon>
             <el-icon v-else-if="validationState === 'warning' || validationState === 'invalid'"><WarningFilled /></el-icon>
-            <span>{{ validationMessage || $t('standardization.notValidated') }}</span>
+            <span>{{ validationMessage }}</span>
           </div>
           <div class="standardization-page__footer-actions">
             <el-button @click="closeSettings">{{ $t('standardization.close') }}</el-button>
             <el-button
-              type="warning"
-              :loading="validating"
-              :disabled="saving"
-              @click="validateSettings"
-            >
-              {{ $t('standardization.validate') }}
-            </el-button>
-            <el-button
               type="primary"
               :loading="saving"
-              :disabled="saving || validating"
+              :disabled="saving"
               @click="saveSettings"
             >
               {{ $t('standardization.save') }}
@@ -1547,7 +1319,6 @@ function applyDefaultGroups() {
           <el-empty :description="$t('standardization.emptyGroups')" :image-size="100" />
           <ol class="standardization-page__empty-steps">
             <li>{{ $t('standardization.emptyGuideDefaultGroup') }}</li>
-            <li>{{ $t('standardization.emptyGuideSyncMaster') }}</li>
           </ol>
         </div>
         <el-empty v-else :description="$t('standardization.selectGroup')" :image-size="100" />
@@ -1572,26 +1343,43 @@ function applyDefaultGroups() {
           <el-form-item :label="$t('standardization.masterItem')" required>
             <el-select
               :model-value="memberDraft.column ? `column:${memberDraft.column}` : memberDraft.hint ? `hint:${memberDraft.hint}` : ''"
-              :disabled="!schemaReady"
+              @visible-change="ensureMasterDataLoaded"
+              :loading="fetchingMasters"
               @change="onMasterItemChange"
             >
-              <el-option
-                v-for="item in masterItemOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-                :disabled="isMasterItemUsedInGroup(item.value)"
-              />
+              <el-option-group label="Column">
+                <el-option
+                  v-for="item in masterColumnOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                  :disabled="isMasterItemUsedInGroup(item.value)"
+                >
+                  <div class="standardization-page__master-option">
+                    <span :title="item.label">{{ item.label }}</span>
+                    <span>{{ item.role }}</span>
+                  </div>
+                </el-option>
+              </el-option-group>
+              <el-option-group v-if="masterHintOptions.length" label="Hint">
+                <el-option
+                  v-for="item in masterHintOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                  :disabled="isMasterItemUsedInGroup(item.value)"
+                />
+              </el-option-group>
             </el-select>
           </el-form-item>
           <el-form-item :label="$t('standardization.mode')" required>
             <el-select v-model="memberDraft.mode">
               <el-option
                 v-for="option in MEMBER_MODE_OPTIONS"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-                :disabled="modeDisabled(option.value)"
+                :key="option"
+                :label="option"
+                :value="option"
+                :disabled="modeDisabled(option)"
               />
             </el-select>
           </el-form-item>
@@ -1616,7 +1404,7 @@ function applyDefaultGroups() {
               <div class="standardization-page__field-target-context">{{ $t('standardization.caseStandardField') }}</div>
             </el-form-item>
             <el-form-item :label="useCaseField ? $t('standardization.standardField') : $t('standardization.field')" required>
-              <el-select v-model="draftSourceValue">
+              <el-select v-model="draftSourceValue" :placeholder="memberDraft.externalFieldName || undefined">
                 <el-option
                   v-for="field in draftSourceOptions"
                   :key="field.value"
@@ -1832,7 +1620,26 @@ function applyDefaultGroups() {
     background: #fafbfc;
   }
 
+  &__master-option {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+
+    span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    span:last-child {
+      flex-shrink: 0;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
   &__footer-actions {
+    margin-inline-start: auto;
     display: flex;
     flex-shrink: 0;
     gap: var(--app-action-bar-gap);

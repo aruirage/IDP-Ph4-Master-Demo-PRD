@@ -66,6 +66,7 @@ export interface StandardizationMemberField {
 
 export interface StandardizationGroupMember {
   id: string
+  externalFieldName?: string
   column?: string
   hint?: string
   mode: StandardizationMode
@@ -76,6 +77,7 @@ export interface StandardizationGroup {
   groupId: string
   /** Zurich default group ID when this group was imported from defaults. */
   sourceDefaultGroupId?: string
+  sourceDefaultSignature?: string
   label: string
   masterTable: string
   sceneIds: string[]

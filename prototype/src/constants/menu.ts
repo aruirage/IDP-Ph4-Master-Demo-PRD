@@ -29,18 +29,11 @@ export const menuItems: MenuItem[] = [
         labelKey: 'menu.businessScene',
         icon: 'Notebook'
       },
-      // 四期以 Zurich 返回的主数据为唯一来源，旧主数据维护入口暂时隐藏。
-      // {
-      //   key: 'master-data',
-      //   path: '/business-rules/master-data',
-      //   labelKey: 'menu.masterData',
-      //   icon: 'Collection'
-      // },
       {
-        key: 'standardization',
-        path: '/v4/standardization',
-        labelKey: 'menu.standardization',
-        icon: 'Connection'
+        key: 'master-data',
+        path: '/business-rules/master-data',
+        labelKey: 'menu.masterData',
+        icon: 'Collection'
       },
       {
         key: 'data-mapping',

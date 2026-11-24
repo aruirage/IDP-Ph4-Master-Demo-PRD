@@ -9,7 +9,7 @@ export function reviewManifest(base) {
     '功能详情',
     '异常、注意点与附件'
   ]
-  const functionPageIds = ['api-settings', 'master-standardization-config', 'ocr-confirmation'].filter((id) => pageIds.has(id))
+  const functionPageIds = ['api-settings', 'master-standardization-config', 'business-scene', 'ocr-confirmation'].filter((id) => pageIds.has(id))
   const modules = titles.map((title, index) => {
     const number = String(index + 1).padStart(2, '0')
     return {

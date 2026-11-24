@@ -1,4 +1,5 @@
 ﻿<script setup lang="ts">
+import MasterDataNavigation from '@/views/business-rules/master-data/MasterDataNavigation.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave } from 'vue-router'
@@ -650,9 +651,7 @@ async function handleMasterMenu(command: string, master: MasterDataDefinition) {
         <el-button type="primary" :loading="hierarchySaving" @click="saveHierarchyAndContinue">{{t('phase3.hierarchySaveContinue')}}</el-button>
       </template>
     </el-dialog>
-    <header class="v-master-data__header">
-      <h1 class="v-master-data__title">{{ $t('businessRules.masterData.title') }}</h1>
-    </header>
+    <MasterDataNavigation />
 
     <div class="v-master-data__layout">
       <ConfigListAside

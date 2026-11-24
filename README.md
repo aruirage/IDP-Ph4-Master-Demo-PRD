@@ -40,7 +40,7 @@ npm run test:browser
 
 ## Vercel 部署
 
-将仓库根目录作为 Vercel 项目目录。根目录的 `vercel.json` 会安装两部分依赖、构建工作台及原型，并发布 Node 问答与版本接口。首页 `/` 是 PRD 工作台；`/business-rules/master-data` 是独立原型。部署时无需运行本地的三个常驻进程。
+将仓库根目录作为 Vercel 项目目录。根目录的 `vercel.json` 会安装两部分依赖、构建工作台及原型，并发布 Node 问答与版本接口。首页 `/` 是 PRD 与原型工作台。`/v4/standardization` 可直接打开外部主数据原型。部署时无需运行本地的三个常驻进程。
 
 在 Vercel 项目的环境变量中设置：
 

@@ -184,7 +184,13 @@ export const tasksJa = {
     fallbackFromUnconfiguredDoc: '未設定帳票からフォールバック',
     reviewBasis: '照合根拠',
     confirmMemo: '確認メモ',
-    apiContractMismatch: 'API の結果とステータスが一致しないため、人工確認へ移動しました。'
+    apiContractMismatch: 'API の結果とステータスが一致しないため、人工確認へ移動しました。',
+    restandardize: '再照合',
+    restandardizeSelected: '一括再照合',
+    restandardizeSaveFirst: '編集後、保存してから再照合できます',
+    selectForRestandardize: '再照合するフィールドを選択',
+    selectAllForRestandardize: '一括再照合',
+    restandardizeSuccess: '{count} 件のフィールドを再照合しました'
   },
   verification: {
     title: 'AI検証確認',
@@ -557,7 +563,13 @@ export const tasksZh = {
     fallbackFromUnconfiguredDoc: '来自未配置账票的兜底照合',
     reviewBasis: '照合依据',
     confirmMemo: '确认备注',
-    apiContractMismatch: 'API 返回的结果与状态不一致，已转人工确认。'
+    apiContractMismatch: 'API 返回的结果与状态不一致，已转人工确认。',
+    restandardize: '重新照合',
+    restandardizeSelected: '一括再照合',
+    restandardizeSaveFirst: '修改后请先保存，再执行重新照合',
+    selectForRestandardize: '选择需要重新照合的字段',
+    selectAllForRestandardize: '一括確認',
+    restandardizeSuccess: '已重新照合 {count} 个字段'
   },
   verification: {
     title: 'AI 检证确认',

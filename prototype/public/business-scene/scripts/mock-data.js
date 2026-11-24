@@ -2610,14 +2610,17 @@ function getWorkflowTestHitlBranchLabel(workflow, nodeId) {
   return label ? `分岐: ${label}` : '';
 }
 
-function workflowTestStepResultText(step, testCase) {
+function workflowTestStepResultText(step, testCase, usesExternalMasterMatching = false) {
   const label = step.label || '';
   const type = step.type || '';
   const input = buildWorkflowTestInputContext(testCase);
   const summaries = {
     start: '案件集約済みスナップショットから Workflow を開始しました',
     preprocess: '画像補正・回転・画像整列を完了しました',
-    ocr: '用例の OCR フィールドを読み込みました',
+    ocr: usesExternalMasterMatching
+      ? '用例の OCR フィールドを読み込みました（照合はマスタ照合ノードで実行）'
+      : '用例の OCR フィールドを読み込みました（マスタ照合は帳票タイプ設定を使用）',
+    master_standardization: '外部APIを使用するマスタ照合をテスト実行しました',
     data_mapping: '用例の標準フィールドへマッピングしました',
     ai_verify: 'AI 検証をテスト実行しました',
     decision: '用例フィールドで条件分岐を評価しました',
@@ -2814,6 +2817,7 @@ function getWorkflowTestReachableNodeIds(workflow) {
 function buildWorkflowTestSteps(workflow, testCase, sceneContext = {}) {
   const wf = workflow || { nodes: [], edges: [] };
   const nodeMap = Object.fromEntries((wf.nodes || []).map((node) => [node.id, node]));
+  const usesExternalMasterMatching = (wf.nodes || []).some((node) => node.type === 'master_standardization');
   const cycleNodeIds = typeof getWorkflowCycleNodeIds === 'function'
     ? getWorkflowCycleNodeIds(wf)
     : new Set();
@@ -2936,7 +2940,7 @@ function buildWorkflowTestSteps(workflow, testCase, sceneContext = {}) {
 
     let summary = status === 'pending'
       ? '未実行'
-      : workflowTestStepResultText({ id, type: node.type, label: node.label }, testCase);
+      : workflowTestStepResultText({ id, type: node.type, label: node.label }, testCase, usesExternalMasterMatching);
     if (node.type === 'hitl_gate' && branchLabel) {
       summary = `${summary}（${branchLabel}）`;
     }

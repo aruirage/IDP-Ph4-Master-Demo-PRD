@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Connection, Delete, EditPen, Plus } from '@element-plus/icons-vue'
-import { p3, type ExternalConnection } from '@/mocks/phase3'
+import { p3, type ExternalConnection, type ExternalConnectionModule } from '@/mocks/phase3'
 import { MESSAGE_BOX_CONFIRM_DEFAULTS } from '@/constants/messageBox'
 
 type Connector = NonNullable<ExternalConnection['connector']>
@@ -14,6 +14,7 @@ const visible = ref(false)
 const editing = ref('')
 const draft = reactive({
   name: '',
+  module: 'master-matching' as ExternalConnectionModule,
   url: '',
   secret: '',
   connector: 'standardization' as Connector,
@@ -41,12 +42,17 @@ const valid = computed(() =>
   && providerOptions.value.some((option) => option.value === draft.connector)
   && authenticationOptions.value.some((option) => option.value === draft.authentication)
 )
-const canSave = computed(() => valid.value)
+const moduleOwner = computed(() => draft.module
+  ? p3.connections.find((row) => row.module === draft.module && row.id !== editing.value)
+  : undefined
+)
+const canSave = computed(() => valid.value && !moduleOwner.value)
 
 function open(row?: ExternalConnection) {
   editing.value = row?.id || ''
   Object.assign(draft, {
     name: row?.name || '',
+    module: row?.module ?? 'master-matching',
     url: row?.url || '',
     secret: '',
     connector: row?.connector || 'standardization',
@@ -73,6 +79,7 @@ function save() {
   const row: ExternalConnection = {
     id: old?.id || crypto.randomUUID(),
     name: draft.name.trim(),
+    module: draft.module,
     url: draft.url.trim(),
     connector: draft.connector,
     authentication: draft.authentication,
@@ -120,14 +127,24 @@ function maskApiKey(value: string) {
 }
 
 async function remove(row: ExternalConnection) {
-  if (Object.values(p3.masters).some((config) => config.connection === row.id)) {
-    ElMessage.warning(t('phase3.inUse'))
+  const usageHint = row.module === 'master-matching'
+    ? t('businessRules.model.message.deleteUsageHint', { usages: t('phase3.masterMatchingModule') })
+    : ''
+
+  try {
+    await ElMessageBox.confirm(
+      t('businessRules.model.message.deleteConfirm', { name: row.name, usageHint }),
+      t('businessRules.model.message.deleteTitle'),
+      { ...MESSAGE_BOX_CONFIRM_DEFAULTS, type: 'warning' }
+    )
+  } catch {
     return
   }
-  try {
-    await ElMessageBox.confirm(t('phase3.deleteConfirm'), row.name, MESSAGE_BOX_CONFIRM_DEFAULTS)
-    p3.connections = p3.connections.filter((connection) => connection.id !== row.id)
-  } catch {}
+
+  p3.connections = p3.connections.filter((connection) => connection.id !== row.id)
+  for (const config of Object.values(p3.masters)) {
+    if (config.connection === row.id) config.connection = ''
+  }
 }
 </script>
 
@@ -140,6 +157,11 @@ async function remove(row: ExternalConnection) {
     <el-table :data="p3.connections" border>
       <el-table-column type="index" label="No." width="64" />
       <el-table-column prop="name" :label="t('phase3.name')" min-width="160" />
+      <el-table-column :label="t('phase3.connectionModule')" min-width="160">
+        <template #default="{ row }">
+          {{ row.module ? t('phase3.masterMatchingModule') : '—' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="url" :label="t('phase3.baseUrl')" min-width="240" show-overflow-tooltip />
       <el-table-column prop="created" :label="t('phase3.created')" min-width="180" />
       <el-table-column :label="t('phase3.status')" width="100">
@@ -186,6 +208,16 @@ async function remove(row: ExternalConnection) {
             <span>{{ t('phase3.name') }}</span><span class="p3-required-tag">必須</span>
           </template>
           <el-input v-model="draft.name" />
+        </el-form-item>
+
+        <el-form-item
+          :label="t('phase3.connectionUsageAssignment')"
+          required
+          :error="moduleOwner ? t('phase3.connectionModuleOccupied', { name: moduleOwner.name }) : undefined"
+        >
+          <el-select v-model="draft.module">
+            <el-option value="master-matching" :label="t('phase3.masterMatchingModule')" />
+          </el-select>
         </el-form-item>
 
         <el-form-item required>

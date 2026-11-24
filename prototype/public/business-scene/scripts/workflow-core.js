@@ -598,7 +598,7 @@ const WORKFLOW_NODE_META = {
   master_standardization: {
     icon: 'MD',
     title: 'マスタ照合',
-    desc: 'OCR抽出後に案件単位で照合グループを実行',
+    desc: 'OCR抽出後に外部APIで案件単位のマスタ照合を実行',
     tasks: ['マスタ照合', '要確認判定'],
     input: 'Case · OCR Fields',
     output: 'Standardized Fields',

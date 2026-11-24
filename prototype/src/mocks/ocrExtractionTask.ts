@@ -118,6 +118,8 @@ export interface OcrExtractionField {
   masterMatchLinkedTo?: string
   /** Master 照合组内当前字段的配置方式。 */
   memberMode?: 'INPUT' | 'OUTPUT' | 'INPUT_OUTPUT'
+  /** Zurich 标准化对象 ID。多个输入字段属于同一 item 时使用相同值。 */
+  standardizationItemId?: string
   /** Master 照合値（信頼度低時の照合結果） */
   masterMatchedValue?: string
   /** 要確認フィールドの手動確認（トグル可） */
@@ -442,6 +444,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
       confidence: 95,
       required: false,
       memberMode: 'INPUT',
+      standardizationItemId: 'p4-drug-item-1',
       bbox: { top: 54, left: 32, width: 28, height: 2.2 }
     },
     {
@@ -453,6 +456,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
       confidence: 95,
       required: false,
       memberMode: 'OUTPUT',
+      standardizationItemId: 'p4-drug-item-1',
       masterMatchLinkedTo: 'p4-io-drug-name',
       standardizationAutoApplied: !needsReview,
       masterSelection: recommendedMaster.selection,
@@ -468,6 +472,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
       confidence: 96,
       required: true,
       memberMode: 'INPUT_OUTPUT',
+      standardizationItemId: 'p4-drug-item-1',
       masterDataId: 'master-medicine-info',
       apiStandardizationApplied: true,
       ...(needsReview ? { masterMatchConfirmRule: 'low-similarity' as const } : autoProps),
@@ -488,6 +493,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
       confidence: 96,
       required: true,
       memberMode: 'OUTPUT',
+      standardizationItemId: 'p4-drug-item-1',
       masterMatchLinkedTo: 'p4-io-drug-name',
       standardizationAutoApplied: !needsReview,
       ...(needsReview ? {} : { masterAutoAdopted: true, masterMatchStrategy: 'hybrid' as const, masterMatchSimilarity: recommended.score }),
@@ -504,6 +510,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
       confidence: 96,
       required: false,
       memberMode: 'OUTPUT',
+      standardizationItemId: 'p4-drug-item-1',
       masterMatchLinkedTo: 'p4-io-drug-name',
       standardizationAutoApplied: !needsReview,
       ...(needsReview ? {} : { masterAutoAdopted: true, masterMatchStrategy: 'hybrid' as const, masterMatchSimilarity: recommended.score }),

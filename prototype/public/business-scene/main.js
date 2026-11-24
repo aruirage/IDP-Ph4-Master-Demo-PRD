@@ -1491,12 +1491,7 @@ const appOptions = {
           : `${inspectorPanelWidth.value}px`,
     }));
     const currentModule = ref('case-workflow');
-    const fallbackStandardizationGroupCatalog = [
-      { id: 'HE03-DIS-1', label: '傷病名1', masterLabel: '傷病名マスタ', sceneIds: ['2064639102406844416', '2064639102406844417'] },
-      { id: 'FAC-1', label: '受診医療機関', masterLabel: '医療機関マスタ', sceneIds: ['2064639102406844416'] },
-      { id: 'HA01-DRUG', label: '薬剤情報', masterLabel: '薬剤マスタ', sceneIds: ['2064639102406844416'] },
-    ];
-    const STANDARDIZATION_CONFIG_STORAGE_KEY = 'neosai-standardization-config-v8';
+    const STANDARDIZATION_CONFIG_STORAGE_KEY = 'neosai-standardization-config-v13';
     const STANDARDIZATION_CONFIG_SEED = 'drug-v1.1-candidate-contract-v3';
     const STANDARDIZATION_SCENE_ALIASES = {
       '2064639102406844416': ['claim'],
@@ -1505,7 +1500,7 @@ const appOptions = {
       try {
         const config = JSON.parse(localStorage.getItem(STANDARDIZATION_CONFIG_STORAGE_KEY) || 'null');
         if (config?.mockDataSeed !== STANDARDIZATION_CONFIG_SEED || !Array.isArray(config.groups)) {
-          return fallbackStandardizationGroupCatalog;
+          return [];
         }
         return config.groups.map((group) => ({
           id: group.groupId,
@@ -1515,7 +1510,7 @@ const appOptions = {
           members: group.members || [],
         }));
       } catch {
-        return fallbackStandardizationGroupCatalog;
+        return [];
       }
     }
     const standardizationGroupCatalog = ref(loadStandardizationGroupCatalog());

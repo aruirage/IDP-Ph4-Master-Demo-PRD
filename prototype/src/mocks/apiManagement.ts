@@ -53,24 +53,19 @@ export const apiKeyRecords = ref<ApiKeyRecord[]>([
 ])
 
 export const openApiEndpoints: OpenApiEndpoint[] = [
-  {
-    id: 'file-upload',
-    name: 'ファイルアップロード',
-    path: '/files/upload',
-    phase3Note:
-      'P3: aiCaseLinkEnabled（bool, default false）— ON=集約ルール紐付け、OFF=Web ファイル名 or 同一 PDF 1 案件'
-  },
+  { id: 'file-upload', name: 'ファイルアップロード', path: '/files/upload' },
   { id: 'case-list', name: '案件一覧照会', path: '/cases' },
   { id: 'batch-cases', name: 'バッチ別案件照会', path: '/batches/{batchNo}/cases' },
   { id: 'supplement-upload', name: '補件アップロード', path: '/cases/{caseNo}/files/supplement' },
   { id: 'batch-export', name: '一括エクスポート', path: '/exports' },
   { id: 'export-task-query', name: 'エクスポートタスク照会', path: '/exports/{exportTaskId}' },
-  { id: 'ai-classification', name: 'AI分類', path: '/classification' },
+  { id: 'ai-classification', name: 'AI分類依頼', path: '/classifications' },
   {
     id: 'ai-classification-query',
     name: 'AI分類タスク照会',
-    path: '/classification/{classificationTaskId}'
-  }
+    path: '/classifications/{classificationTaskId}'
+  },
+  { id: 'export-complete', name: 'エクスポート完了', path: '/cases/{caseNo}/export/complete' }
 ]
 
 export function buildOpenApiUrl(path: string): string {

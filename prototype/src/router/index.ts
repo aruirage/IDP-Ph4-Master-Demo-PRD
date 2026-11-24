@@ -88,14 +88,13 @@ const router = createRouter({
             import('@/views/business-rules/api-management/ApiManagementView.vue'),
           meta: { titleKey: 'menu.apiManagement', menu: 'api-management' }
         },
-        // 四期隐藏三期主数据维护页面，源码保留用于回滚。
-        // {
-        //   path: 'business-rules/master-data',
-        //   name: 'MasterData',
-        //   component: () =>
-        //     import('@/views/business-rules/master-data/MasterDataConfigView.vue'),
-        //   meta: { titleKey: 'menu.masterData', menu: 'master-data' }
-        // },
+        {
+          path: 'business-rules/master-data',
+          name: 'MasterData',
+          component: () =>
+            import('@/views/business-rules/master-data/MasterDataConfigView.vue'),
+          meta: { titleKey: 'menu.masterData', menu: 'master-data' }
+        },
         {
           path: 'v4',
           redirect: '/v4/standardization'
@@ -105,7 +104,7 @@ const router = createRouter({
           name: 'StandardizationSettings',
           component: () =>
             import('@/views/business-rules/standardization/StandardizationSettingsView.vue'),
-          meta: { titleKey: 'menu.standardization', menu: 'standardization', version: 'v4' }
+          meta: { titleKey: 'menu.masterData', menu: 'master-data', version: 'v4' }
         },
         {
           path: 'cases',

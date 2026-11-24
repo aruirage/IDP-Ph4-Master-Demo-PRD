@@ -7,6 +7,9 @@ export type AppLocale = 'ja' | 'zh-CN'
 const LOCALE_STORAGE_KEY = 'neosai-prototype-locale'
 
 function readStoredLocale(): AppLocale {
+  const requestedLocale = new URLSearchParams(window.location.search).get('lang')
+  if (requestedLocale === 'zh' || requestedLocale === 'zh-CN') return 'zh-CN'
+  if (requestedLocale === 'ja') return 'ja'
   const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
   if (stored === 'ja' || stored === 'zh-CN') return stored
   return 'ja'

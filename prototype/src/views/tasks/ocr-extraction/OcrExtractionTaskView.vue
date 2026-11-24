@@ -16,6 +16,7 @@ import {
   restoreMasterMatchGroup,
   toggleMasterMatchGroupConfirm,
   type OcrDocumentPage,
+  type OcrExtractionField,
   type OcrMasterMatchCandidate
 } from '@/mocks/ocrExtractionTask'
 import { MESSAGE_BOX_CONFIRM_DEFAULTS } from '@/constants/messageBox'
@@ -34,6 +35,9 @@ const pages = ref<OcrDocumentPage[]>([])
 const activePageId = ref<string>('')
 const selectedFieldId = ref<string | null>(null)
 const showReviewOnly = ref(false)
+const lastSavedFieldValues = ref<Record<string, string>>({})
+const restandardizeEligibleFieldIds = ref<string[]>([])
+const restandardizingFieldIds = ref<string[]>([])
 const fieldPanelRef = ref<InstanceType<typeof OcrFieldPanel> | null>(null)
 
 watch(
@@ -43,9 +47,15 @@ watch(
       pages.value = []
       activePageId.value = ''
       selectedFieldId.value = null
+      lastSavedFieldValues.value = {}
+      restandardizeEligibleFieldIds.value = []
       return
     }
     pages.value = task.pages
+    lastSavedFieldValues.value = Object.fromEntries(
+      task.pages.flatMap((page) => page.fields.map((field) => [field.id, field.value]))
+    )
+    restandardizeEligibleFieldIds.value = []
     activePageId.value = task.pages[0]?.id ?? ''
     selectedFieldId.value = task.pages[0]?.fields[0]?.id ?? null
   },
@@ -88,6 +98,24 @@ function findField(fieldId: string) {
   return null
 }
 
+function isRestandardizableField(field: OcrExtractionField): boolean {
+  return Boolean(
+    field.memberMode
+      || field.standardizationReview
+      || field.apiStandardizationApplied
+      || field.masterDataId
+      || field.masterRecommendation
+      || field.masterMatchCandidates?.length
+      || field.masterMatchConfirmRule
+      || field.masterMatchedValue
+      || field.masterMatchStrategy
+  ) && !field.masterMatchLinkedTo && field.memberMode !== 'OUTPUT'
+}
+
+function markFieldChanged(fieldId: string) {
+  restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter((id) => id !== fieldId)
+}
+
 function selectPage(pageId: string) {
   activePageId.value = pageId
   const page = pages.value.find((item) => item.id === pageId)
@@ -102,6 +130,7 @@ function updateFieldValue(fieldId: string, value: string) {
   const field = findField(fieldId)
   if (field) {
     field.value = value
+    markFieldChanged(fieldId)
     delete field.masterAutoAdopted
     delete field.masterHierarchyOfficial
     delete field.masterHierarchyLevel
@@ -118,6 +147,7 @@ function resolveFieldValue(fieldId: string, value: string) {
   const field = findField(fieldId)
   if (field) {
     field.value = value
+    markFieldChanged(fieldId)
     delete field.masterAutoAdopted
     delete field.masterHierarchyOfficial
     delete field.masterHierarchyLevel
@@ -152,7 +182,45 @@ function goBack() {
 }
 
 async function handleSave() {
+  const changedFields = allFields.value.filter(
+    (field) => isRestandardizableField(field)
+      && field.value !== lastSavedFieldValues.value[field.id]
+  )
+  lastSavedFieldValues.value = Object.fromEntries(
+    allFields.value.map((field) => [field.id, field.value])
+  )
+  restandardizeEligibleFieldIds.value = changedFields.map((field) => field.id)
   ElMessage.success(t('tasks.common.saveSuccess'))
+}
+
+async function handleRestandardize(fieldIds: string[]) {
+  const fields = fieldIds
+    .filter((fieldId) => restandardizeEligibleFieldIds.value.includes(fieldId))
+    .map(findField)
+    .filter((field): field is OcrExtractionField => Boolean(field) && isRestandardizableField(field!))
+  if (!fields.length) return
+
+  restandardizingFieldIds.value = fields.map((field) => field.id)
+  try {
+    const groups = new Map<string, OcrExtractionField[]>()
+    fields.forEach((field) => {
+      const key = field.standardizationItemId ?? field.id
+      groups.set(key, [...(groups.get(key) ?? []), field])
+    })
+    for (const groupFields of groups.values()) {
+      await new Promise((resolve) => setTimeout(resolve, 450))
+      groupFields.forEach((field) => {
+        field.userConfirmed = false
+      })
+    }
+    const completedIds = new Set(fields.map((field) => field.id))
+    restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter(
+      (fieldId) => !completedIds.has(fieldId)
+    )
+    ElMessage.success(t('tasks.ocr.restandardizeSuccess', { count: fields.length }))
+  } finally {
+    restandardizingFieldIds.value = []
+  }
 }
 
 async function handleSupplement() {
@@ -246,12 +314,15 @@ async function handleComplete() {
           :tables="activeTables"
           :selected-field-id="selectedFieldId"
           :readonly="isViewOnly"
+          :restandardize-eligible-field-ids="restandardizeEligibleFieldIds"
+          :restandardizing-field-ids="restandardizingFieldIds"
           @select-field="selectField"
           @update-value="updateFieldValue"
           @resolve-value="resolveFieldValue"
           @toggle-confirm="toggleFieldConfirm"
           @restore-value="restoreFieldValue"
           @select-master-match="selectMasterMatch"
+          @restandardize="handleRestandardize"
         />
       </div>
 

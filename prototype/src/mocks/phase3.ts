@@ -3,7 +3,8 @@ import { customerIcdFields } from './customerIcdSample'
 import { officialIcdSample } from './officialIcdSample'
 import type { MasterDataDefinition, MasterDataRow } from './masterDataConfig'
 export interface Schedule { frequency: 'daily'|'weekly'|'monthly'|'halfyear'; time:string; weekday:number; month:number; day:number }
-export interface ExternalConnection { id:string; name:string; url:string; created:string; creator:string; testStatus?:'success'|'failed'; testedUrl?:string; connector?:'standardization'; authentication?:'api-key-bearer'; apiKeyMasked?:string; secretConfigured?:boolean; updated?:string; updatedBy?:string }
+export type ExternalConnectionModule = 'master-matching'
+export interface ExternalConnection { id:string; module:ExternalConnectionModule | null; name:string; url:string; created:string; creator:string; testStatus?:'success'|'failed'; testedUrl?:string; connector?:'standardization'; authentication?:'api-key-bearer'; apiKeyMasked?:string; secretConfigured?:boolean; updated?:string; updatedBy?:string }
 export interface Classification { level:number; code:string; name:string; parent:string|null }
 export interface SyncRun { id:string; start:string; duration:string; trigger:string; status:string; added:number; changed:number; removed:number; unchanged:number; failed:number; reason:string }
 export interface HierarchyBinding { nameColumnId?:string; definitionName:string; nodes:Classification[]; overrides:Record<string,string|null> }
@@ -12,17 +13,14 @@ export const syncingMasters=reactive<Record<string,boolean>>({})
 export interface OcrModelTemplate {id:string;name:string;main:string;verify:string[];docTypes:string[]}
 export interface MasterP3 { hierarchies?:Record<string,HierarchyBinding>; threshold:number; connection:string; source:string; key:string; fields:Record<string,string>; enabled:boolean; automatic:boolean; schedule:Schedule; definitionName:string; nodes:Classification[]; codeColumn:string; nameColumn:string; overrides:Record<string,string>; history:SyncRun[] }
 interface Phase3State { connections:ExternalConnection[]; masters:Record<string,MasterP3>; ocr:{main:string; verify:string[]; availableModels?:string[]; templates?:OcrModelTemplate[]; fallbackId?:string} }
-const seed:Phase3State={connections:[{id:'zurich-standardization',name:'Zurich 標準化API',url:'https://standardization.example.internal',connector:'standardization',authentication:'api-key-bearer',apiKeyMasked:'zr-••••••••••••7c6d',secretConfigured:true,testStatus:'success',testedUrl:'https://standardization.example.internal',created:'2026-11-19 15:10',creator:'管理者',updated:'2026-11-19 15:10',updatedBy:'管理者'}],masters:{},ocr:{main:'model-conn-001',verify:['model-conn-002']}}
+const seed:Phase3State={connections:[{id:'zurich-standardization',module:'master-matching',name:'Zurich 標準化API',url:'https://standardization.example.internal',connector:'standardization',authentication:'api-key-bearer',apiKeyMasked:'zr-••••••••••••7c6d',secretConfigured:true,testStatus:'success',testedUrl:'https://standardization.example.internal',created:'2026-11-19 15:10',creator:'管理者',updated:'2026-11-19 15:10',updatedBy:'管理者'}],masters:{},ocr:{main:'model-conn-001',verify:['model-conn-002']}}
 let loaded=seed
 try { const value=JSON.parse(localStorage.getItem('neosai-phase3-vue')||'null'); if(value?.connections&&value?.masters&&value?.ocr)loaded=value } catch {}
 loaded.connections = (loaded.connections || [])
   .filter(connection => connection.connector === 'standardization')
-  .map(connection => ({ ...connection, connector: 'standardization' as const, authentication: 'api-key-bearer' as const, apiKeyMasked: connection.apiKeyMasked || (connection.secretConfigured ? 'zr-••••••••7c6d' : undefined) }))
+  .map((connection, index) => ({ ...connection, module: connection.module === undefined ? (index === 0 ? 'master-matching' : null) : connection.module, connector: 'standardization' as const, authentication: 'api-key-bearer' as const, apiKeyMasked: connection.apiKeyMasked || (connection.secretConfigured ? 'zr-••••••••7c6d' : undefined) }))
 export const p3=reactive<Phase3State>(loaded)
 watch(p3,value=>localStorage.setItem('neosai-phase3-vue',JSON.stringify(value)),{deep:true})
-if(!p3.connections.some(connection=>connection.connector==='standardization')){
-  p3.connections.push({id:'zurich-standardization',name:'Zurich 標準化API',url:'https://standardization.example.internal',connector:'standardization',authentication:'api-key-bearer',apiKeyMasked:'zr-••••••••••••7c6d',secretConfigured:true,testStatus:'success',testedUrl:'https://standardization.example.internal',created:'2026-11-19 15:10',creator:'管理者',updated:'2026-11-19 15:10',updatedBy:'管理者'})
-}
 export function masterConfig(id:string):MasterP3 { return p3.masters[id] ||= {threshold:90,connection:'',source:'',key:'Id',fields:{},enabled:false,automatic:true,schedule:{frequency:'daily',time:'03:00',weekday:1,month:1,day:1},definitionName:'',nodes:[],codeColumn:'',nameColumn:'',overrides:{},history:[]} }
 const demoSync=masterConfig('master-disease')
 if(!localStorage.getItem('neosai-phase3-active-demo-v1')){

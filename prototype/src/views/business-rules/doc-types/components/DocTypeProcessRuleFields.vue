@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { PLACEHOLDER } from '@/constants/placeholders'
 import {
+  MASTER_MATCH_CASCADER_OPTIONS,
   processRuleOptions,
+  isMasterMatchRule,
   syncMasterMatchRuleFields,
   type DocTypeProcessRuleFields
 } from '@/mocks/docTypeSettings'
@@ -10,6 +13,8 @@ defineProps<{multipleQrEnabled?:boolean}>()
 const rule = defineModel<DocTypeProcessRuleFields>({ required: true })
 
 const processRuleOptionList = computed(() => processRuleOptions())
+
+const isMasterMatch = computed(() => isMasterMatchRule(rule.value.ruleType))
 
 watch(
   () => rule.value.ruleType,
@@ -24,7 +29,7 @@ watch(
 <template>
   <div
     class="v-doc-type-process-rule-fields"
-    :class="{ 'is-qrcode': rule.ruleType==='qrcode' }"
+    :class="{ 'is-master-match': isMasterMatch, 'is-qrcode': rule.ruleType==='qrcode' }"
   >
     <el-select
       v-model="rule.ruleType"
@@ -42,6 +47,24 @@ watch(
 
     <template v-if="rule.ruleType==='qrcode'"><div class="p3-qr"><el-select :model-value="rule.qrMode||'full'" @update:model-value="(v:'full'|'split')=>rule.qrMode=v" :aria-label="$t('phase3.qrMode')"><el-option value="full" :label="$t('phase3.qrFull')"/><el-option value="split" :label="$t('phase3.qrSplit')"/></el-select><template v-if="rule.qrMode==='split'"><el-input v-model="rule.qrDelimiter" :placeholder="$t('phase3.delimiter')" :aria-label="$t('phase3.delimiter')"/><el-input-number v-model="rule.qrIndex" :min="1" :step="1" step-strictly :aria-label="$t('phase3.ordinal')"/></template></div></template>
     <p v-if="rule.ruleType==='qrcode'&&multipleQrEnabled" class="p3-qr-priority">{{$t('phase3.qrPriorityTip')}}</p>
+    <template v-if="isMasterMatch">
+      <el-cascader
+        v-model="rule.masterMatchRef"
+        :options="MASTER_MATCH_CASCADER_OPTIONS"
+        :props="{ expandTrigger: 'hover', emitPath: true }"
+        clearable
+        filterable
+        :placeholder="PLACEHOLDER.SELECT"
+        class="v-doc-type-process-rule-fields__master"
+      />
+
+      <el-input
+        v-model="rule.matchGroup"
+        class="v-doc-type-process-rule-fields__group"
+        :placeholder="$t('businessRules.docType.rule.matchGroupPlaceholder')"
+        :title="$t('businessRules.docType.rule.matchGroup')"
+      />
+    </template>
   </div>
 </template>
 
@@ -55,6 +78,39 @@ watch(
     max-width: 100%;
   }
 
+  &.is-master-match {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+
+    .v-doc-type-process-rule-fields__rule-type {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      width: 100%;
+    }
+
+    .v-doc-type-process-rule-fields__master {
+      grid-column: 1;
+      grid-row: 2;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .v-doc-type-process-rule-fields__group {
+      grid-column: 2;
+      grid-row: 2;
+      width: 100%;
+      min-width: 0;
+    }
+
+    :deep(.el-select),
+    :deep(.el-cascader),
+    :deep(.el-input) {
+      width: 100%;
+    }
+  }
 }
 </style>
 

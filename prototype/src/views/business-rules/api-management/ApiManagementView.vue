@@ -7,7 +7,7 @@ import ApiUrlTab from './components/ApiUrlTab.vue'
 
 const route = useRoute()
 const requestedTab = String(route.query.tab || '')
-const activeTab = ref(['api-url', 'api-key', 'external'].includes(requestedTab) ? requestedTab : 'api-url')
+const activeTab = ref(['api-url', 'api-key', 'external'].includes(requestedTab) ? requestedTab : 'external')
 </script>
 
 <template>

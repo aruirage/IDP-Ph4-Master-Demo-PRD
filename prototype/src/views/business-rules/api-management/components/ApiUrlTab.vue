@@ -19,6 +19,11 @@ async function copyUrl(path: string) {
 
 <template>
   <div class="v-api-url">
+    <el-empty
+      v-if="openApiEndpoints.length === 0"
+      :description="$t('businessRules.api.apiUrl.empty')"
+      :image-size="96"
+    />
     <div v-for="endpoint in openApiEndpoints" :key="endpoint.id" class="v-api-url__card">
       <h3 class="v-api-url__name">{{ endpoint.name }}</h3>
       <p v-if="endpoint.phase3Note" class="v-api-url__note">{{ endpoint.phase3Note }}</p>

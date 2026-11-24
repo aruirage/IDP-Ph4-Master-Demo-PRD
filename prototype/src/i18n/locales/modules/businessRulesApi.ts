@@ -7,7 +7,8 @@ export const businessRulesApiJa = {
   },
   apiUrl: {
     label: 'API URL',
-    copyAria: '{name} の API URL をコピー'
+    copyAria: '{name} の API URL をコピー',
+    empty: 'API URL はまだ登録されていません'
   },
   apiKey: {
     issue: 'APIキー',
@@ -59,7 +60,8 @@ export const businessRulesApiZh = {
   },
   apiUrl: {
     label: 'API URL',
-    copyAria: '复制 {name} 的 API URL'
+    copyAria: '复制 {name} 的 API URL',
+    empty: '尚未登记 API URL'
   },
   apiKey: {
     issue: 'API 密钥',

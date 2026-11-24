@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mockUiText } from '@/i18n/mockUiText'
-import { Check, CircleCheck, RefreshLeft } from '@element-plus/icons-vue'
+import { Check, CircleCheck, Refresh, RefreshLeft } from '@element-plus/icons-vue'
 import {
   OCR_CONFIDENCE_THRESHOLD,
   getFieldAlert,
@@ -26,6 +26,8 @@ const props = defineProps<{
   tables?: OcrExtractionTable[]
   selectedFieldId: string | null
   readonly?: boolean
+  restandardizeEligibleFieldIds?: string[]
+  restandardizingFieldIds?: string[]
 }>()
 
 const tables = computed(() => props.tables ?? [])
@@ -54,6 +56,7 @@ const emit = defineEmits<{
   selectMasterMatch: [fieldId: string, candidate: OcrMasterMatchCandidate]
   toggleConfirm: [fieldId: string]
   restoreValue: [fieldId: string]
+  restandardize: [fieldIds: string[]]
 }>()
 
 const scrollRef = ref<HTMLElement | null>(null)
@@ -76,14 +79,52 @@ function candidateSourceLabel(item: OcrMasterMatchCandidate): string {
   return item.isMaster ? t('tasks.ocr.masterRecommended') : t('tasks.ocr.masterCandidate')
 }
 
-function isMasterField(field:OcrExtractionField){return !!(field.masterDataId||field.masterRecommendation||field.masterMatchCandidates?.length||field.masterMatchConfirmRule||field.masterMatchLinkedTo||field.masterMatchedValue||field.masterMatchStrategy)}
+function isMasterField(field:OcrExtractionField){return !!(field.memberMode||field.standardizationReview||field.apiStandardizationApplied||field.masterDataId||field.masterRecommendation||field.masterMatchCandidates?.length||field.masterMatchConfirmRule||field.masterMatchLinkedTo||field.masterMatchedValue||field.masterMatchStrategy)}
+function canRestandardize(field: OcrExtractionField): boolean {
+  return !props.readonly
+    && isMasterField(field)
+    && !field.masterMatchLinkedTo
+    && field.memberMode !== 'OUTPUT'
+}
+function isRestandardizeEligible(fieldId: string): boolean {
+  return (props.restandardizeEligibleFieldIds ?? []).includes(fieldId)
+}
+function isRestandardizing(fieldId: string): boolean {
+  return (props.restandardizingFieldIds ?? []).includes(fieldId)
+}
+function candidateOwner(field: OcrExtractionField): OcrExtractionField | undefined {
+  if (!field.standardizationItemId) return field.masterMatchLinkedTo ? undefined : field
+  if (field.memberMode === 'OUTPUT') return undefined
+  if (field.standardizationReview) return field
+  return props.fields.find((member) =>
+    member.standardizationItemId === field.standardizationItemId && member.standardizationReview
+  )
+}
+
 function hasMasterCandidates(field: OcrExtractionField): boolean {
-  return hasMasterMatchDropdown(field, props.fields)
+  const owner = candidateOwner(field)
+  return Boolean(owner && hasMasterMatchDropdown(owner, props.fields))
 }
 
 const expandedCandidates = ref<Record<string,boolean>>({})
 watch(()=>props.fields,()=>{expandedCandidates.value={}},{immediate:true})
-
+const batchConfirmSelection = ref(false)
+const eligibleRestandardizeCount = computed(() => (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
+  const field = props.fields.find((item) => item.id === fieldId)
+  return field ? canRestandardize(field) : false
+}).length)
+function restandardizeOne(fieldId: string) {
+  if (!isRestandardizeEligible(fieldId) || isRestandardizing(fieldId)) return
+  emit('restandardize', [fieldId])
+}
+function restandardizeSelected() {
+  if (!eligibleRestandardizeCount.value) return
+  const fieldIds = (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
+    const field = props.fields.find((item) => item.id === fieldId)
+    return field ? canRestandardize(field) : false
+  })
+  emit('restandardize', fieldIds)
+}
 function candidateKey(item:OcrMasterMatchCandidate){return `${item.strategy}:${item.value}`}
 function reviewNeedsConfirmation(field: OcrExtractionField): boolean {
   const review = field.standardizationReview
@@ -99,10 +140,16 @@ function reviewNeedsConfirmation(field: OcrExtractionField): boolean {
   ) return true
   return false
 }
-function candidates(field:OcrExtractionField){return getMasterMatchDropdownOptions(field,props.fields)}
-function selectedCandidate(field:OcrExtractionField){return candidates(field).find(item=>{
- const values=item.linkedValues||{[field.id]:item.value}
- return (item.strategy===(field.masterHierarchyOfficial?'parent':field.masterMatchStrategy)||item.strategy==='ocr')&&Object.entries(values).every(([id,value])=>(!props.fields.some(member=>member.id===id)||props.fields.find(member=>member.id===id)!.value===value))
+function candidates(field: OcrExtractionField) {
+  const owner = candidateOwner(field)
+  return owner ? getMasterMatchDropdownOptions(owner, props.fields) : []
+}
+function selectedCandidate(field:OcrExtractionField){
+ const owner = candidateOwner(field)
+ if (!owner) return undefined
+ return candidates(field).find(item=>{
+ const values=item.linkedValues||{[owner.id]:item.value}
+ return (item.strategy===(owner.masterHierarchyOfficial?'parent':owner.masterMatchStrategy)||item.strategy==='ocr')&&Object.entries(values).every(([id,value])=>(!props.fields.some(member=>member.id===id)||props.fields.find(member=>member.id===id)!.value===value))
 })}
 function displayedCandidate(field:OcrExtractionField){
  const selected=selectedCandidate(field)
@@ -228,10 +275,6 @@ defineExpose({ scrollToField })
   <div class="v-ocr-fields">
     <div class="v-ocr-fields__header">
       <div class="v-ocr-fields__header-actions">
-        <label class="v-ocr-fields__filter" @click.stop>
-          <span class="v-ocr-fields__filter-label">{{ $t('tasks.common.reviewOnly') }}</span>
-          <el-switch v-model="showReviewOnly" size="small" />
-        </label>
         <div class="v-ocr-fields__stats">
           <span class="v-ocr-fields__stat">{{ $t('tasks.common.countFields', { count: fields.length }) }}</span>
           <span v-if="tables.length" class="v-ocr-fields__stat">
@@ -242,6 +285,27 @@ defineExpose({ scrollToField })
           </span>
           <span v-else class="v-ocr-fields__stat is-ok">{{ $t('tasks.common.allConfirmed') }}</span>
         </div>
+        <label class="v-ocr-fields__filter" @click.stop>
+          <span class="v-ocr-fields__filter-label">{{ $t('tasks.common.reviewOnly') }}</span>
+          <el-switch v-model="showReviewOnly" size="small" />
+        </label>
+        <el-checkbox
+          v-model="batchConfirmSelection"
+          :disabled="readonly"
+          @click.stop
+        >
+          {{ $t('tasks.ocr.selectAllForRestandardize') }}
+        </el-checkbox>
+        <el-button
+          type="primary"
+          plain
+          size="small"
+          :icon="Refresh"
+          :disabled="readonly || eligibleRestandardizeCount === 0"
+          @click.stop="restandardizeSelected"
+        >
+          {{ $t('tasks.ocr.restandardizeSelected') }}
+        </el-button>
       </div>
     </div>
     <div ref="scrollRef" class="v-ocr-fields__scroll">
@@ -313,14 +377,24 @@ defineExpose({ scrollToField })
 
 
 
-            <el-tooltip v-if="!readonly" :content="$t('tasks.common.restoreOcrValue')" placement="top">
+            <el-tooltip
+              v-if="!readonly"
+              :content="canRestandardize(field)
+                ? (isRestandardizeEligible(field.id) ? $t('tasks.ocr.restandardize') : $t('tasks.ocr.restandardizeSaveFirst'))
+                : $t('tasks.common.restoreOcrValue')"
+              placement="top"
+            >
               <span class="v-ocr-fields__restore-wrap" @click.stop>
                 <el-button
                   class="v-ocr-fields__restore"
-                  :icon="RefreshLeft"
-                  :disabled="isRestoreDisabled(field)"
-                  :aria-label="$t('tasks.common.restoreOcrValue')"
-                  @click="restoreValue(field.id)"
+                  :class="{ 'is-restandardize': canRestandardize(field) }"
+                  :icon="canRestandardize(field) ? Refresh : RefreshLeft"
+                  :loading="canRestandardize(field) && isRestandardizing(field.id)"
+                  :disabled="canRestandardize(field)
+                    ? !isRestandardizeEligible(field.id) || isRestandardizing(field.id)
+                    : isRestoreDisabled(field)"
+                  :aria-label="canRestandardize(field) ? $t('tasks.ocr.restandardize') : $t('tasks.common.restoreOcrValue')"
+                  @click="canRestandardize(field) ? restandardizeOne(field.id) : restoreValue(field.id)"
                 />
               </span>
             </el-tooltip>
@@ -337,7 +411,7 @@ defineExpose({ scrollToField })
             </el-button>
           </div>
 
-          <div v-if="!field.masterMatchLinkedTo && hasMasterCandidates(field) && candidates(field).length" class="p3-inline-candidates" @click.stop>
+          <div v-if="hasMasterCandidates(field)" class="p3-inline-candidates" @click.stop>
             <button v-if="displayedCandidate(field)" type="button" class="p3-candidate-header" :aria-expanded="!!expandedCandidates[field.id]" @click="expandedCandidates[field.id]=!expandedCandidates[field.id]">
               <span class="p3-candidate-title">
                 <el-tag size="small" effect="light" class="p3-match-source-tag" :class="{'is-ocr':displayedCandidate(field)!.strategy==='ocr'}">{{ candidateSourceLabel(displayedCandidate(field)!) }}</el-tag>
@@ -659,6 +733,7 @@ defineExpose({ scrollToField })
       border-color: var(--el-border-color-lighter);
       background: var(--el-fill-color-lighter);
     }
+
   }
 
   &__row-head {
@@ -678,9 +753,13 @@ defineExpose({ scrollToField })
   &__row-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0;
     min-width: 0;
     flex-wrap: wrap;
+
+    .el-checkbox {
+      margin-right: 0;
+    }
   }
 
   &__required {

@@ -20,6 +20,10 @@
       "destination": "/prototype.html"
     },
     {
+      "source": "/v4/:path*",
+      "destination": "/prototype.html"
+    },
+    {
       "source": "/tasks/:path*",
       "destination": "/prototype.html"
     },
