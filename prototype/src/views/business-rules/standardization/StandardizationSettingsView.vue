@@ -70,17 +70,6 @@ interface DefaultGroupDiffRow {
   template: StandardizationDefaultGroupTemplate
 }
 
-interface WriteTargetConflict {
-  key: string
-  fieldLabel: string
-  warningGroupId: string
-  groups: Array<{
-    groupId: string
-    groupLabel: string
-    memberIds: string[]
-  }>
-}
-
 const hasSavedConfig = configIsCurrent && !forceEmptyState && Array.isArray(persistedConfig?.groups)
 savedGroups.value = hasSavedConfig ? persistedConfig.groups : []
 standardizationGroupsVersion.value = hasSavedConfig ? persistedConfig.version ?? '' : ''
@@ -208,46 +197,7 @@ const activeGroup = computed(() =>
 )
 
 
-const writeTargetConflicts = computed<WriteTargetConflict[]>(() => {
-  const buckets = new Map<string, {
-    fieldLabel: string
-    groups: Map<string, { groupLabel: string; memberIds: string[] }>
-  }>()
 
-  standardizationGroups.value.forEach((group) => {
-    group.members.forEach((member) => {
-      if (member.mode === 'INPUT') return
-      const key = memberFieldKey(member)
-      const bucket = buckets.get(key) ?? {
-        fieldLabel: getMemberFieldLabel(member),
-        groups: new Map<string, { groupLabel: string; memberIds: string[] }>()
-      }
-      const groupBucket = bucket.groups.get(group.groupId) ?? {
-        groupLabel: group.label,
-        memberIds: []
-      }
-      groupBucket.memberIds.push(member.id)
-      bucket.groups.set(group.groupId, groupBucket)
-      buckets.set(key, bucket)
-    })
-  })
-
-  return [...buckets.entries()]
-    .filter(([, bucket]) => bucket.groups.size > 1)
-    .map(([key, bucket]) => {
-      const groups = [...bucket.groups.entries()].map(([groupId, group]) => ({
-        groupId,
-        groupLabel: group.groupLabel,
-        memberIds: group.memberIds
-      }))
-      return {
-        key,
-        fieldLabel: bucket.fieldLabel,
-        warningGroupId: groups[groups.length - 1].groupId,
-        groups
-      }
-    })
-})
 
 const activeMaster = computed(() =>
   activeGroup.value
@@ -611,6 +561,11 @@ function saveMember() {
     mode: memberDraft.mode,
     field: { ...memberDraft.field }
   }
+  const conflict = findFieldOwner(activeGroup.value.groupId, next)
+  if (conflict) {
+    ElMessage.warning(fieldOwnerMessage(next, conflict))
+    return
+  }
   const index = activeGroup.value.members.findIndex((member) => member.id === next.id)
   if (index >= 0) activeGroup.value.members[index] = next
   else activeGroup.value.members.push(next)
@@ -664,6 +619,21 @@ function memberFieldKey(member: StandardizationGroupMember) {
   return `${member.field.documentTypeId}:field:${member.field.fieldName ?? ''}`
 }
 
+function findFieldOwner(groupId: string, member: StandardizationGroupMember) {
+  if (member.field.type === 'CASE_FIELD') return undefined
+  const key = memberFieldKey(member)
+  return standardizationGroups.value.find((group) =>
+    group.groupId !== groupId && group.members.some((entry) => memberFieldKey(entry) === key)
+  )
+}
+
+function fieldOwnerMessage(member: StandardizationGroupMember, owner: StandardizationGroup) {
+  return t('standardization.validationFieldUsedByGroup', {
+    field: getMemberFieldLabel(member),
+    group: owner.label
+  })
+}
+
 function actionLabel(action: GroupHistoryEntry['action']) {
   return action === '作成'
     ? t('standardization.historyCreate')
@@ -697,17 +667,6 @@ function displayHistoryDetail(detail: string) {
     if (match) return t('standardization.historyInitialDetail', { master: match[1], scenes: match[2], count: match[3] })
     return segment
   }).join('、')
-}
-
-function writeTargetConflictMessage(conflict: WriteTargetConflict) {
-  const labelCounts = new Map<string, number>()
-  conflict.groups.forEach((group) => {
-    labelCounts.set(group.groupLabel, (labelCounts.get(group.groupLabel) ?? 0) + 1)
-  })
-  const groupSummary = Array.from(labelCounts, ([label, count]) =>
-    count > 1 ? `「${label}」×${count}` : `「${label}」`
-  ).join('、')
-  return groupSummary
 }
 
 function modeDisabled(mode: StandardizationGroupMember['mode']) {
@@ -776,6 +735,8 @@ function validateGroup(group: StandardizationGroup) {
   }
 
   for (const member of group.members) {
+    const conflict = findFieldOwner(group.groupId, member)
+    if (conflict) errors.push(fieldOwnerMessage(member, conflict))
     const masterColumn = master?.columns.find((column) => column.column === member.column)
     if (!masterColumn && !master?.hints.some((hint) => hint.hint === member.hint)) {
       errors.push(t('standardization.alertSelectMasterItem'))
@@ -832,8 +793,6 @@ async function saveSettings() {
       ElMessage.warning(firstError)
       return
     }
-    const warnings = writeTargetConflicts.value.map(writeTargetConflictMessage)
-    if (warnings.length) ElMessage.warning(warnings.join('、'))
     const previousGroups = savedGroups.value
     savedGroups.value = cloneGroups(standardizationGroups.value)
     standardizationGroupsVersion.value = nextGroupsVersion()

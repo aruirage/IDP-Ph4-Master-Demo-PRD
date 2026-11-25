@@ -265,16 +265,6 @@ export function createStandardizationMockGroups(): StandardizationGroup[] {
           }
         },
         {
-          id: 'mock-disease-supporting-code',
-          column: 'CLM_ICD10Mst__c.ICD10__C',
-          mode: 'OUTPUT',
-          field: {
-            type: 'FIELD',
-            documentTypeId: '20002',
-            fieldName: '傷病名1'
-          }
-        },
-        {
           id: 'mock-disease-supporting-cause',
           hint: 'cause',
           mode: 'INPUT',
@@ -288,7 +278,7 @@ export function createStandardizationMockGroups(): StandardizationGroup[] {
     },
     {
       groupId: 'mock-disease-shared-input',
-      label: '傷病名（入力共用）',
+      label: '傷病名（追加）',
       masterTable: 'DISEASE',
       sceneIds: ['claim', 'hospitalization'],
       members: [
@@ -299,7 +289,7 @@ export function createStandardizationMockGroups(): StandardizationGroup[] {
           field: {
             type: 'FIELD',
             documentTypeId: '20002',
-            fieldName: '傷病名1'
+            fieldName: '傷病名2'
           }
         }
       ]

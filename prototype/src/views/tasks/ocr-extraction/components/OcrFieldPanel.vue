@@ -2,13 +2,14 @@
 import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mockUiText } from '@/i18n/mockUiText'
-import { Check, CircleCheck, Refresh, RefreshLeft } from '@element-plus/icons-vue'
+import { Check, CircleCheck, Search, RefreshLeft } from '@element-plus/icons-vue'
 import {
   OCR_CONFIDENCE_THRESHOLD,
   getFieldAlert,
   getFieldAlertLabel,
   getMasterMatchDropdownOptions,
   getModelResultOptions,
+  getStandardizationPresentation,
   hasMasterMatchDropdown,
   hasModelConflict,
   isFieldUserConfirmed,
@@ -38,14 +39,15 @@ const tableRowCount = computed(() =>
 )
 
 const showReviewOnly = defineModel<boolean>('showReviewOnly', { default: false })
+const activeDataTab = ref<'text' | 'table'>('text')
 
 const pendingReviewCount = computed(
-  () => props.fields.filter((field) => needsFieldReview(field, props.fields) || reviewNeedsConfirmation(field)).length
+  () => props.fields.filter((field) => needsFieldReview(field, props.fields) ).length
 )
 
 const displayFields = computed(() =>
   showReviewOnly.value
-    ? props.fields.filter((field) => needsFieldReview(field, props.fields) || reviewNeedsConfirmation(field))
+    ? props.fields.filter((field) => needsFieldReview(field, props.fields) )
     : props.fields
 )
 
@@ -54,6 +56,10 @@ const emit = defineEmits<{
   updateValue: [fieldId: string, value: string]
   resolveValue: [fieldId: string, value: string]
   selectMasterMatch: [fieldId: string, candidate: OcrMasterMatchCandidate]
+  selectWriteSource: [fieldId: string, sourceId: string]
+  updateTableCell: [tableId: string, rowIndex: number, columnId: string, value: string]
+  restoreTableCell: [tableId: string, rowIndex: number, columnId: string]
+  restandardizeTableCell: [tableId: string, rowIndex: number, columnId: string]
   toggleConfirm: [fieldId: string]
   restoreValue: [fieldId: string]
   restandardize: [fieldIds: string[]]
@@ -75,11 +81,21 @@ const alertClassMap: Record<OcrFieldAlert, string> = {
 }
 
 function candidateSourceLabel(item: OcrMasterMatchCandidate): string {
+  if (item.label) return item.label
   if (item.strategy === 'ocr') return t('tasks.ocr.ocrOriginal')
-  return item.isMaster ? t('tasks.ocr.masterRecommended') : t('tasks.ocr.masterCandidate')
+  return (item.type === 'recommended' || item.isMaster) ? t('tasks.ocr.masterRecommended') : t('tasks.ocr.masterCandidate')
 }
 
-function isMasterField(field:OcrExtractionField){return !!(field.memberMode||field.standardizationReview||field.apiStandardizationApplied||field.masterDataId||field.masterRecommendation||field.masterMatchCandidates?.length||field.masterMatchConfirmRule||field.masterMatchLinkedTo||field.masterMatchedValue||field.masterMatchStrategy)}
+function isMasterField(field: OcrExtractionField) {
+  return Boolean(
+    field.memberMode || field.standardizationReview || field.apiStandardizationApplied ||
+    field.standardizationItemId || field.masterDataId || field.masterRecommendation ||
+    field.masterMatchCandidates?.length || field.masterMatchConfirmRule ||
+    field.masterMatchLinkedTo || field.masterMatchedValue || field.masterMatchStrategy ||
+    field.masterValuesSnapshot || field.masterReviewEnabled || field.masterDataColumnId ||
+    field.masterCodeColumnId
+  )
+}
 function canRestandardize(field: OcrExtractionField): boolean {
   return !props.readonly
     && isMasterField(field)
@@ -109,36 +125,36 @@ function hasMasterCandidates(field: OcrExtractionField): boolean {
 const expandedCandidates = ref<Record<string,boolean>>({})
 watch(()=>props.fields,()=>{expandedCandidates.value={}},{immediate:true})
 const batchConfirmSelection = ref(false)
-const eligibleRestandardizeCount = computed(() => (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
+const eligibleTextRestandardizeFieldIds = computed(() => (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
   const field = props.fields.find((item) => item.id === fieldId)
   return field ? canRestandardize(field) : false
-}).length)
+}))
+const eligibleTableRestandardizeCells = computed(() => tables.value.flatMap((table) =>
+  table.rows.flatMap((_, rowIndex) => table.columns
+    .filter((column) => canRestandardizeTableCell(table, rowIndex, column.id))
+    .map((column) => ({ tableId: table.id, rowIndex, columnId: column.id })))
+))
+const eligibleRestandardizeCount = computed(() => activeDataTab.value === 'text'
+  ? eligibleTextRestandardizeFieldIds.value.length
+  : eligibleTableRestandardizeCells.value.length
+)
 function restandardizeOne(fieldId: string) {
   if (!isRestandardizeEligible(fieldId) || isRestandardizing(fieldId)) return
   emit('restandardize', [fieldId])
 }
 function restandardizeSelected() {
   if (!eligibleRestandardizeCount.value) return
-  const fieldIds = (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
-    const field = props.fields.find((item) => item.id === fieldId)
-    return field ? canRestandardize(field) : false
+  if (activeDataTab.value === 'text') {
+    emit('restandardize', eligibleTextRestandardizeFieldIds.value)
+    return
+  }
+  eligibleTableRestandardizeCells.value.forEach(({ tableId, rowIndex, columnId }) => {
+    emit('restandardizeTableCell', tableId, rowIndex, columnId)
   })
-  emit('restandardize', fieldIds)
 }
 function candidateKey(item:OcrMasterMatchCandidate){return `${item.strategy}:${item.value}`}
 function reviewNeedsConfirmation(field: OcrExtractionField): boolean {
-  const review = field.standardizationReview
-  if (!review) return false
-  if (review.needsReview !== false) return true
-  if (review.status === 'UNRESOLVED' || review.status === 'NEW_CANDIDATE') return true
-  if (
-    (review.status === 'MATCHED' || review.status === 'SPLIT')
-    && !field.masterRecommendation
-    && !field.masterSelection
-    && !field.masterValuesSnapshot
-    && !field.masterMatchedValue
-  ) return true
-  return false
+  return getStandardizationPresentation(field)?.needsReview === true
 }
 function candidates(field: OcrExtractionField) {
   const owner = candidateOwner(field)
@@ -147,25 +163,18 @@ function candidates(field: OcrExtractionField) {
 function selectedCandidate(field:OcrExtractionField){
  const owner = candidateOwner(field)
  if (!owner) return undefined
+ if (owner.pendingMasterMatch) return owner.pendingMasterMatch
  return candidates(field).find(item=>{
  const values=item.linkedValues||{[owner.id]:item.value}
  return (item.strategy===(owner.masterHierarchyOfficial?'parent':owner.masterMatchStrategy)||item.strategy==='ocr')&&Object.entries(values).every(([id,value])=>(!props.fields.some(member=>member.id===id)||props.fields.find(member=>member.id===id)!.value===value))
 })}
 function displayedCandidate(field:OcrExtractionField){
  const selected=selectedCandidate(field)
- return selected&&selected.strategy!=='ocr'?selected:candidates(field).find(item=>item.strategy!=='ocr')
-}
-function reviewReasonMessages(field: OcrExtractionField): string[] {
-  const review = field.standardizationReview
-  if (!review || !reviewNeedsConfirmation(field)) return []
-  const reasons = review.reviewReasons.map((item) => mockUiText(item.message)).filter(Boolean)
-  if (review.needsReview === false) {
-    reasons.unshift(t('tasks.ocr.apiContractMismatch'))
-  }
-  return reasons
+ return selected && selected.strategy !== 'ocr' ? selected
+   : candidates(field).find((item) => item.isMaster) ?? candidates(field).find((item) => item.strategy !== 'ocr')
 }
 function primaryReviewReason(field: OcrExtractionField): string {
-  return reviewReasonMessages(field)[0] ?? ''
+  return mockUiText(getStandardizationPresentation(field)?.reviewReason ?? '')
 }
 function fieldReviewReason(field: OcrExtractionField): string {
   const masterReason = primaryReviewReason(field)
@@ -174,30 +183,21 @@ function fieldReviewReason(field: OcrExtractionField): string {
   if (alert === 'none' || !needsFieldReview(field, props.fields)) return ''
   return (field.masterMatchError ? mockUiText(field.masterMatchError) : getFieldAlertLabel(alert)) ?? ''
 }
-function reviewBasis(field: OcrExtractionField): string {
-  const review = field.standardizationReview
-  return review && reviewNeedsConfirmation(field) ? mockUiText(review.reason) : ''
-}
-function reviewNotes(field: OcrExtractionField): string {
-  const review = field.standardizationReview
-  return review && reviewNeedsConfirmation(field) ? mockUiText(review.notesForAssessor) : ''
-}
-function reviewProposedName(field: OcrExtractionField): string {
-  const review = field.standardizationReview
-  return review && reviewNeedsConfirmation(field) && review.status === 'NEW_CANDIDATE'
-    ? review.proposedName
-    : ''
-}
-function reviewGroupId(field: OcrExtractionField): string {
-  return field.standardizationReview?.groupId ?? ''
-}
-function additionalSplitItems(field: OcrExtractionField) {
-  const review = field.standardizationReview
-  return review?.status === 'SPLIT'
-    ? review.splitItems.filter((item) => !item.primary)
-    : []
+function reviewRemarks(field: OcrExtractionField) {
+  return getStandardizationPresentation(field)?.remarks ?? []
 }
 function chooseCandidate(field:OcrExtractionField,key:string){const item=candidates(field).find(item=>candidateKey(item)===key);if(item)emit('selectMasterMatch',field.id,item)}
+function chooseWriteSource(field: OcrExtractionField, sourceId: string) {
+  const owner = candidateOwner(field)
+  if (owner) emit('selectWriteSource', owner.id, sourceId)
+}
+function tableCellMetadata(table: OcrExtractionTable, rowIndex: number, columnId: string) {
+  return table.cellMetadata?.[`${rowIndex}:${columnId}`]
+}
+function canRestandardizeTableCell(table: OcrExtractionTable, rowIndex: number, columnId: string) {
+  const metadata = tableCellMetadata(table, rowIndex, columnId)
+  return Boolean(metadata?.masterMatch && metadata.pendingValue !== undefined)
+}
 function setRowRef(fieldId: string, el: Element | ComponentPublicInstance | null) {
   const node = el instanceof HTMLElement ? el : (el as ComponentPublicInstance | null)?.$el
   if (node instanceof HTMLElement) {
@@ -249,6 +249,9 @@ function rowAlertClass(field: OcrExtractionField): string {
 }
 
 function isRestoreDisabled(field: OcrExtractionField): boolean {
+  if (!isMasterField(field)) {
+    return field.value === (field.ocrOriginalValue ?? field.value)
+  }
   return isMasterMatchGroupRestored(field, props.fields)
 }
 
@@ -277,14 +280,20 @@ defineExpose({ scrollToField })
       <div class="v-ocr-fields__header-actions">
         <div class="v-ocr-fields__stats">
           <span class="v-ocr-fields__stat">{{ $t('tasks.common.countFields', { count: fields.length }) }}</span>
-          <span v-if="tables.length" class="v-ocr-fields__stat">
-            {{ $t('tasks.common.countTablesRows', { count: tables.length, rows: tableRowCount }) }}
-          </span>
           <span v-if="pendingReviewCount > 0" class="v-ocr-fields__stat is-danger">
             {{ $t('tasks.common.pendingReview', { count: pendingReviewCount }) }}
           </span>
           <span v-else class="v-ocr-fields__stat is-ok">{{ $t('tasks.common.allConfirmed') }}</span>
         </div>
+        <el-button
+          class="v-ocr-fields__restandardize-all"
+          size="small"
+          :icon="Search"
+          :disabled="readonly || eligibleRestandardizeCount === 0"
+          @click.stop="restandardizeSelected"
+        >
+          {{ $t(activeDataTab === 'table' ? 'tasks.ocr.restandardizeTablesSelected' : 'tasks.ocr.restandardizeSelected') }}
+        </el-button>
         <label class="v-ocr-fields__filter" @click.stop>
           <span class="v-ocr-fields__filter-label">{{ $t('tasks.common.reviewOnly') }}</span>
           <el-switch v-model="showReviewOnly" size="small" />
@@ -296,20 +305,14 @@ defineExpose({ scrollToField })
         >
           {{ $t('tasks.ocr.selectAllForRestandardize') }}
         </el-checkbox>
-        <el-button
-          type="primary"
-          plain
-          size="small"
-          :icon="Refresh"
-          :disabled="readonly || eligibleRestandardizeCount === 0"
-          @click.stop="restandardizeSelected"
-        >
-          {{ $t('tasks.ocr.restandardizeSelected') }}
-        </el-button>
       </div>
     </div>
+    <el-tabs v-if="tables.length" v-model="activeDataTab" class="v-ocr-fields__data-tabs">
+      <el-tab-pane :label="$t('businessRules.docType.tab.textRead')" name="text" />
+      <el-tab-pane :label="$t('businessRules.docType.tab.tableRead')" name="table" />
+    </el-tabs>
     <div ref="scrollRef" class="v-ocr-fields__scroll">
-      <section v-if="fields.length" class="v-ocr-fields__section">
+      <section v-if="activeDataTab === 'text' && fields.length" class="v-ocr-fields__section">
         <h4 class="v-ocr-fields__section-title">{{ $t('tasks.common.field') }}</h4>
         <el-empty
           v-if="displayFields.length === 0"
@@ -377,24 +380,31 @@ defineExpose({ scrollToField })
 
 
 
+            <el-tooltip v-if="!readonly" :content="$t('tasks.common.restoreOcrValue')" placement="top">
+              <span class="v-ocr-fields__restore-wrap" @click.stop>
+                <el-button
+                  class="v-ocr-fields__restore"
+                  :icon="RefreshLeft"
+                  :disabled="isRestoreDisabled(field)"
+                  :aria-label="$t('tasks.common.restoreOcrValue')"
+                  @click="restoreValue(field.id)"
+                />
+              </span>
+            </el-tooltip>
+
             <el-tooltip
-              v-if="!readonly"
-              :content="canRestandardize(field)
-                ? (isRestandardizeEligible(field.id) ? $t('tasks.ocr.restandardize') : $t('tasks.ocr.restandardizeSaveFirst'))
-                : $t('tasks.common.restoreOcrValue')"
+              v-if="!readonly && canRestandardize(field)"
+              :content="isRestandardizeEligible(field.id) ? $t('tasks.ocr.restandardize') : $t('tasks.ocr.restandardizeCachedValue')"
               placement="top"
             >
               <span class="v-ocr-fields__restore-wrap" @click.stop>
                 <el-button
-                  class="v-ocr-fields__restore"
-                  :class="{ 'is-restandardize': canRestandardize(field) }"
-                  :icon="canRestandardize(field) ? Refresh : RefreshLeft"
-                  :loading="canRestandardize(field) && isRestandardizing(field.id)"
-                  :disabled="canRestandardize(field)
-                    ? !isRestandardizeEligible(field.id) || isRestandardizing(field.id)
-                    : isRestoreDisabled(field)"
-                  :aria-label="canRestandardize(field) ? $t('tasks.ocr.restandardize') : $t('tasks.common.restoreOcrValue')"
-                  @click="canRestandardize(field) ? restandardizeOne(field.id) : restoreValue(field.id)"
+                  class="v-ocr-fields__restandardize"
+                  :icon="Search"
+                  :loading="isRestandardizing(field.id)"
+                  :disabled="!isRestandardizeEligible(field.id) || isRestandardizing(field.id)"
+                  :aria-label="$t('tasks.ocr.restandardize')"
+                  @click="restandardizeOne(field.id)"
                 />
               </span>
             </el-tooltip>
@@ -417,6 +427,10 @@ defineExpose({ scrollToField })
                 <el-tag size="small" effect="light" class="p3-match-source-tag" :class="{'is-ocr':displayedCandidate(field)!.strategy==='ocr'}">{{ candidateSourceLabel(displayedCandidate(field)!) }}</el-tag>
                 <span>{{ displayedCandidate(field)!.value }}</span>
               </span>
+              <span class="p3-candidate-meta">
+                <el-tag v-if="displayedCandidate(field)!.primary !== undefined" class="p3-candidate-role-tag" size="small" effect="plain">{{ $t(displayedCandidate(field)!.primary ? 'tasks.ocr.primarySplit' : 'tasks.ocr.additionalSplit') }}</el-tag>
+                <span v-if="displayedCandidate(field)!.confidence !== undefined" class="p3-candidate-confidence">{{ displayedCandidate(field)!.confidence }}</span>
+              </span>
               <span class="p3-candidate-chevron" aria-hidden="true">{{expandedCandidates[field.id]?'⌃':'⌄'}}</span>
             </button>
             <div v-if="expandedCandidates[field.id]" :id="'master-candidates-'+field.id" class="p3-candidate-options">
@@ -424,48 +438,56 @@ defineExpose({ scrollToField })
                 <button v-for="item in candidates(field)" :key="candidateKey(item)" type="button" role="radio" :aria-checked="!!selectedCandidate(field) && candidateKey(selectedCandidate(field)!)===candidateKey(item)" :disabled="readonly || item.selectable === false" class="p3-candidate-option" @click="chooseCandidate(field,candidateKey(item))">
                   <span class="p3-candidate-radio" :class="{'is-selected':!!selectedCandidate(field) && candidateKey(selectedCandidate(field)!)===candidateKey(item)}"></span>
                   <span class="p3-candidate-title"><el-tag size="small" effect="light" class="p3-match-source-tag" :class="{'is-ocr':item.strategy==='ocr'}">{{candidateSourceLabel(item)}}</el-tag><span>{{item.value}}</span></span>
+                  <span class="p3-candidate-meta">
+                    <el-tag v-if="item.primary !== undefined" class="p3-candidate-role-tag" size="small" effect="plain">{{ $t(item.primary ? 'tasks.ocr.primarySplit' : 'tasks.ocr.additionalSplit') }}</el-tag>
+                    <span v-if="item.confidence !== undefined" class="p3-candidate-confidence">{{ item.confidence }}</span>
+                  </span>
                 </button>
               </div>
             </div>
           </div>
           <div v-if="expandedCandidates[field.id] && field.standardizationReview && !hasMasterCandidates(field)" class="p3-match-detail"><el-tag size="small" effect="light" class="p3-match-source-tag">{{ $t('tasks.ocr.masterMatch') }}</el-tag><span>{{field.value}}</span></div>
           <div
-            v-if="fieldReviewReason(field) || reviewBasis(field) || reviewNotes(field) || reviewProposedName(field) || additionalSplitItems(field).length"
+            v-if="reviewNeedsConfirmation(field) && candidateOwner(field)?.writeSourceOptions?.length"
+            class="p4-write-source-picker"
+            @click.stop
+          >
+            <label :for="`write-source-${field.id}`">{{ $t('tasks.ocr.writeSource') }}</label>
+            <el-select
+              :id="`write-source-${field.id}`"
+              :model-value="candidateOwner(field)?.selectedWriteSourceId"
+              :placeholder="$t('tasks.ocr.chooseWriteSource')"
+              :disabled="readonly"
+              @change="(value: string) => chooseWriteSource(field, value)"
+            >
+              <el-option
+                v-for="source in candidateOwner(field)?.writeSourceOptions"
+                :key="source.id"
+                :label="source.label"
+                :value="source.id"
+              />
+            </el-select>
+            <span class="p4-write-source-picker__hint">{{ $t('tasks.ocr.writeSourceHint') }}</span>
+          </div>
+          <div
+            v-if="fieldReviewReason(field) || reviewRemarks(field).length"
             class="p4-standardization-summary"
           >
             <div v-if="fieldReviewReason(field)" class="p4-standardization-summary__reason-section">
               <p><strong>{{ $t('tasks.ocr.reviewReason') }}：</strong>{{ fieldReviewReason(field) }}</p>
             </div>
-            <div
-              v-if="reviewProposedName(field) || reviewGroupId(field) === 'FALLBACK' || additionalSplitItems(field).length || reviewBasis(field) || reviewNotes(field)"
-              class="p4-standardization-summary__meta-list"
-            >
-              <p v-if="reviewProposedName(field)" class="p4-standardization-summary__meta-row">
-                <strong>{{ $t('tasks.ocr.proposedName') }}</strong><span>{{ reviewProposedName(field) }}</span>
-              </p>
-              <p
-                v-for="item in additionalSplitItems(field)"
-                :key="`${field.id}-${item.text}`"
-                class="p4-standardization-summary__meta-row"
-              >
-                <strong>{{ $t('tasks.ocr.additionalSplit') }}</strong><span>{{ item.text }}　<strong>{{ $t('tasks.ocr.matchResult') }}：</strong>{{ item.matchedMaster || '—' }}</span>
-              </p>
-              <p v-if="reviewGroupId(field) === 'FALLBACK'" class="p4-standardization-summary__meta-row">
-                <strong>{{ $t('tasks.ocr.fallbackSource') }}</strong><span>{{ $t('tasks.ocr.fallbackFromUnconfiguredDoc') }}</span>
-              </p>
-              <p v-if="reviewBasis(field)" class="p4-standardization-summary__meta-row">
-                <strong>{{ $t('tasks.ocr.reviewBasis') }}</strong><span>{{ reviewBasis(field) }}</span>
-              </p>
-              <p v-if="reviewNotes(field)" class="p4-standardization-summary__meta-row">
-                <strong>{{ $t('tasks.ocr.confirmMemo') }}</strong><span>{{ reviewNotes(field) }}</span>
+            <div v-if="reviewRemarks(field).length" class="p4-standardization-summary__meta-list">
+              <p v-for="(remark, index) in reviewRemarks(field)" :key="index" class="p4-standardization-summary__meta-row">
+                <strong>{{ remark.label }}</strong><span>{{ mockUiText(remark.value) }}</span>
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section v-if="tables.length" class="v-ocr-fields__section is-table">
+      <section v-if="activeDataTab === 'table' && tables.length" class="v-ocr-fields__section is-table">
         <h4 class="v-ocr-fields__section-title">{{ $t('tasks.common.table') }}</h4>
+        <div class="v-ocr-fields__table-total">{{ $t('tasks.common.countRows', { count: tableRowCount }) }}</div>
         <div
           v-for="table in tables"
           :key="table.id"
@@ -492,7 +514,35 @@ defineExpose({ scrollToField })
                     :key="column.id"
                     :title="row[column.id] ?? ''"
                   >
-                    {{ row[column.id] ?? PLACEHOLDER.EMPTY }}
+                    <div class="v-ocr-fields__table-cell-editor" @click.stop>
+                      <el-input
+                        :model-value="row[column.id] ?? ''"
+                        size="small"
+                        :disabled="readonly"
+                        :placeholder="PLACEHOLDER.EMPTY"
+                        @update:model-value="(value: string) => emit('updateTableCell', table.id, rowIndex, column.id, value)"
+                      />
+                      <el-tooltip :content="$t('tasks.common.restoreOcrValue')" placement="top">
+                        <el-button
+                          class="v-ocr-fields__restore"
+                          size="small"
+                          :icon="RefreshLeft"
+                          :disabled="readonly || row[column.id] === table.originalRows?.[rowIndex]?.[column.id]"
+                          :aria-label="$t('tasks.common.restoreOcrValue')"
+                          @click.stop="emit('restoreTableCell', table.id, rowIndex, column.id)"
+                        />
+                      </el-tooltip>
+                      <el-tooltip v-if="tableCellMetadata(table, rowIndex, column.id)?.masterMatch" :content="$t('tasks.ocr.restandardize')" placement="top">
+                        <el-button
+                          class="v-ocr-fields__restandardize"
+                          size="small"
+                          :icon="Search"
+                          :disabled="readonly || !canRestandardizeTableCell(table, rowIndex, column.id)"
+                          :aria-label="$t('tasks.ocr.restandardize')"
+                          @click.stop="emit('restandardizeTableCell', table.id, rowIndex, column.id)"
+                        />
+                      </el-tooltip>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -551,6 +601,19 @@ defineExpose({ scrollToField })
     user-select: none;
   }
 
+  &__restandardize-all {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-7);
+    background: var(--el-color-primary-light-9);
+    font-weight: 500;
+
+    &:hover:not(:disabled) {
+      color: var(--el-color-primary-dark-2);
+      border-color: var(--el-color-primary-light-5);
+      background: var(--el-color-primary-light-8);
+    }
+  }
+
   &__filter-label {
     font-size: var(--app-font-size-base);
     color: var(--text-secondary);
@@ -562,6 +625,25 @@ defineExpose({ scrollToField })
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+  }
+
+  &__data-tabs {
+    flex-shrink: 0;
+    padding: 0 16px;
+
+    :deep(.el-tabs__header) {
+      margin: 0;
+    }
+
+    :deep(.el-tabs__nav-wrap::after) {
+      height: 1px;
+      background-color: var(--border-color);
+    }
+
+    :deep(.el-tabs__item) {
+      height: 42px;
+      font-size: var(--app-font-size-base);
+    }
   }
 
   &__stat {
@@ -620,6 +702,11 @@ defineExpose({ scrollToField })
     flex-shrink: 0;
   }
 
+  &__table-total {
+    color: var(--text-secondary);
+    font-size: var(--app-font-size-base);
+  }
+
   &__section.is-table &__section-title {
     color: var(--text-secondary);
   }
@@ -667,6 +754,22 @@ defineExpose({ scrollToField })
 
   &__table-scroll {
     overflow-x: auto;
+  }
+
+  &__table-cell-editor {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 220px;
+
+    :deep(.el-input) {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    :deep(.el-button) {
+      flex: none;
+    }
   }
 
   &__inner-table {
@@ -833,12 +936,41 @@ defineExpose({ scrollToField })
   }
 
   &__restore,
+  &__restandardize,
   &__confirm {
     flex-shrink: 0;
   }
 
+  :deep(.v-ocr-fields__restore.el-button),
+  :deep(.v-ocr-fields__restandardize.el-button) {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 6px;
+  }
+
   :deep(.v-ocr-fields__restore.el-button) {
-    padding: 8px;
+    color: var(--el-text-color-secondary);
+    border-color: var(--el-border-color);
+    background: var(--el-bg-color);
+  }
+
+  :deep(.v-ocr-fields__restore.el-button:hover:not(:disabled)) {
+    color: var(--el-text-color-primary);
+    border-color: var(--el-border-color-darker);
+    background: var(--el-fill-color-light);
+  }
+
+  :deep(.v-ocr-fields__restandardize.el-button) {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+    background: var(--el-color-primary-light-9);
+  }
+
+  :deep(.v-ocr-fields__restandardize.el-button:hover:not(:disabled)) {
+    color: var(--el-color-primary-dark-2);
+    border-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-8);
   }
 
   :deep(.v-ocr-fields__confirm.el-button) {
@@ -868,7 +1000,7 @@ defineExpose({ scrollToField })
 <style scoped>
 .p3-inline-candidates{margin-top:2px;width:100%}
 .p3-candidate-header,.p3-candidate-option{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;background:var(--el-bg-color);color:var(--el-text-color-regular);cursor:pointer}
-.p3-candidate-header{min-height:34px;padding:4px 12px;border:1px solid var(--el-border-color-light);border-radius:4px;justify-content:space-between}
+.p3-candidate-header{min-height:34px;padding:4px 12px;border:1px solid var(--el-border-color-light);border-radius:4px;justify-content:flex-start;gap:10px}
 .p3-candidates-toggle{width:28px;height:32px;flex:0 0 28px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--el-text-color-regular);font-size:20px;cursor:pointer}
 .p3-candidates-toggle:hover{background:var(--el-fill-color-light)}
 .p3-candidates-toggle:focus-visible{outline:2px solid var(--el-color-primary);outline-offset:2px}
@@ -886,10 +1018,39 @@ defineExpose({ scrollToField })
 .p3-match-source-tag{--el-tag-bg-color:var(--el-color-primary-light-9);--el-tag-border-color:var(--el-color-primary-light-9);--el-tag-text-color:var(--el-color-primary)}
 .p3-match-source-tag.is-ocr{--el-tag-bg-color:var(--el-fill-color-light);--el-tag-border-color:var(--el-fill-color-light);--el-tag-text-color:var(--el-text-color-regular)}
 .p3-candidate-title .p3-match-source-tag{display:inline-flex;justify-content:center;box-sizing:border-box;width:76px;height:24px;padding:0 6px;font-size:12px;flex:none}
+.p3-candidate-header .p3-candidate-title,.p3-candidate-option .p3-candidate-title{flex:1;flex-wrap:nowrap;overflow:hidden}
+.p3-candidate-header .p3-candidate-title>span:not(.el-tag),.p3-candidate-option .p3-candidate-title>span:not(.el-tag){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p3-candidate-meta{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-left:auto;flex:none;white-space:nowrap}
+.p3-candidate-role-tag{height:20px;padding:0 5px;font-size:11px;line-height:18px}
+.p3-candidate-confidence{font-size:12px;color:var(--el-text-color-secondary);white-space:nowrap}
+.p3-candidate-chevron{margin-left:10px;flex:none}
 </style>
 
 
 <style scoped>
+.p4-write-source-picker {
+  display: grid;
+  grid-template-columns: 110px minmax(220px, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.p4-write-source-picker label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.p4-write-source-picker__hint {
+  grid-column: 2;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
 .p4-standardization-summary {
   margin-top: 8px;
 }

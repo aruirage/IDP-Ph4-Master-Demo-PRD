@@ -91,9 +91,7 @@ const router = createRouter({
         {
           path: 'business-rules/master-data',
           name: 'MasterData',
-          component: () =>
-            import('@/views/business-rules/master-data/MasterDataConfigView.vue'),
-          meta: { titleKey: 'menu.masterData', menu: 'master-data' }
+          redirect: '/v4/standardization'
         },
         {
           path: 'v4',

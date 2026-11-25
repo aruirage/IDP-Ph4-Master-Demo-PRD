@@ -22,7 +22,6 @@ export default {
     docTypes: '帳票タイプ設定',
     businessScene: '業務シーン設定',
     masterData: 'マスタデータ設定',
-    internalMasterData: '内部マスタデータ',
     dataMapping: 'データマッピング設定',
     verificationSettings: 'AI検証設定',
     modelSettings: 'モデル設定',

@@ -20,6 +20,10 @@ export interface OcrMasterMatchCandidate {
   value: string
   strategy: OcrMasterMatchSearchStrategy
   sourceLabel?: string
+  type?: 'recommended' | 'candidate'
+  label?: string
+  confidence?: number
+  primary?: boolean
   score?: number
   selectable?: boolean
   isMaster?: boolean
@@ -81,6 +85,9 @@ export interface OcrExtractionField {
   /** OCR 抽出時の原始値（元に戻す用）；未指定時は value と同値 */
   ocrOriginalValue?: string
   ocrEditedValue?: string
+  pendingMasterMatch?: OcrMasterMatchCandidate
+  writeSourceOptions?: { id: string; label: string }[]
+  selectedWriteSourceId?: string
   masterMatchError?:string
   phase3Matched?:boolean
   masterAutoAdopted?:boolean
@@ -137,6 +144,13 @@ export interface OcrExtractionTable {
   section: string
   columns: OcrTableColumn[]
   rows: Record<string, string>[]
+  originalRows?: Record<string, string>[]
+  cellMetadata?: Record<string, {
+    masterMatch?: boolean
+    pendingValue?: string
+    /** Mock matching results indexed by the latest edited OCR value. */
+    masterMatches?: Record<string, string>
+  }>
 }
 
 export interface OcrDocumentPage {
@@ -438,7 +452,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
     {
       id: 'p4-in-drug-generic',
       section: '照合項目',
-      label: '一般名（照合のみ / INPUT）',
+      label: '一般名',
       value: targetValues.generic,
       ocrOriginalValue: targetValues.generic,
       confidence: 95,
@@ -450,7 +464,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
     {
       id: 'p4-io-drug-yjcode',
       section: '照合項目',
-      label: '薬価基準コード（反映のみ / OUTPUT）',
+      label: '薬価基準コード',
       value: targetValues.yjcode,
       ocrOriginalValue: '4229101M0000',
       confidence: 95,
@@ -466,7 +480,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
     {
       id: 'p4-io-drug-name',
       section: '照合項目',
-      label: '商品名（照合して反映 / INPUT_OUTPUT）',
+      label: '商品名',
       value: targetValues.name,
       ocrOriginalValue: 'ティーエスワン配合カプセルT20 1C',
       confidence: 96,
@@ -487,7 +501,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
     {
       id: 'p4-out-drug-atc',
       section: '照合項目',
-      label: 'ATC分類（反映のみ / OUTPUT）',
+      label: 'ATC分類',
       value: targetValues.atc,
       ocrOriginalValue: 'L00',
       confidence: 96,
@@ -504,7 +518,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
     {
       id: 'p4-out-drug-efficacy',
       section: '照合項目',
-      label: '薬効分類（反映のみ / OUTPUT）',
+      label: '薬効分類',
       value: targetValues.efficacy,
       ocrOriginalValue: '0000',
       confidence: 96,
@@ -554,11 +568,30 @@ function createPhase4StatusFields(): OcrExtractionField[] {
   ]
   const recommendedDiagnosis = diagnosisCandidates[0]
   const alternativeDiagnosisCandidates = diagnosisCandidates.slice(1, 1 + MASTER_MATCH_SIMILARITY_TOP_N)
+  const splitCandidates = (fieldId: string): OcrMasterMatchCandidate[] => [
+    ...[recommendedDiagnosis, ...alternativeDiagnosisCandidates].map((candidate) => ({
+      ...candidate,
+      primary: true,
+      linkedValues: { [fieldId]: candidate.value }
+    })),
+    ...[
+      { value: '糖尿病性腎症', score: 86, recommended: true },
+      { value: '糖尿病性腎障害', score: 82, recommended: false }
+    ].map(({ value, score, recommended }) => ({
+      value,
+      score,
+      strategy: 'hybrid' as const,
+      type: recommended ? 'recommended' as const : 'candidate' as const,
+      primary: false,
+      selectable: true,
+      linkedValues: { [fieldId]: value }
+    }))
+  ]
   return [
     {
       id: 'p4-split-auto',
       section: '状態別',
-      label: '傷病名（SPLIT・確認不要）',
+      label: '傷病名',
       value: '1型糖尿病',
       ocrOriginalValue: '1型糖尿病および糖尿病性腎症',
       confidence: 94,
@@ -570,9 +603,8 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       masterMatchedValue: recommendedDiagnosis.value,
       standardizationAutoApplied: true,
       masterSelection: diseaseSelection,
-      masterRecommendation: recommendedDiagnosis,
-      masterMatchCandidates: alternativeDiagnosisCandidates,
-      standardizationReview: createStandardizationReview('SPLIT', false, '主要素を確定し、追加要素は参考情報として残しました。', {
+      masterMatchCandidates: splitCandidates('p4-split-auto'),
+      standardizationReview: createStandardizationReview('SPLIT', false, '主要素を確定しました。追加要素も候補から選択できます。', {
         confidence: 0.93,
         splitItems: [
           { text: '1型糖尿病', primary: true, matchedMaster: '1型糖尿病' },
@@ -585,7 +617,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-split-review',
       section: '状態別',
-      label: '傷病名（SPLIT・要確認）',
+      label: '傷病名',
       value: '1型糖尿病',
       ocrOriginalValue: '1型糖尿病および糖尿病性腎症',
       confidence: 91,
@@ -593,8 +625,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       masterDataId: 'master-disease',
       masterMatchConfirmRule: 'low-similarity',
       apiStandardizationApplied: true,
-      masterRecommendation: recommendedDiagnosis,
-      masterMatchCandidates: alternativeDiagnosisCandidates,
+      masterMatchCandidates: splitCandidates('p4-split-review'),
       standardizationReview: createStandardizationReview('SPLIT', true, '複数の傷病名に分割されました。主要素を確認してください。', {
         confidence: 0.72,
         reviewReasons: [{ code: 'SPLIT_NOT_CONFIRMED', message: '分割後の各要素の照合結果を確定できません。' }],
@@ -610,7 +641,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-not-applicable-auto',
       section: '状態別',
-      label: '打撲（NOT_APPLICABLE・確認不要）',
+      label: '打撲',
       value: '打撲',
       ocrOriginalValue: '打撲',
       confidence: 93,
@@ -625,7 +656,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-not-applicable-review',
       section: '状態別',
-      label: '検査（NOT_APPLICABLE・要確認）',
+      label: '検査',
       value: '血液検査',
       ocrOriginalValue: '血液検査',
       confidence: 88,
@@ -644,7 +675,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-new-candidate',
       section: '状態別',
-      label: '傷病名（NEW_CANDIDATE）',
+      label: '傷病名',
       value: '自己炎症症候群',
       ocrOriginalValue: '自己炎症症候群',
       confidence: 89,
@@ -652,15 +683,6 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       masterDataId: 'master-disease',
       masterMatchConfirmRule: 'empty-result',
       apiStandardizationApplied: true,
-      masterMatchCandidates: [{
-        value: '自己炎症性疾患',
-        strategy: 'hybrid',
-        sourceLabel: 'マスタ候補',
-        score: 78,
-        selectable: true,
-        linkedValues: { 'p4-new-candidate': '自己炎症性疾患' },
-        similarityScore: 78
-      }],
       standardizationReview: createStandardizationReview('NEW_CANDIDATE', true, '主データに一致する行がありません。新規登録候補を確認してください。', {
         confidence: 0.69,
         reviewReasons: [
@@ -675,7 +697,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-unresolved',
       section: '状態別',
-      label: '傷病名（UNRESOLVED）',
+      label: '傷病名',
       value: '四肢のしびれ',
       ocrOriginalValue: '四肢のしびれ',
       confidence: 86,
@@ -704,7 +726,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
     {
       id: 'p4-no-target',
       section: '状態別',
-      label: '支払方法（対象外）',
+      label: '支払方法',
       value: '現金',
       ocrOriginalValue: '現金',
       confidence: 96,
@@ -734,13 +756,17 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
     {
       id: 'p4-ambiguous-source',
       section: '例外',
-      label: '薬剤名（AMBIGUOUS_SOURCE）',
+      label: '薬剤名',
       value: 'ティーエスワンT20',
       ocrOriginalValue: 'ティーエスワンT20',
       confidence: 92,
       required: true,
       masterDataId: 'master-medicine-info',
       masterMatchConfirmRule: 'low-similarity',
+      writeSourceOptions: [
+        { id: 'F2', label: '诊断书 F2 · 商品名' },
+        { id: 'F3', label: '诊断书 F3 · 商品名' }
+      ],
       apiStandardizationApplied: true,
       masterRecommendation: { ...candidate('ティーエスワン配合カプセルT20', 'マスタ推奨'), isMaster: true },
       masterMatchCandidates: [candidate('ティーエスワン配合顆粒T20')],
@@ -754,7 +780,7 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
     {
       id: 'p4-write-conflict',
       section: '例外',
-      label: '薬効分類（WRITE_CONFLICT）',
+      label: '薬効分類',
       value: '0000',
       ocrOriginalValue: '0000',
       confidence: 93,
@@ -772,30 +798,9 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
       bbox: { top: 75, left: 32, width: 32, height: 2.2 }
     },
     {
-      id: 'p4-fallback',
-      section: '例外',
-      label: '医療機関名（FALLBACK）',
-      value: '中央病院',
-      ocrOriginalValue: '中央病院',
-      confidence: 90,
-      required: true,
-      masterDataId: 'master-disease',
-      masterMatchConfirmRule: 'low-similarity',
-      apiStandardizationApplied: true,
-      masterRecommendation: { ...candidate('東京中央病院', 'マスタ推奨', 'p4-fallback'), isMaster: true },
-      masterMatchCandidates: [candidate('中央クリニック', 'マスタ候補', 'p4-fallback')],
-      standardizationReview: createStandardizationReview('MATCHED', true, '照合グループ未設定の帳票としてフォールバック照合されました。', {
-        confidence: 0.67,
-        groupId: 'FALLBACK',
-        reviewReasons: [{ code: 'FALLBACK_MAPPING', message: 'フォールバック照合の結果です。内容を確認してください。' }],
-        targets: ['医療機関名']
-      }),
-      bbox: { top: 78, left: 32, width: 32, height: 2.2 }
-    },
-    {
       id: 'p4-invalid-group',
       section: '例外',
-      label: '傷病名（INVALID_GROUP）',
+      label: '傷病名',
       value: '胃潰瘍',
       ocrOriginalValue: '胃潰瘍',
       confidence: 92,
@@ -813,7 +818,7 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
     {
       id: 'p4-invalid-needs-review',
       section: '例外',
-      label: '傷病名（API整合性エラー）',
+      label: '傷病名',
       value: '胆嚢炎',
       ocrOriginalValue: '胆嚢炎',
       confidence: 88,
@@ -850,7 +855,25 @@ const RICH_TASKS: Record<string, Omit<OcrExtractionTaskDetail, 'taskId'>> = {
           ...createPhase4StatusFields().filter((field) => field.standardizationReview?.needsReview !== false),
           ...createPhase4ExceptionFields()
         ],
-        tables: []
+        tables: [{
+          id: 'p4-medication-table',
+          label: '薬剤明細',
+          section: '明細',
+          columns: [
+            { id: 'drug-name', label: '薬剤名' },
+            { id: 'drug-code', label: '薬剤コード' }
+          ],
+          rows: [
+            { 'drug-name': 'アスピリン腸溶錠', 'drug-code': '000000' },
+            { 'drug-name': '胃薬A', 'drug-code': '未照合' }
+          ],
+          cellMetadata: {
+            '1:drug-name': {
+              masterMatch: true,
+              masterMatches: { 胃薬A: '胃薬標準錠10mg' }
+            }
+          }
+        }]
       },
       {
         id: 'page-phase4-master-standardization-auto',
@@ -934,7 +957,9 @@ function cloneTables(tables: OcrExtractionTable[]): OcrExtractionTable[] {
   return tables.map((table) => ({
     ...table,
     columns: table.columns.map((column) => ({ ...column })),
-    rows: table.rows.map((row) => ({ ...row }))
+    rows: table.rows.map((row) => ({ ...row })),
+    originalRows: (table.originalRows ?? table.rows).map((row) => ({ ...row })),
+    cellMetadata: table.cellMetadata ? structuredClone(table.cellMetadata) : undefined
   }))
 }
 
@@ -998,8 +1023,9 @@ export function getFieldAlert(
   allFields: OcrExtractionField[] = []
 ): OcrFieldAlert {
   const primary = getMasterMatchPrimaryField(field, allFields)
-  if(field.masterMatchError||primary.masterMatchError)return 'master-execution-error'
-  if (primary.masterMatchConfirmRule && primary.masterReviewEnabled!==false && !primary.masterAutoAdopted && (primary.masterDataId || getMasterMatchDropdownOptions(primary, allFields).some(item => item.strategy !== 'ocr'))) {
+  if (primary.standardizationReview?.needsReview) return 'master-low-similarity'
+  if (!primary.standardizationReview && (field.masterMatchError || primary.masterMatchError))return 'master-execution-error'
+  if (!primary.standardizationReview && primary.masterMatchConfirmRule && primary.masterReviewEnabled!==false && !primary.masterAutoAdopted && (primary.masterDataId || getMasterMatchDropdownOptions(primary, allFields).some(item => item.strategy !== 'ocr'))) {
     return masterMatchAlertFromRule(primary.masterMatchConfirmRule)
   }
   const hasMasterValue=!!field.masterMatchStrategy&&field.masterMatchStrategy!=='ocr'
@@ -1206,6 +1232,30 @@ export function getStandardizationApiCandidates(
   return results.slice(0, Math.max(1, maxCandidates))
 }
 
+/** Mock of the proposed confirmation-page response. */
+export function getStandardizationPresentation(field: OcrExtractionField) {
+  const review = field.standardizationReview
+  if (!review) return undefined
+
+  const masterDataMatches = getStandardizationApiCandidates(field).map((match) => ({
+    ...match,
+    type: match.type ?? (match.isMaster ? 'recommended' as const : 'candidate' as const),
+    label: t(match.type === 'recommended' || match.isMaster ? 'tasks.ocr.masterRecommended' : 'tasks.ocr.masterCandidate'),
+    confidence: match.confidence ?? match.score ?? match.similarityScore
+  }))
+  return {
+    needsReview: review.needsReview,
+    shouldWriteBack: review.targets.length > 0 && masterDataMatches.some((match) => match.selectable !== false),
+    masterDataMatches,
+    reviewReason: review.reviewReasons[0]?.message ?? '',
+    remarks: [
+      { label: t('tasks.ocr.proposedName'), value: review.proposedName },
+      { label: t('tasks.ocr.reviewBasis'), value: review.reason },
+      { label: t('tasks.ocr.confirmMemo'), value: review.notesForAssessor }
+    ].filter((remark) => remark.value)
+  }
+}
+
 /** Master 照合要確認フィールドのドロップダウン候補 */
 export function getMasterMatchDropdownOptions(
   field: OcrExtractionField,
@@ -1233,17 +1283,10 @@ export function getMasterMatchDropdownOptions(
     })
   }
 
-  if (primary.standardizationReview) {
-    for (const candidate of getStandardizationApiCandidates(primary)) {
-      pushCandidate(candidate)
-    }
-    if (ocrDisplay) {
-      pushCandidate({
-        strategy: 'ocr',
-        value: ocrDisplay,
-        linkedValues: { [field.id]: ocrDisplay }
-      })
-    }
+  const presentation = getStandardizationPresentation(primary)
+  if (presentation) {
+    if (!presentation.masterDataMatches.some((match) => match.selectable !== false)) return []
+    for (const match of presentation.masterDataMatches) pushCandidate(match)
     return options
   }
 

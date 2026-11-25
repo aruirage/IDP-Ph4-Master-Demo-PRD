@@ -12,6 +12,8 @@ import {
   canCompleteOcr,
   countPendingReviews,
   getOcrExtractionTask,
+  getMasterMatchPrimaryField,
+  getStandardizationPresentation,
   needsFieldReview,
   restoreMasterMatchGroup,
   toggleMasterMatchGroupConfirm,
@@ -35,7 +37,6 @@ const pages = ref<OcrDocumentPage[]>([])
 const activePageId = ref<string>('')
 const selectedFieldId = ref<string | null>(null)
 const showReviewOnly = ref(false)
-const lastSavedFieldValues = ref<Record<string, string>>({})
 const restandardizeEligibleFieldIds = ref<string[]>([])
 const restandardizingFieldIds = ref<string[]>([])
 const fieldPanelRef = ref<InstanceType<typeof OcrFieldPanel> | null>(null)
@@ -47,14 +48,10 @@ watch(
       pages.value = []
       activePageId.value = ''
       selectedFieldId.value = null
-      lastSavedFieldValues.value = {}
       restandardizeEligibleFieldIds.value = []
       return
     }
     pages.value = task.pages
-    lastSavedFieldValues.value = Object.fromEntries(
-      task.pages.flatMap((page) => page.fields.map((field) => [field.id, field.value]))
-    )
     restandardizeEligibleFieldIds.value = []
     activePageId.value = task.pages[0]?.id ?? ''
     selectedFieldId.value = task.pages[0]?.fields[0]?.id ?? null
@@ -98,6 +95,49 @@ function findField(fieldId: string) {
   return null
 }
 
+function findTable(tableId: string) {
+  for (const page of pages.value) {
+    const table = page.tables.find((item) => item.id === tableId)
+    if (table) return table
+  }
+  return null
+}
+
+function updateTableCell(tableId: string, rowIndex: number, columnId: string, value: string) {
+  const table = findTable(tableId)
+  if (!table?.rows[rowIndex]) return
+  table.rows[rowIndex][columnId] = value
+  const metadata = table.cellMetadata?.[`${rowIndex}:${columnId}`]
+  if (!metadata?.masterMatch) return
+  const original = table.originalRows?.[rowIndex]?.[columnId]
+  if (value === original) delete metadata.pendingValue
+  else metadata.pendingValue = value
+}
+
+function restoreTableCell(tableId: string, rowIndex: number, columnId: string) {
+  const table = findTable(tableId)
+  const original = table?.originalRows?.[rowIndex]?.[columnId]
+  if (table?.rows[rowIndex] && original !== undefined) {
+    table.rows[rowIndex][columnId] = original
+    const metadata = table.cellMetadata?.[`${rowIndex}:${columnId}`]
+    if (metadata) delete metadata.pendingValue
+  }
+}
+
+function restandardizeTableCell(tableId: string, rowIndex: number, columnId: string) {
+  const table = findTable(tableId)
+  const metadata = table?.cellMetadata?.[`${rowIndex}:${columnId}`]
+  const pendingValue = metadata?.pendingValue
+  const result = pendingValue === undefined ? undefined : metadata?.masterMatches?.[pendingValue]
+  if (table?.rows[rowIndex] && result !== undefined) {
+    table.rows[rowIndex][columnId] = result
+    if (metadata) delete metadata.pendingValue
+    ElMessage.success(t('tasks.ocr.restandardizeSuccess', { count: 1 }))
+  } else {
+    ElMessage.warning(t('tasks.ocr.restandardizeNoMatch'))
+  }
+}
+
 function isRestandardizableField(field: OcrExtractionField): boolean {
   return Boolean(
     field.memberMode
@@ -112,8 +152,13 @@ function isRestandardizableField(field: OcrExtractionField): boolean {
   ) && !field.masterMatchLinkedTo && field.memberMode !== 'OUTPUT'
 }
 
-function markFieldChanged(fieldId: string) {
-  restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter((id) => id !== fieldId)
+function markFieldChanged(field: OcrExtractionField, previousValue: string) {
+  delete field.pendingMasterMatch
+  if (field.value === previousValue || !isRestandardizableField(field)) return
+  field.ocrEditedValue = field.value
+  if (!restandardizeEligibleFieldIds.value.includes(field.id)) {
+    restandardizeEligibleFieldIds.value.push(field.id)
+  }
 }
 
 function selectPage(pageId: string) {
@@ -129,8 +174,9 @@ function selectField(fieldId: string) {
 function updateFieldValue(fieldId: string, value: string) {
   const field = findField(fieldId)
   if (field) {
+    const previousValue = field.value
     field.value = value
-    markFieldChanged(fieldId)
+    markFieldChanged(field, previousValue)
     delete field.masterAutoAdopted
     delete field.masterHierarchyOfficial
     delete field.masterHierarchyLevel
@@ -146,8 +192,9 @@ function updateFieldValue(fieldId: string, value: string) {
 function resolveFieldValue(fieldId: string, value: string) {
   const field = findField(fieldId)
   if (field) {
+    const previousValue = field.value
     field.value = value
-    markFieldChanged(fieldId)
+    markFieldChanged(field, previousValue)
     delete field.masterAutoAdopted
     delete field.masterHierarchyOfficial
     delete field.masterHierarchyLevel
@@ -164,17 +211,50 @@ function resolveFieldValue(fieldId: string, value: string) {
 function toggleFieldConfirm(fieldId: string) {
   const field = findField(fieldId)
   if (!field) return
-  toggleMasterMatchGroupConfirm(field, activeFields.value)
+  const owner = getMasterMatchPrimaryField(field, allFields.value)
+  const presentation = getStandardizationPresentation(owner)
+  if (!owner.userConfirmed && owner.writeSourceOptions?.length && !owner.selectedWriteSourceId) {
+    ElMessage.warning(t('tasks.ocr.chooseWriteSourceFirst'))
+    return
+  }
+  if (!owner.userConfirmed && presentation?.needsReview && presentation.shouldWriteBack) {
+    const selected = owner.pendingMasterMatch ?? (
+      restandardizeEligibleFieldIds.value.includes(owner.id)
+        ? undefined
+        : presentation.masterDataMatches.find((option) => option.isMaster && option.selectable !== false)
+    )
+    if (selected) applyMasterMatchSelection(allFields.value, selected)
+  }
+  delete owner.pendingMasterMatch
+  toggleMasterMatchGroupConfirm(field, allFields.value)
+}
+
+function selectWriteSource(fieldId: string, sourceId: string) {
+  const field = findField(fieldId)
+  if (!field?.writeSourceOptions?.some((option) => option.id === sourceId)) return
+  field.selectedWriteSourceId = sourceId
 }
 
 function restoreFieldValue(fieldId: string) {
   const field = findField(fieldId)
   if (!field) return
+  delete getMasterMatchPrimaryField(field, allFields.value).pendingMasterMatch
   restoreMasterMatchGroup(field, activeFields.value)
+  delete field.ocrEditedValue
+  restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter((id) => id !== fieldId)
 }
 
-function selectMasterMatch(_fieldId: string, candidate: OcrMasterMatchCandidate) {
-  applyMasterMatchSelection(activeFields.value, candidate)
+function selectMasterMatch(fieldId: string, candidate: OcrMasterMatchCandidate) {
+  const field = findField(fieldId)
+  if (!field || candidate.selectable === false) return
+  const owner = getMasterMatchPrimaryField(field, allFields.value)
+  const presentation = getStandardizationPresentation(owner)
+  if (presentation?.needsReview || presentation?.shouldWriteBack === false) {
+    owner.pendingMasterMatch = candidate
+    owner.userConfirmed = false
+    return
+  }
+  applyMasterMatchSelection(allFields.value, candidate)
 }
 
 function goBack() {
@@ -182,42 +262,47 @@ function goBack() {
 }
 
 async function handleSave() {
-  const changedFields = allFields.value.filter(
-    (field) => isRestandardizableField(field)
-      && field.value !== lastSavedFieldValues.value[field.id]
-  )
-  lastSavedFieldValues.value = Object.fromEntries(
-    allFields.value.map((field) => [field.id, field.value])
-  )
-  restandardizeEligibleFieldIds.value = changedFields.map((field) => field.id)
   ElMessage.success(t('tasks.common.saveSuccess'))
 }
 
 async function handleRestandardize(fieldIds: string[]) {
-  const fields = fieldIds
-    .filter((fieldId) => restandardizeEligibleFieldIds.value.includes(fieldId))
-    .map(findField)
-    .filter((field): field is OcrExtractionField => Boolean(field) && isRestandardizableField(field!))
-  if (!fields.length) return
+  if (restandardizingFieldIds.value.length) return
+  const edits = fieldIds.flatMap((id) => {
+    const field = findField(id)
+    return field && isRestandardizableField(field) && restandardizeEligibleFieldIds.value.includes(id)
+      ? [{ field, value: field.ocrEditedValue ?? field.value }]
+      : []
+  })
+  if (!edits.length) return
 
-  restandardizingFieldIds.value = fields.map((field) => field.id)
+  restandardizingFieldIds.value = edits.map(({ field }) => field.id)
   try {
-    const groups = new Map<string, OcrExtractionField[]>()
-    fields.forEach((field) => {
-      const key = field.standardizationItemId ?? field.id
-      groups.set(key, [...(groups.get(key) ?? []), field])
-    })
-    for (const groupFields of groups.values()) {
-      await new Promise((resolve) => setTimeout(resolve, 450))
-      groupFields.forEach((field) => {
-        field.userConfirmed = false
-      })
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    const completedIds = new Set<string>()
+    for (const { field, value } of edits) {
+      if ((field.ocrEditedValue ?? field.value) !== value) continue
+      const presentation = getStandardizationPresentation(field)
+      const candidate = presentation?.masterDataMatches.find((option) =>
+        option.selectable !== false && option.value === value
+      )
+      if (field.standardizationReview) {
+        field.standardizationReview.needsReview = !candidate
+        field.standardizationReview.reviewReasons = candidate
+          ? []
+          : [{ code: 'UNRESOLVED', message: t('tasks.ocr.restandardizeNoMatch') }]
+        field.standardizationReview.reason = ''
+        field.standardizationReview.notesForAssessor = ''
+        field.standardizationReview.proposedName = ''
+        field.masterRecommendation = candidate
+        field.masterMatchCandidates = candidate ? [candidate] : []
+      }
+      delete field.pendingMasterMatch
+      field.userConfirmed = false
+      if (candidate && presentation?.shouldWriteBack) applyMasterMatchSelection(allFields.value, candidate)
+      completedIds.add(field.id)
     }
-    const completedIds = new Set(fields.map((field) => field.id))
-    restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter(
-      (fieldId) => !completedIds.has(fieldId)
-    )
-    ElMessage.success(t('tasks.ocr.restandardizeSuccess', { count: fields.length }))
+    restandardizeEligibleFieldIds.value = restandardizeEligibleFieldIds.value.filter((id) => !completedIds.has(id))
+    if (completedIds.size) ElMessage.success(t('tasks.ocr.restandardizeSuccess', { count: completedIds.size }))
   } finally {
     restandardizingFieldIds.value = []
   }
@@ -322,6 +407,10 @@ async function handleComplete() {
           @toggle-confirm="toggleFieldConfirm"
           @restore-value="restoreFieldValue"
           @select-master-match="selectMasterMatch"
+          @select-write-source="selectWriteSource"
+          @update-table-cell="updateTableCell"
+          @restore-table-cell="restoreTableCell"
+          @restandardize-table-cell="restandardizeTableCell"
           @restandardize="handleRestandardize"
         />
       </div>

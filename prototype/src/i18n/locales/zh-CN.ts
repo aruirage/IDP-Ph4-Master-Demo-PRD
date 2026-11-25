@@ -22,7 +22,6 @@ export default {
     docTypes: '账票类型设置',
     businessScene: '业务场景设置',
     masterData: '主数据设置',
-    internalMasterData: '内部主数据',
     dataMapping: '数据映射设置',
     verificationSettings: 'AI检证设置',
     modelSettings: '模型设置',
