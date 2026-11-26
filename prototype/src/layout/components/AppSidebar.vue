@@ -25,7 +25,7 @@ import {
 } from '@element-plus/icons-vue'
 import { findMenuParentKey, menuItems, type MenuItem } from '@/constants/menu'
 
-defineProps<{
+const props = defineProps<{
   collapsed: boolean
 }>()
 
@@ -61,6 +61,13 @@ function getDefaultExpandedGroups(): string[] {
 
 const activeMenu = computed(() => (route.meta.menu as string) || 'upload')
 const expandedGroups = ref<string[]>(getDefaultExpandedGroups())
+
+watch(
+  () => props.collapsed,
+  (collapsed) => {
+    if (!collapsed) expandedGroups.value = getDefaultExpandedGroups()
+  }
+)
 
 watch(
   activeMenu,

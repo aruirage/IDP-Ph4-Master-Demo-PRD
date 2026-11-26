@@ -1150,20 +1150,6 @@ body {
   font-weight: 400;
 }
 
-.master-standardization-fallback__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.master-standardization-fallback__label {
-  color: #344054;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
 .verify-section-footer {
   display: flex;
   gap: 16px;

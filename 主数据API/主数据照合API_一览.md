@@ -25,7 +25,7 @@
 
 | 编号  | 分类   | 方法   | 路径                                       | 接口含义            | 主要输入                             | 主要输出                  | 调用时机                | 同步性                         | 阶段    |
 | --- | ---- | ---- | ---------------------------------------- | --------------- | -------------------------------- | --------------------- | ------------------- | --------------------------- | ----- |
-| 1   | 批次执行 | POST | `/v1/standardizations`                   | 提交批次照合请求        | 案件号、批次账票、照合组、案件标准项目              | 照合任务                  | 批次 OCR抽出完成后        | 异步任务，可在 `waitSeconds` 内直接完成 | 第 1 期 |
+| 1   | 案件执行 | POST | `/v1/standardizations`                   | 提交案件完整资料的照合请求 | 案件号、案件全部账票、照合组、案件标准项目          | 本次请求对应的 Task       | 案件资料齐全且 OCR、数据映射完成后 | 异步任务，可在 `waitSeconds` 内直接完成 | 第 1 期 |
 | 2   | 案件执行 | GET  | `/v1/standardizations/{taskId}`          | 查询照合任务状态和结果     | `taskId`、`includeItems`          | 任务、账票状态、照合对象、案件整体判断   | 任务终止后优先调用           | 同步查询                        | 第 1 期 |
 | 3   | 批次执行 | GET  | `/v1/standardizations/{taskId}/items`    | 分页读取照合对象        | `taskId`、`cursor`、`limit`        | 照合对象列表、下一页游标          | 结果超过单页 100 件时     | 同步查询                        | 第 1 期 |
 | 4   | 案件执行 | GET  | `/v1/standardizations`                   | 查询已完成任务列表       | `cursor`、`finishedAfter`、`limit` | 已结束任务摘要、下一页游标         | 每 5 至 10 秒汇总轮询      | 同步查询                        | 第 1 期 |
@@ -81,9 +81,9 @@
 ## 4. 照合请求、任务和对象的关系
 
 ```text
-1 个业务批次
-  -> 1 个或多个照合请求（超过 50 份时拆分）
-  -> 每个请求 1 个照合任务
+1 个案件的完整资料快照
+  -> 1 个照合请求
+  -> 1 个照合任务
   -> N 个照合对象
   -> 每个照合对象有 0 或 1 个主数据行
   -> 每个主数据行包含 values 和 selection
@@ -91,7 +91,7 @@
 
 | 概念 | 对应字段或接口 | 作用 |
 | --- | --- | --- |
-| 照合请求 | `POST /v1/standardizations` 的请求体 | 提交一个业务批次内最多 50 份文件 |
+| 照合请求 | `POST /v1/standardizations` 的请求体 | 提交案件当前完整资料；本期最多 50 张账票 |
 | 照合任务 | 响应 `data`、`taskId`、`status` | 跟踪这次作业的处理状态 |
 | 照合组 | `groups[]` | 定义账票字段和主数据列的绑定关系 |
 | 照合对象 | `items[]`、`itemId`、`groupId` | 表示某个具体值的照合结果 |
@@ -138,13 +138,13 @@ sequenceDiagram
 sequenceDiagram
     participant IDP as IDP 批次服务
     participant API as 主数据照合 API
-    IDP->>IDP: OCR抽出完成，冻结批次快照
-    IDP->>API: POST /v1/standardizations（超过 50 份时拆分）
+    IDP->>IDP: 案件单据齐全、OCR和数据映射完成，冻结案件快照
+    IDP->>API: POST /v1/standardizations（提交案件全部单据）
     API-->>IDP: 照合任务
     alt 任务已完成
         IDP->>IDP: 校验并回填结果
     else 任务等待中
-        IDP->>IDP: 保存 batchId、taskId 列表和 caseRevision
+        IDP->>IDP: 保存 caseRevision、taskId 和请求序号
         loop 每 5 至 10 秒
             IDP->>API: GET /v1/standardizations?cursor=...
             API-->>IDP: 已结束任务和 nextCursor
@@ -159,21 +159,15 @@ sequenceDiagram
     end
 ```
 
-批次步骤。
+案件步骤。
 
-1. 新文件或补件到达时创建独立业务批次。
-2. OCR抽出完成后冻结该批次快照。
-3. 汇总批次账票、案件标准项目、有效照合组和 `groupsVersion`。
-4. 超过 50 份时按相同 `caseNo` 和不同 `clientRequestId` 请求序号拆分。
-5. 调用 `POST /v1/standardizations`。
-6. 合并多个 `taskId` 为同一业务批次。
-7. 如果任务已完成，读取 `items` 并处理。
-8. 如果任务为 `PENDING` 或 `PROCESSING`，保存 `taskId`。
-9. 每 5 至 10 秒调用 `GET /v1/standardizations?cursor=...`。
-10. 发现任务结束后调用 `GET /v1/standardizations/{taskId}`。
-11. `itemsNextCursor` 存在时调用 `GET /v1/standardizations/{taskId}/items`。
-12. `needsReview=false` 时自动采用。
-13. `needsReview=true` 时进入该批次的 OCR抽出确认。
+1. IDP 在案件单据齐全、OCR抽出和数据映射完成后，冻结案件当前完整资料快照。
+2. 将案件全部单据、案件标准项目、当前有效照合组和 `groupsVersion` 放入一次 `POST /v1/standardizations` 请求。
+3. 一次被受理的请求对应一个 Zurich Task；同步完成时直接处理结果，处理中则保存 `taskId` 并通过完成列表轮询。
+4. 任务终止后读取任务结果及分页 items。
+5. 按 `needsReview`、`shouldWriteBack` 和统一确认页结构应用结果。
+6. 后续追加、替换、删除或重新处理案件单据，或案件标准项目改变时，取消尚未结束的旧 Task，使用最新的全量案件资料创建新版本请求；新结果替换旧结果。
+7. 本期单案最多提交 50 张账票。超过 50 张时 IDP 拦截并报错，不拆成多个请求或 Task。
 
 ### 5.3 人工确认流程
 
@@ -205,23 +199,19 @@ sequenceDiagram
 ### 5.4 重新识别或补件流程
 
 ```text
-补件到达 → 创建新的独立业务批次
-新文件到达 → 创建新的独立业务批次
-每个批次独立发送和确认
-旧批次结果晚到 → 只更新旧批次
+案件资料尚未齐全 → 等待，不提交照合
+案件资料齐全 → 全量案件请求并等待 Task 终止
+后续补件或单据变化 → 取消未结束的旧 Task，提交最新全量案件
+只应用案件最后一次请求的结果
 保留已经人工确定的照合对象
 ```
 
-### 5.5 50 份以上拆分
+### 5.5 本期单案超过 50 张
 
 ```text
-1 个业务批次
-→ 超过 50 份时拆成多个请求
-→ 使用相同 caseNo
-→ clientRequestId 递增请求序号
-→ Zurich 返回多个 taskId
-→ IDP 合并为同一业务批次
-→ 只生成一个 OCR抽出确认入口
+Zurich v1.2 §2.6 规定超过 50 张时可拆分请求。本期 IDP 不实现拆分及跨 Task 结果汇总。
+
+案件超过 50 张时，IDP 阻止提交，照合节点以失败结束并提示超出本期处理上限。此处理是 IDP 本期范围限制，不是 Zurich API 对超限请求的返回规则。
 ```
 
 ### 5.6 同一账票类型的多个逻辑文件
@@ -251,18 +241,20 @@ POST /v1/groups/validate
 ### 6.2 批次最短链路
 
 ```text
+等待案件单据齐全、OCR抽出和数据映射完成
+冻结案件全量快照
+检查账票数不超过 50；超限时拦截并报错
 POST /v1/standardizations
-超过 50 份时按相同 caseNo 和递增 clientRequestId 拆分
 若 PENDING 或 PROCESSING
-  保存 batchId 和 taskId 列表
+  保存 caseRevision 和 taskId
   GET /v1/standardizations?cursor=...
   GET /v1/standardizations/{taskId}
   GET /v1/standardizations/{taskId}/items?cursor=...
 校验结果
 按 targets 回填 values
 保存 selection
-按业务批次合并结果
-需确认项进入该批次的 OCR抽出确认
+按 needsReview、shouldWriteBack 和固定确认结构处理结果
+需确认项进入 OCR抽出确认
 ```
 
 ## 7. 必须关注的关键字段

@@ -125,6 +125,12 @@ function hasMasterCandidates(field: OcrExtractionField): boolean {
 const expandedCandidates = ref<Record<string,boolean>>({})
 watch(()=>props.fields,()=>{expandedCandidates.value={}},{immediate:true})
 const batchConfirmSelection = ref(false)
+const hasRestandardizableItems = computed(() => activeDataTab.value === 'text'
+  ? props.fields.some(canRestandardize)
+  : !props.readonly && tables.value.some((table) => table.rows.some((_, rowIndex) =>
+    table.columns.some((column) => tableCellMetadata(table, rowIndex, column.id)?.masterMatch)
+  ))
+)
 const eligibleTextRestandardizeFieldIds = computed(() => (props.restandardizeEligibleFieldIds ?? []).filter((fieldId) => {
   const field = props.fields.find((item) => item.id === fieldId)
   return field ? canRestandardize(field) : false
@@ -134,25 +140,21 @@ const eligibleTableRestandardizeCells = computed(() => tables.value.flatMap((tab
     .filter((column) => canRestandardizeTableCell(table, rowIndex, column.id))
     .map((column) => ({ tableId: table.id, rowIndex, columnId: column.id })))
 ))
-const eligibleRestandardizeCount = computed(() => activeDataTab.value === 'text'
-  ? eligibleTextRestandardizeFieldIds.value.length
-  : eligibleTableRestandardizeCells.value.length
-)
+const eligibleRestandardizeCount = computed(() => eligibleTextRestandardizeFieldIds.value.length + eligibleTableRestandardizeCells.value.length)
 function restandardizeOne(fieldId: string) {
   if (!isRestandardizeEligible(fieldId) || isRestandardizing(fieldId)) return
   emit('restandardize', [fieldId])
 }
 function restandardizeSelected() {
   if (!eligibleRestandardizeCount.value) return
-  if (activeDataTab.value === 'text') {
+  if (eligibleTextRestandardizeFieldIds.value.length) {
     emit('restandardize', eligibleTextRestandardizeFieldIds.value)
-    return
   }
   eligibleTableRestandardizeCells.value.forEach(({ tableId, rowIndex, columnId }) => {
     emit('restandardizeTableCell', tableId, rowIndex, columnId)
   })
 }
-function candidateKey(item:OcrMasterMatchCandidate){return `${item.strategy}:${item.value}`}
+function candidateKey(item:OcrMasterMatchCandidate){return `${item.strategy}:${item.primary === undefined ? '' : item.primary ? 'primary' : 'additional'}:${item.value}`}
 function reviewNeedsConfirmation(field: OcrExtractionField): boolean {
   return getStandardizationPresentation(field)?.needsReview === true
 }
@@ -286,6 +288,7 @@ defineExpose({ scrollToField })
           <span v-else class="v-ocr-fields__stat is-ok">{{ $t('tasks.common.allConfirmed') }}</span>
         </div>
         <el-button
+          v-if="hasRestandardizableItems"
           class="v-ocr-fields__restandardize-all"
           size="small"
           :icon="Search"

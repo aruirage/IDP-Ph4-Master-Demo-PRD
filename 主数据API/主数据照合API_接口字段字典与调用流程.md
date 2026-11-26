@@ -1,6 +1,6 @@
 # 主数据照合 API 接口、字段与调用流程
 
-本文依据《综合主数据名称标准化 API 规格书（IDP 对接 · v1）》1.1 版（2026-11-19）整理，面向 IDP 的产品、开发、测试和联调人员。接口路径均相对于 `{BASE_URL}`。除完成通知外，Zurich 提供的 API 都使用 `Authorization: Bearer <apiKey>`。认证不使用来源 IP 允许列表。完成通知由 Zurich 发起，使用 HMAC 签名请求头。
+本文依据《综合主数据名称标准化 API 规格书（IDP 对接 · v1）》1.2 版（2026-11-25）整理。接口字段、行为及示例以 v1.2 正本为准；本期另有 IDP 内部范围约束：单案超过 50 张不拆分请求，直接拦截。接口路径均相对于 `{BASE_URL}`。
 
 ### 术语统一说明
 
@@ -125,13 +125,13 @@ sequenceDiagram
 sequenceDiagram
     participant IDP as IDP 案件服务
     participant API as 主数据照合 API
-    IDP->>IDP: OCR 完成，冻结该批次快照
-    IDP->>API: POST /v1/standardizations（超过 50 份时按请求序号拆分）
+    IDP->>IDP: 案件单据齐全、OCR和数据映射完成，冻结案件全量快照
+    IDP->>API: POST /v1/standardizations（一次提交案件全部单据）
     API-->>IDP: SUCCEEDED / FAILED / CANCELLED 或 PENDING / PROCESSING
     alt 立即结束
         IDP->>IDP: 校验任务、账票、item 和终态后处理
     else 异步等待
-        IDP->>IDP: 保存 batchId、taskId 列表、clientRequestId、pollAfterMs
+        IDP->>IDP: 保存 caseRevision、taskId、clientRequestId、pollAfterMs
         loop 每 5 至 10 秒
             IDP->>API: GET /v1/standardizations（首次 finishedAfter，后续 cursor）
             API-->>IDP: 已完成任务和 nextCursor
@@ -148,31 +148,15 @@ sequenceDiagram
 
 案件处理期需要完成以下动作。
 
-1. 新文件或补件到达时创建独立业务批次，OCR抽出完成后冻结该批次快照，记录账票列表、`caseResult` 和有效的组设置。
-2. 生成 `clientRequestId`，推荐格式为 `{caseNo}-{版本}-{请求序号}`。同一批次超过 50 份时保持 `caseNo` 不变并递增请求序号。
-3. 通过 `POST /v1/standardizations` 提交批次内的文件。默认 `waitSeconds=10`。
-4. 如果响应已经是 `SUCCEEDED`、`FAILED` 或 `CANCELLED`，直接进入结果处理。
-5. 如果响应是 `PENDING` 或 `PROCESSING`，保存 `taskId` 和 `pollAfterMs`。多个请求的 `taskId` 关联到同一个业务批次。
-6. 通过 `GET /v1/standardizations` 汇总查询已完成任务。首次使用 `finishedAfter`，后续使用上一次返回的 `nextCursor`。
-7. 采用已完成任务后，调用 `GET /v1/standardizations/{taskId}` 获取结果。
-8. `itemsNextCursor` 存在时，调用 `GET /v1/standardizations/{taskId}/items` 分页读取。
-9. 校验任务、账票、item、warning 和位置类型，再执行 staging 和提交。
+1. 等案件单据齐全、OCR 抽出和数据映射完成后，冻结包含全部账票、`caseResult` 和有效组设置的案件快照。
+2. 通过一次 `POST /v1/standardizations` 提交案件全部单据。该请求对应一个 Task；默认 `waitSeconds=10`。
+3. 如果响应已经是终态，直接处理结果；如果响应是 `PENDING` 或 `PROCESSING`，保存 `taskId` 并通过已完成任务列表轮询。
+4. Task 终止后调用 `GET /v1/standardizations/{taskId}` 获取结果；`itemsNextCursor` 存在时继续分页读取。
+5. 校验任务、账票、item、warning 和位置类型，再应用最新案件版本的结果。
+6. 案件新增、替换、删除或重新处理账票，或案件标准字段改变照合输入时，取消未结束的旧 Task，以全量最新案件快照发起新请求。新结果替换旧结果。
+7. 本期单案最多 50 张。超过 50 张时 IDP 拦截并报错，不拆分请求；这是 IDP 本期范围限制，与 Zurich v1.2 §2.6 的超限建议不同。
 
-任务 `FAILED` 表示本轮请求整体不能应用。部分账票 `FAILED` 时任务仍为 `SUCCEEDED`，只将使用该账票类别项目的组转为人工确认。不同业务批次互不覆盖，旧批次晚到结果只更新自己的结果和待办。
-
-#### 批次规则
-
-1. 新文件到达时创建新的独立批次任务。
-2. 补件到达时同样创建新的独立批次任务。
-3. 不同批次分别进入 OCR抽出确认，不互相覆盖。
-4. 同一优先级按 Zurich 受理顺序排队，IDP 不另建案件级队列。
-
-#### 50 份以上
-
-1. 单次最多 50 份文件。
-2. 同一业务批次超过 50 份时拆成多个请求。
-3. 多个请求使用相同 `caseNo` 和不同 `clientRequestId` 请求序号。
-4. 多个 Zurich `taskId` 合并为同一个业务批次，只生成一个 OCR抽出确认入口。
+任务 `FAILED` 表示本轮请求整体不能应用。部分账票 `FAILED` 时任务仍为 `SUCCEEDED`，只将使用该账票类别项目的组转为人工确认。案件输入变化后只采用最新全量请求的结果。
 
 #### 同一账票类型的多个逻辑文件
 
@@ -271,17 +255,14 @@ sequenceDiagram
 
 | 数据 | 用途 |
 | --- | --- |
-| `master` | 系统建议值，可作为初始候选 |
-| `candidates` | 可选择的主数据行，按分数从高到低。无论 `needsReview` 为何都返回，包含 `master` 且 `isMaster=true`。总数最多 `maxCandidates`，默认 5 |
-| `alternatives` | 未采用的主要候选和 `whyNot` |
-| `reviewReasons` | 需要人工确认的主要原因 |
-| `reason` | 判断依据 |
-| `notesForAssessor` | 给确认人员的备注 |
-| `splitItems` | 拆分后的全部要素，第一个为主要素 |
-| `proposedName` | 新登记候选的正式名称 |
-| `webEvidence` | 判断使用的 Web 出处 |
+| `needsReview` | 是否进入 OCR抽出确认；为 `true` 时人工确认，为 `false` 时不因主数据照合进入确认 |
+| `shouldWriteBack` | 是否回写；只有 `true` 且最终采用项有 `targets` 时回写所选项的 `master.values` |
+| `masterDataMatches` | 确认页候选列表。按返回顺序显示；包含 `type`、`label`、`confidence`、`primary`、`master` 和 `targets`，具体以 v1.2 §5.10 为准 |
+| `reviewReason` | 确认原因；有值就显示，无值不显示 |
+| `remarks` | 其他信息；名称提案、追加要素、照合依据、确认备注等由 API 放入，有内容才展示 |
+| OCR 原值 | 使用 IDP 当前字段值显示，不从主数据候选或 `status` 推断 |
 
-`master` 与 `candidates` 中包含的 `isMaster=true` 行表示同一主数据行。`master` 是推定或采用值，其他候选项用于人工改选。`needsReview=false` 的结果也保留候选，确认页面改选后仍按同一 `values` 到 `targets` 的通用规则回填。
+`master` 与 `candidates` 用于描述标准化结果；确认页候选统一从 `masterDataMatches` 读取。`needsReview`、`shouldWriteBack`、`masterDataMatches`、`reviewReason` 和 `remarks` 是稳定的确认页接口结构。页面按内容是否返回展示，不按 `status` 分场景决定字段。
 
 C-05 为本期 P0。自动采用的结果也显示 `master` 和 `candidates`，操作人员可以改选其他候选；改选时与需确认结果使用相同的回填处理。
 
@@ -292,11 +273,10 @@ C-05 为本期 P0。自动采用的结果也显示 `master` 和 `candidates`，�
 | 429 或 503 | 按 `Retry-After` 等待后重试 |
 | 500 | 使用相同 `clientRequestId`，按 10 秒、30 秒、60 秒并加入随机抖动重试 |
 | 409 `IDEMPOTENCY_CONFLICT` | 相同幂等键但内容不同，停止重试并修正内容或生成新版本 |
-| 重新识别 | 取消当前批次旧任务，使用新的 `clientRequestId` 版本和新的批次快照 |
-| 补件 | 创建新的独立批次任务，不取消或覆盖既有批次 |
+| 案件输入变化 | 取消尚未结束的旧任务，使用新的 `clientRequestId` 版本和案件全量最新快照整案重请求；只应用最新请求结果 |
 | 进程重启 | 从本地任务表、outbox 和已保存 `nextCursor` 恢复 |
 | 游标丢失 | 通过 `finishedAfter` 重新扫描可查询期间内的任务，并人工对账 |
-| 旧任务晚到 | 只更新所属批次，不修改其他批次，人工决定的 item 默认加锁 |
+| 旧任务晚到 | 旧版本结果不得覆盖案件最新请求结果 |
 
 ### 1.6 完成通知流程
 
@@ -330,7 +310,7 @@ IDP -> GET /v1/standardizations/{taskId}
 
 `POST /v1/standardizations`
 
-含义是提交一个业务批次内的账票和有效组，生成一个照合任务。任务可能直接完成，也可能进入队列。
+含义是提交案件当前完整资料快照中的全部账票和有效组。一次受理的请求对应一个 Task；Task 可能直接完成，也可能进入队列。
 
 #### 请求字段
 
@@ -342,10 +322,10 @@ IDP -> GET /v1/standardizations/{taskId}
 | `waitSeconds`                  | Integer  | 否   | 等待完成的秒数，范围 0 至 25，默认 10，0 表示只受理                |
 | `priority`                     | String   | 否   | `NORMAL` 或 `LOW`，默认 `NORMAL`                   |
 | `callbackUrl`                  | String   | 否   | 任务完成通知地址，必须是 HTTPS                             |
-| `groups`                       | Object[] | 否   | 有效组设置，0 至 200 件，省略时所有账票走 fallback              |
+| `groups`                       | Object[] | 否   | 有效组设置，0 至 200 件。省略时不会生成普通照合对象；fallback 为第 2 期功能 |
 | `groupsVersion`                | String   | 否   | IDP 组设置版本，会回显到任务 `versions.groups`             |
 | `options.masterTables`         | String[] | 否   | 限定照合的主数据表，省略时使用组内全部表                           |
-| `options.fallback`             | Boolean  | 否   | 未配置账票是否走兜底照合，默认 `true`                         |
+| `options.fallback`             | Boolean  | 否   | 未配置账票是否走兜底照合；v1.2 默认 `false`，本期不启用。回退为第 2 期功能 |
 | `options.allowWebSearch`       | Boolean  | 否   | 是否允许 Web 检索作为判断依据，默认 `true`                    |
 | `options.includeCandidates`    | Boolean  | 否   | 是否返回候选，默认 `true`                               |
 | `options.maxCandidates`        | Integer  | 否   | 最大候选数，1 至 10，默认 5                              |
@@ -365,10 +345,10 @@ IDP -> GET /v1/standardizations/{taskId}
 
 #### 规则
 
-1. 必须发送该业务批次中的全部账票。组成员可能来自该批次的其他账票类别。
+1. 必须发送案件当前完整快照中的全部账票。组成员可能来自案件中的其他账票类别。
 2. 有设置的组只处理组成员指定的字段。
-3. 没有设置的账票在 `fallback=true` 时由 Zurich 推测，`groupId=FALLBACK`，结果一定需确认。
-4. 单次最多 50 张账票、200 个组、10 MB。业务批次超过 50 张时按相同 `caseNo` 和递增请求序号拆分。
+3. 本期不使用 fallback。未配置账票类型的项目不生成照合对象。
+4. 单次最多 50 张账票、200 个组、10 MB。IDP 本期对超过 50 张的案件直接拦截，不拆分多个请求。
 5. 单个任务最多照合 500 个对象，超出部分以 `UNRESOLVED`、`NOT_PROCESSED` 返回。
 6. 单个照合对象的结果最大 100 KB，包括主数据行的全部列值和候选。
 
@@ -828,13 +808,18 @@ IDP -> GET /v1/standardizations/{taskId}
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
 | `itemId` | String | 任务内唯一的对象编号 |
-| `groupId` | String | 生成该对象的组，fallback 时为 `FALLBACK`，单值接口无 ref 时为 `ADHOC` |
+| `groupId` | String | 生成该对象的组；第 2 期 fallback 时可能为 `FALLBACK`，单值接口无 ref 时为 `ADHOC` |
 | `masterTable` | String | 主数据表 |
 | `source` | Object | 主输入位置 |
 | `inputs` | Object[] | 实际有值的输入列表 |
 | `targets` | Object | 回填目标，键为列，值为位置对象 |
 | `status` | String | `MATCHED`、`SPLIT`、`NEW_CANDIDATE`、`NOT_APPLICABLE`、`UNRESOLVED` |
+| `fieldId` | String | 关联重新标准化前后的项目（v1.2） |
 | `needsReview` | Boolean | 是否需要人工确认，只接受 `true` 或 `false` |
+| `shouldWriteBack` | Boolean | 是否回写，见确认页结构 |
+| `masterDataMatches` | Object[] | 统一的确认页候选列表，含每项自己的回写目标 |
+| `reviewReason` | String | 统一的确认原因字段 |
+| `remarks` | Object[] | 统一的其他信息字段 |
 | `master` | Object | 照合得到的主数据行，可为 `null` |
 | `proposedName` | String | 未确定时建议的名称，可为 `null` |
 | `confidence` | Number | 0.0 至 1.0，仅供显示和排序 |
@@ -887,7 +872,7 @@ IDP -> GET /v1/standardizations/{taskId}
 
 `selection=null` 表示该主数据表只用于回填，不需要登记。
 
-v1.1 的 `DRUG` 不属于 SFDC 对象。`sources` 为空数组，列的 `object` 为 `null`，`selectionRecordTypes` 为空数组。药品行只用于按 `targets` 回填，不参与后续系统的记录登记。
+v1.2 的 `DRUG` 不属于 SFDC 对象。`sources` 为空数组，列的 `object` 为 `null`，`selectionRecordTypes` 为空数组。药品行只用于按 `targets` 回填，不参与后续系统的记录登记。
 
 `master.values` 包含主数据行一览中列出的全部列值，包括组中没有使用、`inputRole=NONE` 的列。IDP 按 `targets` 选择性回填。
 
@@ -987,7 +972,7 @@ v1.1 的 `DRUG` 不属于 SFDC 对象。`sources` 为空数组，列的 `object`
 | `items[].status` | `needsReview` | `master` | 回填与登记 | 说明 |
 | --- | --- | --- | --- | --- |
 | `MATCHED` | `false` 或 `true` | 有 | `false` 时可回填和登记 | 已确定，`true` 时 `master` 是建议 |
-| `SPLIT` | `false` 或 `true` | 主要素 | `false` 时只回填和登记主要素 | 其他要素在 `splitItems` |
+| `SPLIT` | `false` 或 `true` | 主要素 | 确认页将主要素和追加要素都放在 `masterDataMatches`；每项按自身 `targets` 回填 | `primary` 区分主要素和追加要素 |
 | `NEW_CANDIDATE` | 始终 `true` | `null` | 不回填 | `proposedName` 为新登记建议名称 |
 | `NOT_APPLICABLE` | `false` 或 `true` | `null` | 不回填 | 保持识别值 |
 | `UNRESOLVED` | 始终 `true` | `null` | 不回填 | 显示候选和备选 |
@@ -1064,7 +1049,7 @@ v1.1 的 `DRUG` 不属于 SFDC 对象。`sources` 为空数组，列的 `object`
 | 409 | `IDEMPOTENCY_CONFLICT` | 相同幂等键但内容不同 | 停止重试并生成新版本 |
 | 409 | `TASK_NOT_CANCELLABLE` | 任务已经结束 | 读取最终状态 |
 | 409 | `TASK_NOT_FINISHED` | 任务未结束时读取 items | 等任务结束 |
-| 413 | `PAYLOAD_TOO_LARGE` | 请求体超过 10 MB | 拆分发送 |
+| 413 | `PAYLOAD_TOO_LARGE` | 请求体超过 10 MB | 本期不自动拆分；节点按请求失败处理 |
 | 429 | `TOO_MANY_REQUESTS` | 请求数或并发超过限制 | 按 `Retry-After` 重试 |
 | 429 | `QUEUE_FULL` | 队列中的 item 超过限制 | 按 `Retry-After` 重试 |
 | 500 | `INTERNAL_ERROR` | 服务内部错误 | 同幂等键退避重试 |
@@ -1090,24 +1075,25 @@ v1.1 的 `DRUG` 不属于 SFDC 对象。`sources` 为空数组，列的 `object`
 4. hint 只能设为 `INPUT`。
 5. `inputRole=NONE` 的列只能设为 `OUTPUT`。
 6. `writable=false` 的列只能设为 `INPUT`。
-7. 同一项目可以作为多个组的输入，同一项目作为多个组的回填目标时会产生冲突。
+7. 单据字段或表格列只能配置在一个组。案件标准字段可以作为多个组的输入，但只能有一个组将其作为回写目标。
 
 ### 7.3 结果处理规则
 
-1. 只使用 `status`、`needsReview`、`master.values`、`targets`、`master.selection` 做业务分支。
-2. `needsReview` 缺失或为 `null` 时按需确认处理。
-3. 不要使用 `confidence` 做阈值。
-4. 未知枚举值按字符串接收，不中断处理。
-5. 未知位置类型不自动采用。
-6. `CANCELLED` 结果不应用。
-7. 账票失败时，使用该账票类别的组转人工。
-8. `FALLBACK` 一定转人工，并检查 `FALLBACK_USED`。
-9. `selection` 为 `null` 时不登记，但仍可按 `values` 和 `targets` 回填。
-10. 向后续系统登记时，`selection.object`、`recordType`、`recordId` 必须成对传递。
+1. 是否进入人工确认只看 `needsReview`；是否回写只看 `shouldWriteBack`。回写使用采用项的 `master.values` 和对应的 `targets`，登记使用 `selection`。
+2. 确认页固定读取 `masterDataMatches`、`reviewReason` 和 `remarks`。按字段是否返回内容展示，不按 `status` 为各场景选择不同展示字段。
+3. `needsReview` 缺失或为 `null` 时按需确认处理。
+4. 不要使用 `confidence` 做阈值。
+5. 未知枚举值按字符串接收，不中断处理。
+6. 未知位置类型不自动采用。
+7. `CANCELLED` 结果不应用。
+8. 账票失败时，使用该账票类别的组转人工。
+9. 第 2 期的 `FALLBACK` 结果一定转人工，并检查 `FALLBACK_USED`。
+10. `selection` 为 `null` 时不登记，但仍可按 `values` 和 `targets` 回填。
+11. 向后续系统登记时，`selection.object`、`recordType`、`recordId` 必须成对传递。
 
 ### 7.4 IDP 必须持久化的数据
 
-1. `batchId`、`clientRequestId`、本地任务号、远端 `taskId` 列表、`caseRevision`。
+1. `caseRevision`、`clientRequestId`、本地任务号、当前及历史远端 `taskId`。
 2. `groupsVersion`、主数据表和列的 schema 版本。
 3. 已完成任务列表的 `nextCursor`。
 4. `itemsNextCursor` 和已读取页。
@@ -1133,10 +1119,10 @@ POST /v1/groups/validate
 ### 8.2 每个案件
 
 ```text
-创建独立业务批次
-冻结该批次快照
-按 50 份上限拆分请求
-POST /v1/standardizations（相同 caseNo、不同 clientRequestId 序号）
+等待案件单据齐全、OCR和数据映射完成
+冻结案件全量快照
+检查不超过 50 张账票；超限则拦截并报错
+POST /v1/standardizations（案件全量单据、caseResult、有效组和版本）
 若 PENDING 或 PROCESSING
   保存 taskId、pollAfterMs
   GET /v1/standardizations?finishedAfter=...（首次）
@@ -1145,8 +1131,8 @@ POST /v1/standardizations（相同 caseNo、不同 clientRequestId 序号）
   GET /v1/standardizations/{taskId}/items?cursor=...
 校验结果
 应用 targets 和 selection
-按业务批次合并 taskId 结果
-需确认项进入该批次的 OCR抽出确认
+按统一确认结构处理 needsReview、shouldWriteBack、masterDataMatches、reviewReason 和 remarks
+需确认项进入 OCR抽出确认
 ```
 
 ### 8.3 人工修改后
@@ -1162,8 +1148,8 @@ selection 非 null 时保存 selection
 ### 8.4 重新识别或补件
 
 ```text
-补件到达 → 创建新的独立业务批次
-新文件到达 → 创建新的独立业务批次
-每个批次独立发送、独立确认
-旧批次结果晚到 → 只更新旧批次，不覆盖其他批次
+追加或补件导致案件输入变化 → 取消尚未结束的旧 Task
+按案件最新全量资料重新请求
+新版本结果替换旧版本结果
+只在案件最后一次请求终止并反映后推进工作流
 ```

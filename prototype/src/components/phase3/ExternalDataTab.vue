@@ -166,8 +166,8 @@ async function remove(row: ExternalConnection) {
       <el-table-column prop="created" :label="t('phase3.created')" min-width="180" />
       <el-table-column :label="t('phase3.status')" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.testStatus === 'success' && row.testedUrl === row.url ? 'success' : row.testStatus === 'failed' ? 'danger' : 'info'">
-            {{ row.testStatus ? t(row.testStatus === 'success' && row.testedUrl === row.url ? 'phase3.connectionValid' : 'phase3.connectionInvalid') : '未確認' }}
+          <el-tag :type="row.testStatus === 'success' && row.testedUrl === row.url ? 'success' : 'danger'">
+            {{ t(row.testStatus === 'success' && row.testedUrl === row.url ? 'phase3.connectionValid' : 'phase3.connectionInvalid') }}
           </el-tag>
         </template>
       </el-table-column>

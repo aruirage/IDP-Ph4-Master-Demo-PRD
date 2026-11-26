@@ -3,7 +3,7 @@ import MasterDataNavigation from '@/views/business-rules/master-data/MasterDataN
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CircleCheck, Loading, MoreFilled, Plus, QuestionFilled, Refresh, WarningFilled } from '@element-plus/icons-vue'
+import { MoreFilled, Plus, Refresh } from '@element-plus/icons-vue'
 import ConfigListAside from '@/components/ConfigListAside.vue'
 import { CURRENT_USER } from '@/constants/currentUser'
 import VerificationStandardFieldToggle from '@/views/business-rules/verification-settings/components/VerificationStandardFieldToggle.vue'
@@ -29,8 +29,12 @@ import { p3 } from '@/mocks/phase3'
 const { t, locale } = useI18n()
 const dateLocale = computed(() => (locale.value === 'zh-CN' ? 'zh-CN' : 'ja-JP'))
 const MEMBER_MODE_OPTIONS: StandardizationGroupMember['mode'][] = ['INPUT', 'OUTPUT', 'INPUT_OUTPUT']
+const MEMBER_MODE_LABELS = { INPUT: '読み取り（照合に使う）', OUTPUT: '書き戻し', INPUT_OUTPUT: '読み取り・書き戻し' }
+function memberModeLabel(mode: StandardizationGroupMember['mode']) {
+  return MEMBER_MODE_LABELS[mode] ?? mode
+}
 const CONFIG_STORAGE_KEY = 'neosai-standardization-config-v13'
-const MOCK_DATA_SEED = 'drug-v1.1-candidate-contract-v3'
+const MOCK_DATA_SEED = 'drug-v1.2-candidate-contract-v4'
 const initialState = new URLSearchParams(window.location.search).get('state')
 const forceEmptyState = initialState === 'empty'
 const persistedConfig = (() => {
@@ -111,7 +115,7 @@ const importedDefaultGroupIds = ref<Record<string, string>>(configIsCurrent ? pe
 const groupHistory = ref<GroupHistoryEntry[]>([])
 if (configIsCurrent && persistedConfig?.history?.length) {
   groupHistory.value = (persistedConfig.history as Array<Omit<GroupHistoryEntry, 'action'> & { action: string }>)
-    .filter((entry) => entry.action !== '削除')
+    .filter((entry) => entry.action !== '削除' && !/からコピー|从「.*」复制/.test(entry.detail))
     .map((entry) => ({
       ...entry,
       action: entry.action === '作成' ? '作成' : '更新'
@@ -188,8 +192,23 @@ const filteredGroups = computed(() => {
   )
 })
 
-const historyRows = computed(() =>
+const activeHistoryEntries = computed(() =>
   groupHistory.value.filter((item) => item.groupId === historyGroupId.value)
+)
+const historyCreatedEntry = computed(() =>
+  activeHistoryEntries.value.find((item) => item.action === '作成')
+  ?? activeHistoryEntries.value.at(-1)
+)
+const historyCreator = computed(() => historyCreatedEntry.value?.operator || '—')
+const historyRegisteredAt = computed(() => historyCreatedEntry.value?.changedAt || '—')
+const historyRows = computed(() =>
+  activeHistoryEntries.value
+    .filter((item) => item.action === '更新')
+    .map((item) => ({
+      id: item.id,
+      updater: item.operator,
+      updatedAt: item.changedAt
+    }))
 )
 
 const activeGroup = computed(() =>
@@ -267,8 +286,7 @@ const masterColumnOptions = computed(() =>
     label: column.label,
     column: column.column,
     hint: '',
-    role: column.inputRole,
-    writable: column.writable
+    configuration: column.configuration
   }))
 )
 
@@ -278,8 +296,7 @@ const masterHintOptions = computed(() =>
     label: hint.label,
     column: '',
     hint: hint.hint,
-    role: 'SUPPORTING' as const,
-    writable: false
+    configuration: hint.configuration
   }))
 )
 
@@ -394,24 +411,6 @@ function recordHistory(group: StandardizationGroup, action: GroupHistoryEntry['a
   })
 }
 
-function copyGroup(group: StandardizationGroup) {
-  const idMap = new Map(group.members.map((member) => [member.id, newMemberId()]))
-  const copy: StandardizationGroup = {
-    groupId: crypto.randomUUID(),
-    label: `${group.label}${t('standardization.copySuffix')}`,
-    masterTable: group.masterTable,
-    sceneIds: [...group.sceneIds],
-    members: group.members.map((member) => ({
-      ...member,
-      id: idMap.get(member.id) ?? newMemberId(),
-      field: { ...member.field }
-    }))
-  }
-  standardizationGroups.value.unshift(copy)
-  activeGroupId.value = copy.groupId
-  recordHistory(copy, '作成', t('standardization.historyCopied', { name: group.label }))
-}
-
 function startRenameGroup(group: StandardizationGroup) {
   activeGroupId.value = group.groupId
   editingGroupId.value = group.groupId
@@ -456,8 +455,7 @@ function openHistory(group: StandardizationGroup) {
 }
 
 function handleGroupMenu(command: string, group: StandardizationGroup) {
-  if (command === 'copy') copyGroup(group)
-  else if (command === 'rename') startRenameGroup(group)
+  if (command === 'rename') startRenameGroup(group)
   else if (command === 'delete') void removeGroup(group)
   else if (command === 'history') openHistory(group)
 }
@@ -494,7 +492,7 @@ function onMasterItemChange(value: string) {
   memberDraft.column = option?.column || undefined
   memberDraft.hint = option?.hint || undefined
   if (option?.hint) memberDraft.mode = 'INPUT'
-  if (option?.role === 'NONE') memberDraft.mode = 'OUTPUT'
+  if (option?.configuration?.allowedModes.length === 1 && option.configuration.allowedModes[0] === 'OUTPUT') memberDraft.mode = 'OUTPUT'
 }
 
 function openMemberDialog(member?: StandardizationGroupMember) {
@@ -620,7 +618,6 @@ function memberFieldKey(member: StandardizationGroupMember) {
 }
 
 function findFieldOwner(groupId: string, member: StandardizationGroupMember) {
-  if (member.field.type === 'CASE_FIELD') return undefined
   const key = memberFieldKey(member)
   return standardizationGroups.value.find((group) =>
     group.groupId !== groupId && group.members.some((entry) => memberFieldKey(entry) === key)
@@ -634,49 +631,9 @@ function fieldOwnerMessage(member: StandardizationGroupMember, owner: Standardiz
   })
 }
 
-function actionLabel(action: GroupHistoryEntry['action']) {
-  return action === '作成'
-    ? t('standardization.historyCreate')
-    : t('standardization.update')
-}
-
-function displayHistoryDetail(detail: string) {
-  if (locale.value !== 'zh-CN') return detail
-  return detail.split('、').map((segment) => {
-    let match = segment.match(/^照合グループ「(.+)」を作成$/)
-    if (match) return t('standardization.historyGroupCreated', { name: match[1] })
-    match = segment.match(/^「(.+)」からコピー$/)
-    if (match) return t('standardization.historyCopied', { name: match[1] })
-    match = segment.match(/^グループ名を「(.+)」から「(.+)」に変更$/)
-    if (match) return t('standardization.historyRenamed', { before: match[1], after: match[2] })
-    match = segment.match(/^マスタを「(.+)」から「(.+)」に変更$/)
-    if (match) return t('standardization.historyMasterChanged', { before: match[1], after: match[2] })
-    match = segment.match(/^適用シーンを「(.+)」から「(.+)」に変更$/)
-    if (match) return t('standardization.historyScenesChanged', { before: match[1], after: match[2] })
-    match = segment.match(/^照合フィールドを追加：(.+)$/)
-    if (match) return t('standardization.historyFieldsAdded', { names: match[1] })
-    match = segment.match(/^照合フィールドを削除：(.+)$/)
-    if (match) return t('standardization.historyFieldsRemoved', { names: match[1] })
-    match = segment.match(/^照合フィールドを変更：(.+)$/)
-    if (match) return t('standardization.historyFieldsChanged', { names: match[1] })
-    match = segment.match(/^既定グループ「(.+)」を取り込み$/)
-    if (match) return t('standardization.historyDefaultImported', { name: match[1] })
-    match = segment.match(/^既定グループ「(.+)」を更新$/)
-    if (match) return t('standardization.historyDefaultUpdated', { name: match[1] })
-    match = segment.match(/^マスタを「(.+)」、適用シーンを「(.+)」に設定し、照合フィールド(.+)件を登録$/)
-    if (match) return t('standardization.historyInitialDetail', { master: match[1], scenes: match[2], count: match[3] })
-    return segment
-  }).join('、')
-}
-
 function modeDisabled(mode: StandardizationGroupMember['mode']) {
-  const masterColumn = getMasterItem(memberDraft)
-  if (!masterColumn) return false
-  if (masterColumn.hint) return mode !== 'INPUT'
-  if (masterColumn.role === 'NONE' && !masterColumn.writable) return true
-  if (masterColumn.role === 'NONE') return mode !== 'OUTPUT'
-  if (!masterColumn.writable) return mode !== 'INPUT'
-  return false
+  const masterItem = getMasterItem(memberDraft)
+  return Boolean(masterItem && !masterItem.configuration?.allowedModes.includes(mode))
 }
 
 function validateGroup(group: StandardizationGroup) {
@@ -690,13 +647,13 @@ function validateGroup(group: StandardizationGroup) {
   if (new Set(refs).size !== refs.length) errors.push(t('standardization.validationDuplicateMaster'))
   const hasPrimaryInput = group.members.some((member) => {
     if (member.mode === 'OUTPUT') return false
-    return master?.columns.find((column) => column.column === member.column)?.inputRole === 'PRIMARY'
+    return master?.columns.find((column) => column.column === member.column)?.configuration?.canBePrimary === true
   })
   if (!hasPrimaryInput) errors.push(t('standardization.validationPrimaryRequired'))
 
   const primaryInputs = group.members.filter((member) => {
     if (member.mode === 'OUTPUT') return false
-    return master?.columns.find((column) => column.column === member.column)?.inputRole === 'PRIMARY'
+    return master?.columns.find((column) => column.column === member.column)?.configuration?.canBePrimary === true
   })
   const documentPrimaryInputs = primaryInputs.filter((member) => member.field.type !== 'CASE_FIELD')
   if (documentPrimaryInputs.length > 1) {
@@ -744,13 +701,10 @@ function validateGroup(group: StandardizationGroup) {
     if (member.hint && member.mode !== 'INPUT') {
       errors.push(t('standardization.validationHintInputOnly'))
     }
-    if (masterColumn?.inputRole === 'NONE' && !masterColumn.writable) {
-      errors.push(t('standardization.validationMasterUnusable'))
-    } else if (masterColumn?.inputRole === 'NONE' && member.mode !== 'OUTPUT') {
-      errors.push(t('standardization.validationOutputOnly'))
-    }
-    if (masterColumn && !masterColumn.writable && member.mode !== 'INPUT') {
-      errors.push(t('standardization.validationReadonlyInputOnly'))
+    if (masterColumn && !masterColumn.configuration?.allowedModes.includes(member.mode)) {
+      errors.push(masterColumn.configuration?.allowedModes.length
+        ? t('standardization.validationModeNotAllowed', { role: masterColumn.configuration.roleLabel })
+        : t('standardization.validationMasterUnusable'))
     }
     if (member.field.type === 'CASE_FIELD') {
       if (!dataMappingRules.value.some((rule) => rule.standardField === member.field.fieldName)) {
@@ -962,9 +916,14 @@ function describeSavedGroupChanges(group: StandardizationGroup, previous?: Stand
 function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultGroupDiffRow[] {
   return defaults.groups.map((template) => {
     const mappedGroupId = importedDefaultGroupIds.value[template.groupId]
+    const normalizedLabel = template.label.trim().toLocaleLowerCase()
     const mappedGroup = mappedGroupId
       ? standardizationGroups.value.find((group) => group.groupId === mappedGroupId)
       : standardizationGroups.value.find((group) => group.sourceDefaultGroupId === template.groupId)
+        ?? standardizationGroups.value.find((group) =>
+          group.masterTable === template.masterTable &&
+          group.label.trim().toLocaleLowerCase() === normalizedLabel
+        )
     if (mappedGroup) {
       return {
         sourceGroupId: template.groupId,
@@ -987,9 +946,10 @@ function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultG
 
 function templateMembers(template: StandardizationDefaultGroupTemplate): StandardizationGroupMember[] {
   return template.members.map((member) => ({
-    ...member,
     id: newMemberId(),
-    externalFieldName: member.field.columnName ?? member.field.fieldName,
+    column: member.column,
+    hint: member.hint,
+    mode: member.mode,
     field: { type: member.field.type, documentTypeId: '' }
   }))
 }
@@ -1128,7 +1088,6 @@ function applyDefaultGroups() {
             </button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="copy">{{ $t('standardization.copy') }}</el-dropdown-item>
                 <el-dropdown-item command="rename">{{ $t('standardization.rename') }}</el-dropdown-item>
                 <el-dropdown-item command="delete" class="standardization-page__delete-item">{{ $t('standardization.delete') }}</el-dropdown-item>
                 <el-dropdown-item command="history">{{ $t('standardization.history') }}</el-dropdown-item>
@@ -1211,29 +1170,13 @@ function applyDefaultGroups() {
             <el-table-column :label="$t('standardization.field')" min-width="220">
               <template #default="{ row }">{{ getMemberFieldLabel(row) }}</template>
             </el-table-column>
-            <el-table-column width="150">
-              <template #header>
-                <span class="standardization-page__column-heading">
-                  {{ $t('standardization.mode') }}
-                  <el-tooltip placement="top">
-                    <template #content>
-                      <div class="standardization-page__tooltip-lines">
-                        <span>{{ $t('standardization.modeInputHint') }}</span>
-                        <span>{{ $t('standardization.modeInputOutputHint') }}</span>
-                        <span>{{ $t('standardization.modeOutputHint') }}</span>
-                      </div>
-                    </template>
-                    <el-icon><QuestionFilled /></el-icon>
-                  </el-tooltip>
-                </span>
+            <el-table-column :label="$t('standardization.mode')" min-width="210">
+              <template #default="{ row }">{{ memberModeLabel(row.mode) }}</template>
+            </el-table-column>
+            <el-table-column :label="$t('standardization.configuration')" min-width="180">
+              <template #default="{ row }">
+                <span class="standardization-page__role-text">{{ getMasterItem(row)?.configuration?.roleLabel ?? '—' }}</span>
               </template>
-              <template #default="{ row }">{{ row.mode }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('standardization.role')" width="135">
-              <template #default="{ row }">{{ row.column ? getMasterItem(row)?.role ?? '—' : '—' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('standardization.writable')" width="130">
-              <template #default="{ row }">{{ row.column ? getMasterItem(row)?.writable ?? '—' : '—' }}</template>
             </el-table-column>
             <el-table-column :label="$t('standardization.actions')" width="120" align="right" header-align="left" fixed="right">
               <template #default="{ row }">
@@ -1248,17 +1191,6 @@ function applyDefaultGroups() {
         </div>
 
         <footer class="standardization-page__footer">
-          <div
-            v-if="validationMessage"
-            class="standardization-page__validation"
-            :class="`is-${validationState}`"
-            aria-live="polite"
-          >
-            <el-icon v-if="validationState === 'validating'" class="is-spinning"><Loading /></el-icon>
-            <el-icon v-else-if="validationState === 'valid' || validationState === 'saved'"><CircleCheck /></el-icon>
-            <el-icon v-else-if="validationState === 'warning' || validationState === 'invalid'"><WarningFilled /></el-icon>
-            <span>{{ validationMessage }}</span>
-          </div>
           <div class="standardization-page__footer-actions">
             <el-button @click="closeSettings">{{ $t('standardization.close') }}</el-button>
             <el-button
@@ -1302,11 +1234,12 @@ function applyDefaultGroups() {
           <el-form-item :label="$t('standardization.masterItem')" required>
             <el-select
               :model-value="memberDraft.column ? `column:${memberDraft.column}` : memberDraft.hint ? `hint:${memberDraft.hint}` : ''"
+              popper-class="standardization-master-select-popper"
               @visible-change="ensureMasterDataLoaded"
               :loading="fetchingMasters"
               @change="onMasterItemChange"
             >
-              <el-option-group label="Column">
+              <el-option-group label="列" class="is-column-group">
                 <el-option
                   v-for="item in masterColumnOptions"
                   :key="item.value"
@@ -1316,11 +1249,11 @@ function applyDefaultGroups() {
                 >
                   <div class="standardization-page__master-option">
                     <span :title="item.label">{{ item.label }}</span>
-                    <span>{{ item.role }}</span>
+                    <span class="standardization-page__option-role">{{ item.configuration?.roleLabel }}</span>
                   </div>
                 </el-option>
               </el-option-group>
-              <el-option-group v-if="masterHintOptions.length" label="Hint">
+              <el-option-group v-if="masterHintOptions.length" label="ヒント" class="is-hint-group">
                 <el-option
                   v-for="item in masterHintOptions"
                   :key="item.value"
@@ -1336,7 +1269,7 @@ function applyDefaultGroups() {
               <el-option
                 v-for="option in MEMBER_MODE_OPTIONS"
                 :key="option"
-                :label="option"
+                :label="memberModeLabel(option)"
                 :value="option"
                 :disabled="modeDisabled(option)"
               />
@@ -1381,19 +1314,28 @@ function applyDefaultGroups() {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="historyVisible" :title="$t('standardization.historyTitle')" width="760px">
-      <el-table :data="historyRows" border max-height="420">
-        <el-table-column prop="changedAt" :label="$t('standardization.dateTime')" width="180" />
-        <el-table-column prop="action" :label="$t('standardization.actions')" width="110">
-          <template #default="{ row }">{{ actionLabel(row.action) }}</template>
-        </el-table-column>
-        <el-table-column prop="operator" :label="$t('standardization.operator')" width="110" />
-        <el-table-column prop="detail" :label="$t('standardization.detail')" min-width="300">
-          <template #default="{ row }">{{ displayHistoryDetail(row.detail) }}</template>
-        </el-table-column>
+    <el-dialog
+      v-model="historyVisible"
+      :title="$t('standardization.historyTitle')"
+      width="520px"
+      class="standardization-history-dialog"
+    >
+      <div class="standardization-page__history-meta">
+        <div>
+          <span>{{ $t('standardization.historyCreator') }}：</span>
+          <span>{{ historyCreator }}</span>
+        </div>
+        <div>
+          <span>{{ $t('standardization.historyRegisteredAt') }}：</span>
+          <span>{{ historyRegisteredAt }}</span>
+        </div>
+      </div>
+      <el-table :data="historyRows" class="standardization-page__history-table" max-height="360">
+        <el-table-column prop="updater" :label="$t('standardization.historyUpdater')" min-width="180" />
+        <el-table-column prop="updatedAt" :label="$t('standardization.historyUpdatedAt')" min-width="180" />
       </el-table>
       <template #footer>
-        <el-button type="primary" @click="historyVisible = false">{{ $t('standardization.close') }}</el-button>
+        <el-button @click="historyVisible = false">{{ $t('standardization.close') }}</el-button>
       </template>
     </el-dialog>
 
@@ -1438,6 +1380,29 @@ function applyDefaultGroups() {
 
   </div>
 </template>
+
+<style lang="scss">
+.standardization-page__delete-item.el-dropdown-menu__item:not(.is-disabled):hover,
+.standardization-page__delete-item.el-dropdown-menu__item:not(.is-disabled):focus,
+.standardization-page__delete-item.el-dropdown-menu__item:not(.is-disabled):focus-visible {
+  color: #f5222d;
+  background-color: #fff1f0;
+}
+
+.standardization-master-select-popper .el-select-group__title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.standardization-master-select-popper .is-column-group .el-select-group__title {
+  color: var(--el-color-primary);
+}
+
+.standardization-master-select-popper .is-hint-group .el-select-group__title {
+  color: var(--el-color-success);
+}
+</style>
 
 <style scoped lang="scss">
 .standardization-page {
@@ -1581,6 +1546,7 @@ function applyDefaultGroups() {
 
   &__master-option {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
 
@@ -1591,10 +1557,34 @@ function applyDefaultGroups() {
       white-space: nowrap;
     }
 
-    span:last-child {
+    .standardization-page__option-role {
       flex-shrink: 0;
       color: var(--el-text-color-secondary);
+      font-size: 12px;
+      line-height: 1.5;
     }
+  }
+
+  &__history-meta {
+    display: grid;
+    gap: 8px;
+    margin: 4px 0 18px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  &__history-table {
+    --el-table-border-color: transparent;
+
+    :deep(th.el-table__cell) {
+      background: #f2f4f7;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+  }
+
+  &__role-text {
+    color: var(--text-secondary);
   }
 
   &__footer-actions {

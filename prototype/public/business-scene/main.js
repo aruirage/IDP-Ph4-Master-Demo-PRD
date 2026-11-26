@@ -1492,7 +1492,7 @@ const appOptions = {
     }));
     const currentModule = ref('case-workflow');
     const STANDARDIZATION_CONFIG_STORAGE_KEY = 'neosai-standardization-config-v13';
-    const STANDARDIZATION_CONFIG_SEED = 'drug-v1.1-candidate-contract-v3';
+    const STANDARDIZATION_CONFIG_SEED = 'drug-v1.2-candidate-contract-v4';
     const STANDARDIZATION_SCENE_ALIASES = {
       '2064639102406844416': ['claim'],
     };
@@ -4728,11 +4728,6 @@ const appOptions = {
     );
     function openStandardizationSettings() {
       window.open('/v4/standardization', '_blank', 'noopener');
-    }
-    function setMasterStandardizationFallback(enabled) {
-      if (!selectedWorkflowNode.value || selectedWorkflowNode.value.type !== 'master_standardization') return;
-      selectedWorkflowNode.value.fallbackEnabled = Boolean(enabled);
-      markSceneConfigChanged();
     }
     const sceneArchiveTree = computed(() => {
       const sceneName = (form.scene.name || currentScene.value?.name || '未命名シーン').trim();
@@ -8315,7 +8310,6 @@ const appOptions = {
         y,
         label: meta.title,
       }, wf);
-      if (payload.type === 'master_standardization') node.fallbackEnabled = true;
       return node;
     }
 
@@ -13658,7 +13652,6 @@ const appOptions = {
       currentScene,
       applicableStandardizationGroups,
       openStandardizationSettings,
-      setMasterStandardizationFallback,
       sceneArchiveTree,
       isFirstNode,
       isLastNode,

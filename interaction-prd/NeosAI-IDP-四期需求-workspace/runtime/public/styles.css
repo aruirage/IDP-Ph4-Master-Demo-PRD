@@ -198,3 +198,21 @@ body.view-prototype .nav-rail{display:none}body.view-prototype .shell{margin-lef
 .markdown .prd-table-scroll tbody{display:table-row-group}.markdown .prd-table-scroll tr{display:table-row}
 .markdown .prd-table-scroll th,.markdown .prd-table-scroll td{display:table-cell;width:auto;min-width:0;padding:10px 12px;white-space:normal;word-break:normal;overflow-wrap:anywhere;vertical-align:top}
 .markdown .prd-table-scroll th{overflow-wrap:normal;background:#f8fafc}.markdown .prd-table-scroll td::before{content:none}
+
+/* PRD request and response examples */
+.markdown pre:not(.mermaid) {
+  background: #111111;
+  color: #eeeeee;
+  border: 1px solid #292929;
+  border-radius: 6px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+}
+.markdown pre:not(.mermaid) code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border: 0;
+}
