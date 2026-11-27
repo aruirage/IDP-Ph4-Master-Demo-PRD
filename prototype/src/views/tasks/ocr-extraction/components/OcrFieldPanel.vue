@@ -140,15 +140,19 @@ const eligibleTableRestandardizeCells = computed(() => tables.value.flatMap((tab
     .filter((column) => canRestandardizeTableCell(table, rowIndex, column.id))
     .map((column) => ({ tableId: table.id, rowIndex, columnId: column.id })))
 ))
-const eligibleRestandardizeCount = computed(() => eligibleTextRestandardizeFieldIds.value.length + eligibleTableRestandardizeCells.value.length)
+const eligibleRestandardizeCount = computed(() => activeDataTab.value === 'text'
+  ? eligibleTextRestandardizeFieldIds.value.length
+  : eligibleTableRestandardizeCells.value.length
+)
 function restandardizeOne(fieldId: string) {
   if (!isRestandardizeEligible(fieldId) || isRestandardizing(fieldId)) return
   emit('restandardize', [fieldId])
 }
 function restandardizeSelected() {
   if (!eligibleRestandardizeCount.value) return
-  if (eligibleTextRestandardizeFieldIds.value.length) {
+  if (activeDataTab.value === 'text') {
     emit('restandardize', eligibleTextRestandardizeFieldIds.value)
+    return
   }
   eligibleTableRestandardizeCells.value.forEach(({ tableId, rowIndex, columnId }) => {
     emit('restandardizeTableCell', tableId, rowIndex, columnId)

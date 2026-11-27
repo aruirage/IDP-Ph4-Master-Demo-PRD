@@ -175,7 +175,7 @@ export const standardizationDocumentTypes: StandardizationDocumentType[] = [
   {
     id: '20001',
     label: '診療明細書',
-    fields: ['医療機関名', '所在地', '診療科', '傷病名', 'ICD10コード', '性別', '傷病の原因'],
+    fields: ['医療機関名', '所在地', '診療科', '傷病名'],
     tables: {
       診療明細: ['診療日', '診療内容', '点数', '自己負担額'],
       手術情報: ['手術日', '手術名', '手術コード'],
@@ -193,42 +193,14 @@ export const standardizationDocumentTypes: StandardizationDocumentType[] = [
     label: '保険金請求書',
     fields: ['振込先金融機関', '振込先支店', '金融機関コード', '支店コード'],
     tables: {}
-  },
-  {
-    id: '20004',
-    label: '入院証明書',
-    fields: ['傷病名', '入院日', '退院日', '医療機関名', '主治医名'],
-    tables: {}
-  },
-  {
-    id: '20005',
-    label: '手術証明書',
-    fields: ['傷病名', '手術名', '手術日', '手術コード', '医療機関名'],
-    tables: {
-      手術明細: ['手術名', '手術日', '手術コード', '手術部位']
-    }
-  },
-  {
-    id: '20006',
-    label: '領収書',
-    fields: ['医療機関名', '受診日', '領収金額'],
-    tables: {
-      医療費明細: ['診療日', '診療内容', '点数', '自己負担額']
-    }
-  },
-  {
-    id: '20007',
-    label: '医師意見書',
-    fields: ['傷病名', '発症日', '症状', '治療内容', '医師名', '医療機関名'],
-    tables: {}
   }
 ]
 
 const sceneDefinitions: StandardizationBusinessScene[] = [
-  { id: 'claim', label: '保険金請求', documentTypeIds: ['20001', '20002', '20003', '20005', '20006', '20007'] },
-  { id: 'hospitalization', label: '入院請求', documentTypeIds: ['20001', '20002', '20004', '20005', '20007'] },
-  { id: 'surgery-benefit', label: '手術給付金請求', documentTypeIds: ['20001', '20002', '20005', '20007'] },
-  { id: 'outpatient-benefit', label: '通院給付金請求', documentTypeIds: ['20002', '20006', '20007'] }
+  { id: 'claim', label: '保険金請求', documentTypeIds: ['20001', '20002', '20003'] },
+  { id: 'hospitalization', label: '入院請求', documentTypeIds: ['20001', '20002'] },
+  { id: 'surgery-benefit', label: '手術給付金請求', documentTypeIds: ['20001', '20002'] },
+  { id: 'outpatient-benefit', label: '通院給付金請求', documentTypeIds: ['20002'] }
 ]
 
 const allSceneDocumentTypeIds = sceneDefinitions.reduce<string[]>(
