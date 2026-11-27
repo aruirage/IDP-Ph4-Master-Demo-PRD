@@ -3,7 +3,7 @@ import MasterDataNavigation from '@/views/business-rules/master-data/MasterDataN
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MoreFilled, Plus, Refresh } from '@element-plus/icons-vue'
+import { InfoFilled, MoreFilled, Plus, Refresh } from '@element-plus/icons-vue'
 import ConfigListAside from '@/components/ConfigListAside.vue'
 import { CURRENT_USER } from '@/constants/currentUser'
 import VerificationStandardFieldToggle from '@/views/business-rules/verification-settings/components/VerificationStandardFieldToggle.vue'
@@ -215,6 +215,19 @@ const activeGroup = computed(() =>
   standardizationGroups.value.find((group) => group.groupId === activeGroupId.value) ?? null
 )
 
+const hasUnsavedActiveGroup = computed(() => {
+  const group = activeGroup.value
+  if (!group) return false
+  const saved = savedGroups.value.find((item) => item.groupId === group.groupId)
+  return !saved || JSON.stringify(group) !== JSON.stringify(saved)
+})
+
+function canLeaveActiveGroup() {
+  if (!hasUnsavedActiveGroup.value) return true
+  ElMessage.error('先に現在の変更を保存してください。')
+  return false
+}
+
 
 
 
@@ -309,6 +322,21 @@ const draftDocumentType = computed(() =>
   findStandardizationDocumentType(memberDraft.field.documentTypeId)
 )
 
+const groupFieldSelectionMode = computed<'table' | 'field' | 'mixed'>(() => {
+  const group = activeGroup.value
+  if (!group) return 'mixed'
+  const otherMembers = group.members.filter((member) => member.id !== editingMemberId.value)
+  const hasTableColumn = otherMembers.some(
+    (member) => member.field.type === 'TABLE_COLUMN' && hasCompleteFieldMapping(member)
+  )
+  const hasDocumentField = otherMembers.some(
+    (member) => member.field.type === 'FIELD' && hasCompleteFieldMapping(member)
+  )
+  if (hasTableColumn && !hasDocumentField) return 'table'
+  if (hasDocumentField && !hasTableColumn) return 'field'
+  return 'mixed'
+})
+
 const useCaseField = computed({
   get: () => memberDraft.field.type === 'CASE_FIELD',
   set: (enabled: boolean) => {
@@ -331,14 +359,13 @@ const draftSourceOptions = computed(() => {
   }
   const documentType = draftDocumentType.value
   if (!documentType) return []
-  return [
-    ...documentType.fields.map((field) => ({
+  const fieldOptions = documentType.fields.map((field) => ({
       value: `field:${field}`,
       label: field,
       tableName: '',
       columnName: ''
-    })),
-    ...Object.entries(documentType.tables).flatMap(([tableName, columns]) =>
+    }))
+  const tableOptions = Object.entries(documentType.tables).flatMap(([tableName, columns]) =>
       columns.map((columnName) => ({
         value: `table:${tableName}:${columnName}`,
         label: `${t('standardization.table')} › ${tableName} › ${columnName}`,
@@ -346,7 +373,9 @@ const draftSourceOptions = computed(() => {
         columnName
       }))
     )
-  ]
+  if (groupFieldSelectionMode.value === 'table') return tableOptions
+  if (groupFieldSelectionMode.value === 'field') return fieldOptions
+  return [...fieldOptions, ...tableOptions]
 })
 
 const draftSourceValue = computed({
@@ -382,15 +411,18 @@ function newMemberId() {
 }
 
 function selectGroup(group: StandardizationGroup) {
+  if (group.groupId === activeGroupId.value) return
+  if (!canLeaveActiveGroup()) return
   activeGroupId.value = group.groupId
 }
 
 function addGroup() {
+  if (!canLeaveActiveGroup()) return
   const group: StandardizationGroup = {
     groupId: crypto.randomUUID(),
     label: t('standardization.newGroupName'),
     masterTable: '',
-    sceneIds: ['all'],
+    sceneIds: [],
     members: []
   }
   standardizationGroups.value.unshift(group)
@@ -412,6 +444,7 @@ function recordHistory(group: StandardizationGroup, action: GroupHistoryEntry['a
 }
 
 function startRenameGroup(group: StandardizationGroup) {
+  if (group.groupId !== activeGroupId.value && !canLeaveActiveGroup()) return
   activeGroupId.value = group.groupId
   editingGroupId.value = group.groupId
   editingGroupName.value = group.label
@@ -430,9 +463,7 @@ function commitRenameGroup(group: StandardizationGroup) {
     cancelRenameGroup()
     return
   }
-  const previous = group.label
   group.label = nextLabel
-  recordHistory(group, '更新', t('standardization.historyRenamed', { before: previous, after: nextLabel }))
   cancelRenameGroup()
 }
 
@@ -442,11 +473,24 @@ async function removeGroup(group: StandardizationGroup) {
     t('standardization.confirmDeleteTitle'),
     { type: 'warning', confirmButtonText: t('standardization.ok'), cancelButtonText: t('standardization.cancel') }
   )
+  const deletingActive = activeGroupId.value === group.groupId
   const index = standardizationGroups.value.findIndex((item) => item.groupId === group.groupId)
   standardizationGroups.value = standardizationGroups.value.filter(
     (item) => item.groupId !== group.groupId
   )
-  activeGroupId.value = standardizationGroups.value[Math.min(index, standardizationGroups.value.length - 1)]?.groupId ?? ''
+  if (deletingActive) {
+    activeGroupId.value = standardizationGroups.value[Math.min(index, standardizationGroups.value.length - 1)]?.groupId ?? ''
+  }
+  for (const [sourceGroupId, localGroupId] of Object.entries(importedDefaultGroupIds.value)) {
+    if (localGroupId === group.groupId) delete importedDefaultGroupIds.value[sourceGroupId]
+  }
+  groupHistory.value = groupHistory.value.filter((entry) => entry.groupId !== group.groupId)
+  if (savedGroups.value.some((item) => item.groupId === group.groupId)) {
+    savedGroups.value = savedGroups.value.filter((item) => item.groupId !== group.groupId)
+    standardizationGroupsVersion.value = nextGroupsVersion()
+    createVersionSnapshot()
+  }
+  ElMessage.success(t('standardization.deleteSuccess'))
 }
 
 function openHistory(group: StandardizationGroup) {
@@ -497,7 +541,7 @@ function onMasterItemChange(value: string) {
 
 function openMemberDialog(member?: StandardizationGroupMember) {
   if (!member && !canAddField.value) {
-    ElMessage.warning(t('standardization.alertNoDocument'))
+    ElMessage.error(t('standardization.alertNoDocument'))
     return
   }
   editingMemberId.value = member?.id ?? ''
@@ -521,15 +565,15 @@ function openMemberDialog(member?: StandardizationGroupMember) {
 function saveMember() {
   if (!activeGroup.value) return
   if (!memberDraft.field.fieldName && !memberDraft.field.columnName) {
-    ElMessage.warning(t('standardization.alertSelectField'))
+    ElMessage.error(t('standardization.alertSelectField'))
     return
   }
   if (memberDraft.field.type === 'TABLE_COLUMN' && !memberDraft.field.columnName) {
-    ElMessage.warning(t('standardization.alertSelectTableColumn'))
+    ElMessage.error(t('standardization.alertSelectTableColumn'))
     return
   }
   if (!memberDraft.column && !memberDraft.hint) {
-    ElMessage.warning(t('standardization.alertSelectMasterItem'))
+    ElMessage.error(t('standardization.alertSelectMasterItem'))
     return
   }
   if (
@@ -538,7 +582,7 @@ function saveMember() {
       (documentType) => documentType.id === memberDraft.field.documentTypeId
     )
   ) {
-    ElMessage.warning(t('standardization.alertSceneDocument'))
+    ElMessage.error(t('standardization.alertSceneDocument'))
     return
   }
   const duplicate = activeGroup.value.members.some(
@@ -548,7 +592,7 @@ function saveMember() {
         (memberDraft.hint && member.hint === memberDraft.hint))
   )
   if (duplicate) {
-    ElMessage.warning(t('standardization.alertDuplicateMasterItem'))
+    ElMessage.error(t('standardization.alertDuplicateMasterItem'))
     return
   }
   const nextId = editingMemberId.value || memberDraft.id
@@ -561,7 +605,7 @@ function saveMember() {
   }
   const conflict = findFieldOwner(activeGroup.value.groupId, next)
   if (conflict) {
-    ElMessage.warning(fieldOwnerMessage(next, conflict))
+    ElMessage.error(fieldOwnerMessage(next, conflict))
     return
   }
   const index = activeGroup.value.members.findIndex((member) => member.id === next.id)
@@ -636,13 +680,48 @@ function modeDisabled(mode: StandardizationGroupMember['mode']) {
   return Boolean(masterItem && !masterItem.configuration?.allowedModes.includes(mode))
 }
 
+function hasCompleteFieldMapping(member: StandardizationGroupMember) {
+  if (member.field.type === 'CASE_FIELD') return Boolean(member.field.fieldName)
+  if (member.field.type === 'TABLE_COLUMN') {
+    return Boolean(member.field.documentTypeId && member.field.tableName && member.field.columnName)
+  }
+  return Boolean(member.field.documentTypeId && member.field.fieldName)
+}
+
+function requiredFieldErrors(group: StandardizationGroup) {
+  const missing: string[] = []
+  const master = masterOptions.value.find((item) => item.masterTable === group.masterTable)
+  if (!group.label.trim()) missing.push('グループ名')
+  if (!master) missing.push('マスタ')
+  if (!group.sceneIds.length) missing.push('適用シーン')
+  if (!group.members.length || group.members.some((member) => !hasCompleteFieldMapping(member))) {
+    missing.push('照合フィールド')
+  }
+  return missing
+}
+
 function validateGroup(group: StandardizationGroup) {
   const errors: string[] = []
   const master = masterOptions.value.find((item) => item.masterTable === group.masterTable)
   if (!group.label.trim()) errors.push(t('standardization.validationGroupName'))
+  if (
+    group.label.trim() &&
+    standardizationGroups.value.some(
+      (item) =>
+        item.groupId !== group.groupId &&
+        item.label.trim().toLocaleLowerCase() === group.label.trim().toLocaleLowerCase()
+    )
+  ) {
+    errors.push('同じグループ名は使用できません')
+  }
   if (!master) errors.push(t('standardization.validationMaster'))
   if (!group.sceneIds.length) errors.push(t('standardization.validationScenes'))
   if (!group.members.length) errors.push(t('standardization.validationFields'))
+  const hasTableColumn = group.members.some((member) => member.field.type === 'TABLE_COLUMN')
+  const hasDocumentField = group.members.some((member) => member.field.type === 'FIELD')
+  if (hasTableColumn && hasDocumentField) {
+    errors.push('同一グループでは帳票の通常項目とテーブル項目を併用できません')
+  }
   const refs = group.members.map((member) => member.column || member.hint).filter(Boolean)
   if (new Set(refs).size !== refs.length) errors.push(t('standardization.validationDuplicateMaster'))
   const hasPrimaryInput = group.members.some((member) => {
@@ -738,24 +817,34 @@ async function saveSettings() {
   if (!activeGroup.value) return
   saving.value = true
   try {
-    const firstError = standardizationGroups.value.flatMap((group) =>
-      validateGroup(group).map((message) => `${group.label}：${message}`)
-    )[0]
+    const currentGroup = activeGroup.value
+    const missing = requiredFieldErrors(currentGroup)
+    if (missing.length) {
+      const message = `${missing.join('と')}を入力してください`
+      validationState.value = 'invalid'
+      validationMessage.value = message
+      ElMessage.error(message)
+      return
+    }
+    const firstError = validateGroup(currentGroup)[0]
     if (firstError) {
       validationState.value = 'invalid'
       validationMessage.value = firstError
-      ElMessage.warning(firstError)
+      ElMessage.error(firstError)
       return
     }
-    const previousGroups = savedGroups.value
-    savedGroups.value = cloneGroups(standardizationGroups.value)
+    const previousGroups = cloneGroups(savedGroups.value)
+    const nextSavedGroups = cloneGroups(savedGroups.value)
+    const [savedGroup] = cloneGroups([currentGroup])
+    const savedIndex = nextSavedGroups.findIndex((group) => group.groupId === currentGroup.groupId)
+    if (savedIndex >= 0) nextSavedGroups.splice(savedIndex, 1, savedGroup)
+    else nextSavedGroups.unshift(savedGroup)
+    savedGroups.value = nextSavedGroups
     standardizationGroupsVersion.value = nextGroupsVersion()
     createVersionSnapshot()
-    standardizationGroups.value.forEach((group) => {
-      const previous = previousGroups.find((item) => item.groupId === group.groupId)
-      const detail = describeSavedGroupChanges(group, previous)
-      if (detail) recordHistory(group, '更新', detail)
-    })
+    const previous = previousGroups.find((group) => group.groupId === currentGroup.groupId)
+    const detail = describeSavedGroupChanges(currentGroup, previous)
+    if (detail) recordHistory(currentGroup, '更新', detail)
     validationState.value = 'saved'
     validationMessage.value = t('standardization.saved')
     ElMessage.success(t('standardization.saveSuccess'))
@@ -767,6 +856,7 @@ async function saveSettings() {
 }
 
 function closeSettings() {
+  if (!canLeaveActiveGroup()) return
   activeGroupId.value = ''
 }
 
@@ -838,7 +928,7 @@ async function ensureMasterDataLoaded(visible: boolean) {
     fetchCatalog({ silent: true })
   ])
   if (!mastersLoaded || !catalogLoaded) {
-    ElMessage.warning(t('standardization.syncPartialUpdateFailed'))
+    ElMessage.error(t('standardization.syncPartialUpdateFailed'))
   }
 }
 
@@ -916,14 +1006,9 @@ function describeSavedGroupChanges(group: StandardizationGroup, previous?: Stand
 function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultGroupDiffRow[] {
   return defaults.groups.map((template) => {
     const mappedGroupId = importedDefaultGroupIds.value[template.groupId]
-    const normalizedLabel = template.label.trim().toLocaleLowerCase()
     const mappedGroup = mappedGroupId
       ? standardizationGroups.value.find((group) => group.groupId === mappedGroupId)
       : standardizationGroups.value.find((group) => group.sourceDefaultGroupId === template.groupId)
-        ?? standardizationGroups.value.find((group) =>
-          group.masterTable === template.masterTable &&
-          group.label.trim().toLocaleLowerCase() === normalizedLabel
-        )
     if (mappedGroup) {
       return {
         sourceGroupId: template.groupId,
@@ -944,14 +1029,35 @@ function buildDefaultGroupDiff(defaults: StandardizationDefaultGroups): DefaultG
   })
 }
 
-function templateMembers(template: StandardizationDefaultGroupTemplate): StandardizationGroupMember[] {
-  return template.members.map((member) => ({
-    id: newMemberId(),
-    column: member.column,
-    hint: member.hint,
-    mode: member.mode,
-    field: { type: member.field.type, documentTypeId: '' }
-  }))
+function defaultFieldMatches(
+  previous: StandardizationGroupMember['field'],
+  incoming: StandardizationGroupMember['field']
+) {
+  if (previous.type !== incoming.type) return false
+  if (incoming.type === 'TABLE_COLUMN') {
+    return previous.tableName === incoming.tableName && previous.columnName === incoming.columnName
+  }
+  return previous.fieldName === incoming.fieldName
+}
+
+function templateMembers(
+  template: StandardizationDefaultGroupTemplate,
+  previousGroup?: StandardizationGroup
+): StandardizationGroupMember[] {
+  return template.members.map((member) => {
+    const masterKey = member.column || `hint:${member.hint ?? ''}`
+    const previous = previousGroup?.members.find((item) =>
+      (item.column || `hint:${item.hint ?? ''}`) === masterKey &&
+      defaultFieldMatches(item.field, member.field)
+    )
+    return {
+      id: previous?.id ?? newMemberId(),
+      column: member.column,
+      hint: member.hint,
+      mode: member.mode,
+      field: previous ? { ...previous.field } : { type: member.field.type, documentTypeId: '' }
+    }
+  })
 }
 
 function applyDefaultGroups() {
@@ -960,6 +1066,7 @@ function applyDefaultGroups() {
   try {
     let inserted = 0
     let updated = 0
+    const affectedGroupIds = new Set<string>()
     defaultGroupDiff.value.forEach((row) => {
       if (row.action === 'unchanged') {
         if (!importedDefaultGroupIds.value[row.sourceGroupId] && row.localGroupId) {
@@ -983,6 +1090,7 @@ function applyDefaultGroups() {
         }
         standardizationGroups.value.unshift(group)
         importedDefaultGroupIds.value[row.sourceGroupId] = group.groupId
+        affectedGroupIds.add(group.groupId)
         inserted += 1
         return
       }
@@ -991,15 +1099,27 @@ function applyDefaultGroups() {
       if (!localGroup) return
       localGroup.label = row.template.label
       localGroup.masterTable = row.template.masterTable
-      localGroup.members = templateMembers(row.template)
+      localGroup.members = templateMembers(row.template, localGroup)
       localGroup.sourceDefaultGroupId = row.sourceGroupId
       localGroup.sourceDefaultSignature = groupSignature(row.template)
+      affectedGroupIds.add(localGroup.groupId)
       updated += 1
     })
     defaultGroupsVersion.value = defaultGroupPreviewVersion.value
     defaultGroupDialogVisible.value = false
     activeGroupId.value = activeGroupId.value || standardizationGroups.value[0]?.groupId || ''
-    ElMessage.success(t('standardization.defaultUpdated', { inserted, updated }))
+    const needsCompletion = standardizationGroups.value.some(
+      (group) => affectedGroupIds.has(group.groupId) && requiredFieldErrors(group).length > 0
+    )
+    if (needsCompletion && inserted > 0 && updated > 0) {
+      ElMessage.warning({ message: '既定グループを更新しました。不足項目を設定して各組を保存してください。', duration: 5000 })
+    } else if (needsCompletion && updated > 0) {
+      ElMessage.warning({ message: '既定グループを更新しました。未設定の照合フィールドを設定して保存してください。', duration: 5000 })
+    } else if (needsCompletion && inserted > 0) {
+      ElMessage.warning({ message: '既定グループを追加しました。適用シーンと照合フィールドを設定して保存してください。', duration: 5000 })
+    } else {
+      ElMessage.success(t('standardization.defaultUpdated', { inserted, updated }))
+    }
   } finally {
     applyingDefaultGroups.value = false
   }
@@ -1284,6 +1404,9 @@ function applyDefaultGroups() {
           <div class="standardization-page__dialog-grid">
             <el-form-item v-if="!useCaseField" :label="$t('standardization.docType')" required>
               <el-select v-model="memberDraft.field.documentTypeId" @change="onDocumentTypeChange">
+              <template #empty>
+                {{ activeGroup?.sceneIds.length ? '選択した適用シーンで使用できる帳票タイプがありません' : '適用シーンを選択してください' }}
+              </template>
                 <el-option
                   v-for="documentType in availableDocumentTypes"
                   :key="documentType.id"
@@ -1341,9 +1464,24 @@ function applyDefaultGroups() {
 
     <el-dialog
       v-model="defaultGroupDialogVisible"
-      :title="$t('standardization.defaultGroupTitle')"
       width="760px"
     >
+      <template #header>
+        <div class="standardization-page__default-group-title">
+          <span>{{ $t('standardization.defaultGroupTitle') }}</span>
+          <el-tooltip placement="bottom" popper-class="standardization-default-groups-tip">
+            <template #content>
+              <div class="standardization-default-groups-tip__content">
+                <p>初回：適用シーンと照合フィールドを設定し、各組を保存</p>
+                <p>更新：適用シーンを引き継ぎ、未一致のIDPフィールドを設定して各組を保存</p>
+              </div>
+            </template>
+            <button type="button" class="standardization-page__default-group-help" aria-label="既定グループ更新の説明">
+              <el-icon :size="16"><InfoFilled /></el-icon>
+            </button>
+          </el-tooltip>
+        </div>
+      </template>
       <el-table :data="defaultGroupDiff" border max-height="420">
         <el-table-column prop="label" :label="$t('standardization.groupName')" min-width="220" />
         <el-table-column :label="$t('standardization.master')" min-width="180">
@@ -1401,6 +1539,17 @@ function applyDefaultGroups() {
 
 .standardization-master-select-popper .is-hint-group .el-select-group__title {
   color: var(--el-color-success);
+}
+
+.standardization-default-groups-tip__content {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.standardization-default-groups-tip__content p {
+  margin: 0;
 }
 </style>
 
@@ -1571,6 +1720,31 @@ function applyDefaultGroups() {
     margin: 4px 0 18px;
     color: var(--text-secondary);
     font-size: 14px;
+  }
+
+  &__default-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &__default-group-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    color: var(--text-secondary);
+    background: transparent;
+    cursor: help;
+  }
+
+  &__default-group-help:hover,
+  &__default-group-help:focus-visible {
+    color: var(--el-color-primary);
   }
 
   &__history-table {

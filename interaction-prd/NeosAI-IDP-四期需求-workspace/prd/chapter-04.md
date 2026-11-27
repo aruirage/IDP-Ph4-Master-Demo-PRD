@@ -8,17 +8,19 @@
 | --- | --- | --- |
 | API 连接设定 | 管理员设置并测试连接 | Base URL、API Key、连接状态；认证信息由后端安全保存，不明文回显 |
 | GET /v1/masters | 获取主数据及可配置项目 | schemaVersion、masterTables 中的 masterTable、label、columns、hints；项目的 column 或 hint、label、configuration |
-| GET /v1/catalog | 获取显示名 | memberMode 的 value、label |
+| GET /v1/catalog | 获取照合方式显示名 | `data.enums.memberMode[].value`、`data.enums.memberMode[].label` |
 | GET /v1/groups/defaults | 导入默认组 | 默认组的 groupId、label、masterTable、members |
-| POST /v1/groups/validate | 保存前校验全部有效组 | 请求 groups；返回每组 valid、errors，以及错误的 memberIndex、relatedGroupId 和 message |
+| POST /v1/groups/validate | 保存当前组前校验跨组重复 | 请求包含当前组和其他已保存的有效组；返回每组 valid、errors，以及错误的 memberIndex、relatedGroupId 和 message |
+
+以下 configuration 字段来自 `GET /v1/masters` 响应的 `data.masterTables[].columns[]` 或 `data.masterTables[].hints[]`。
 
 | 配置数据 | 本期用途 |
 | --- | --- |
 | groupId、label、masterTable、members | 标识组、显示组名、指定主数据表及字段映射 |
 | 成员的 column 或 hint、mode、field | 指定主数据项目、读取／回写方式及 IDP 字段引用 |
-| configuration.roleLabel | 前端直接显示角色 |
-| configuration.allowedModes | 限定可选照合方式 |
-| configuration.canBePrimary | 后端保存时判断是否存在有效主输入 |
+| `configuration.roleLabel` | 前端直接显示角色 |
+| `configuration.allowedModes` | 限定可选照合方式 |
+| `configuration.canBePrimary` | 后端保存时判断是否存在有效主输入 |
 | sceneIds | IDP 内部适用场景，发送客户 API 前移除 |
 | groupsVersion | 后端生成并随整案请求发送，记录本次使用的配置版本 |
 
@@ -278,11 +280,11 @@ GET /v1/groups/defaults
 
 </details>
 
-**IDP 处理：** 默认组按组名及主数据表与本地组匹配。只导入组名、主数据表、主数据项目和照合方式，客户返回的 documentTypeId、字段名、表名、列名只保留在后端原始响应中。无论新增还是更新，草稿里的 IDP 字段映射均置空，由管理员重新选择；适用场景也需补全，保存前仍需完整校验。
+**IDP 处理：** 默认组按已保存的来源组 ID 与本地组匹配，不使用组名匹配。来源 ID 已对应时在当前组内覆盖更新，未对应时追加新组。首次导入时，适用场景和 IDP 字段映射均置空。后续组内覆盖时，保留原适用场景。主数据项目和字段名称完全一致的成员保留原 IDP 字段映射，名称或字段类型变化时只清空该成员字段。保存前仍需完整校验。
 
 #### 组配置｜保存校验
 
-保存时提交所有有效组；以下展示当前组通过校验的结果；跨组重复时返回 FIELD_IN_OTHER_GROUP 并阻止保存。
+保存当前组时，请求包含当前组和其他已保存的有效组，用于检查跨组重复。以下展示当前组通过校验的结果；跨组重复时返回 FIELD_IN_OTHER_GROUP 并阻止当前组保存。
 
 请求按 §4.9 规则 mock，响应为成功结构示意；实际 groupId 与提交组对应。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
