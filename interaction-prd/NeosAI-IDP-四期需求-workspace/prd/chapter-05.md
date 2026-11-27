@@ -265,32 +265,28 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 
 ### 5.4 OCR抽出确认
 
-#### 结果分流
+#### 结果分流与自动采用
 
-任务成功后，IDP 按每条照合对象处理结果。是否进入人工确认只查看 `needsReview`，是否回写只查看 `shouldWriteBack`。
+任务成功后，IDP 按每个照合对象的 `needsReview` 判断是否需要人工确认，再按 `shouldWriteBack` 判断是否回写。缺失或 null 的处理遵循式样书 §2.8。
 
-| 条件 | 处理 |
-| --- | --- |
-| `needsReview=false` | 不需要主数据照合人工确认 |
-| `needsReview=true`、缺失或 null | 进入 OCR抽出确认 |
-| `shouldWriteBack=true` | 采用结果时按所采用行和 `targets` 回写 |
-| `shouldWriteBack=false`、缺失或 null | 不回写，保留原值 |
-| 输入 OCR 的 `idpNeedReview=1` | 延迟采用该结果，等待对应 OCR 输入完成确认 |
+```mermaid
+flowchart TD
+    A["照合对象结果"] --> B{"needsReview 是否为 false？"}
+    B -->|是| C["无需主数据照合人工确认"]
+    C --> D{"shouldWriteBack 是否为 true？"}
+    D -->|是| E["自动采用 master<br/>从 master.values 取值<br/>按 targets 回写"]
+    D -->|false、缺失或 null| F["不回写，保留原值"]
+    B -->|true、缺失或 null| G["进入 OCR抽出确认<br/>显示候选、确认原因和备注<br/>确认采用前不回写"]
+    G --> H{"操作员采用哪种结果？"}
+    H -->|保留 OCR 原值| I["保留原值，保存确认结果"]
+    H -->|选择候选| J{"shouldWriteBack 是否为 true？"}
+    J -->|是| K["采用所选候选的 master.values<br/>按该候选的 targets 回写"]
+    J -->|false、缺失或 null| L["仅保存确认结果<br/>不回写，保留原值"]
+```
 
-`confidence` 只用于显示和排序，不作为是否人工确认或自动采用的阈值。`status` 用于结果解释和接口契约检查，不用于按场景切换确认页结构。
+回写时，没有值的列保持原值。API 返回的 `selection` 作为原始响应保存，本期不向后续系统登记。自动采用的照合对象仍可在确认页查看和改选候选。
 
-#### 自动采用
-
-同时满足以下条件时自动采用。
-
-1. Task 和账票处理成功。
-2. `needsReview=false`。
-3. 用于匹配的 OCR 输入不需要人工确认。
-4. `shouldWriteBack=true` 时存在可采用的 `master` 和有效 `targets`。
-
-自动采用时，从 `master.values` 取所采用行各列的值，按 `targets` 写入目标位置。没有值的列保持原值。`shouldWriteBack=false` 时只记录结果，不修改 OCR 原值。API 返回的 `selection` 作为原始响应保存，本期不向后续系统登记。
-
-自动采用的 item 仍可在确认页查看和改选候选。
+`confidence` 只用于显示和排序，不作为人工确认或自动采用的阈值。`status` 用于结果解释和接口契约检查，不用于按场景切换确认页结构。
 
 #### 确认页结构
 
