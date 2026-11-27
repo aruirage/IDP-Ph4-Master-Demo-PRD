@@ -338,38 +338,18 @@
     <div class="topline"><div><div class="eyebrow">内部优先级</div><h1>主数据照合 API｜本期实施优先级</h1><div class="meta">按式样书要求、上线阻塞和真正需要 Zurich 确认的程度重新排列</div></div><div class="page-no">6 / 6</div></div>
     <div class="lead">原则：先完成 API 契约和数据正确性；可后推的运营增强不阻塞主链路；式样书第 2 期功能本期不做。</div>
 
-    <h2>P0｜本期必须完成</h2>
-    <table>
-      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">状态</th></tr></thead>
-      <tbody>
-        <tr><td>S-01～S-05</td><td>照合组 CRUD、主数据同步、字段类型、多个组共享输入、保存前校验</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>S-06</td><td><code>groupsVersion</code>、变更履历、版本恢复、验证环境发布</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>S-07</td><td>导入 Zurich 默认组</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>Q-01 / Q-03～Q-06</td><td>案件全量提交、幂等键、重试、轮询、任务结果分页</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>Q-07</td><td><code>options.fallback</code> 开关，默认启用；业务场景可关闭兜底照合</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>A-01～A-08</td><td>自动反映、待确认分流、失败/取消/冲突/fallback</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>C-01～C-02</td><td>确认页、候选选择</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>C-03</td><td>修改识别值后的重新照合（<code>items/standardize</code>），包括单字段、多字段同时重新照合及并发控制</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>E-02</td><td>回填值和 selection 进入数据映射与后续输出</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>50 份以上</td><td>相同案件拆分请求，由 IDP 关联并合并多个 taskId 的结果</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>G / N</td><td>通用实现、显示名、HTTPS、API Key、超时重试、个人信息移除</td><td><span class="status do">本期做</span></td></tr>
-        <tr><td>批次任务</td><td>按批次创建独立任务；补件新增任务；任务结果独立保存并独立进入 OCR抽出确认</td><td><span class="status do">本期做</span></td></tr>
-      </tbody>
-    </table>
-
-    <h2>P2｜本期不做</h2>
-    <table>
-      <thead><tr><th style="width:110px">范围</th><th>内容</th><th style="width:110px">结论</th></tr></thead>
-      <tbody>
-        <tr><td>S-09</td><td>AI 生成照合组建议</td><td><span class="status no">第 2 期</span></td></tr>
-        <tr><td>S-08</td><td>废弃列和提示信息标记，新配置禁止选择，旧配置继续运行</td><td><span class="status no">第 2 期</span></td></tr>
-        <tr><td>C-04</td><td><code>masters/search</code> 主数据检索</td><td><span class="status no">第 2 期</span></td></tr>
-        <tr><td>E-01</td><td>将 selection 实际登记到 SFDC 等后续系统</td><td><span class="status no">第 2 期</span></td></tr>
-        <tr><td>E-03</td><td><code>feedback</code> 回传人工确定结果</td><td><span class="status no">第 2 期</span></td></tr>
-        <tr><td>完成通知 callback</td><td>第 2 期接入 <code>callbackUrl</code> 完成通知；本期继续使用轮询取得结果</td><td><span class="status no">第 2 期</span></td></tr>
-      </tbody>
-    </table>
-    <footer>本页是 IDP 内部实施优先级，不代表 Zurich 的 API 阶段划分。</footer>
+    <h2>阶段调整结论</h2>
+    <div class="decision-grid">
+      <div class="decision"><b>Q-01</b><span>本期最多 50 件逻辑账票。超过时节点失败且不创建 Task。拆分部分列为第 2 期候选。</span></div>
+      <div class="decision"><b>E-01</b><span>原式样书标为必须，IDP 实际优先级为 P1，安排在第 5 期。</span></div>
+      <div class="decision"><b>E-02</b><span>原式样书标为必须，IDP 实际优先级为 P1，安排在第 5 期。本期继续按 A-09 写入组配置的 `targets`。</span></div>
+      <div class="decision"><b>S-08</b><span>原式样书标为必须，IDP 实际安排为第 5 期。</span></div>
+    </div>
+    <h2>逐编号优先级与上限时限</h2>
+    <p>完整保留原式样书编号、原文、原式样书期数和 IDP 实际优先级的矩阵见详细文件。</p>
+    <p><a href="主数据照合_规格与真实场景差异确认_中文.html">查看逐编号优先级矩阵</a></p>
+    <p><a href="主数据照合_API上限与时间约束客户确认.md">查看 API 上限与时间约束客户确认</a></p>
+    <footer>完成通知 callback 不纳入本期确认范围。</footer>
   </section>
 
 <script>

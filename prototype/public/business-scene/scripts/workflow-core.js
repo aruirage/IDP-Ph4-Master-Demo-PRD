@@ -598,7 +598,7 @@ const WORKFLOW_NODE_META = {
   master_standardization: {
     icon: 'MD',
     title: 'マスタ照合',
-    desc: 'OCR抽出後に外部APIで案件単位のマスタ照合を実行',
+    desc: '案件内の全帳票をまとめて照合し、帳票の追加・削除時は最新の全帳票で再実行',
     tasks: ['マスタ照合', '要確認判定'],
     input: 'Case · OCR Fields',
     output: 'Standardized Fields',
@@ -822,6 +822,8 @@ const WORKFLOW_VAR_CONSUMPTION_PATHS_BY_ID = {
   'case.fraudDetectStatus': [WORKFLOW_VAR_CONSUMPTION.RUNTIME],
   'case.fraudDetectResult': [WORKFLOW_VAR_CONSUMPTION.CONDITION],
   'case.mappingStatus': [WORKFLOW_VAR_CONSUMPTION.RUNTIME],
+  'case.masterStatus': [WORKFLOW_VAR_CONSUMPTION.RUNTIME, WORKFLOW_VAR_CONSUMPTION.NOTIFY],
+  'case.masterResult': [WORKFLOW_VAR_CONSUMPTION.CONDITION, WORKFLOW_VAR_CONSUMPTION.NOTIFY],
   'case.verifyStatus': [WORKFLOW_VAR_CONSUMPTION.RUNTIME],
   'case.verifyResult': [WORKFLOW_VAR_CONSUMPTION.CONDITION],
   'case.hitlStatus': [WORKFLOW_VAR_CONSUMPTION.RUNTIME],
@@ -1008,7 +1010,7 @@ const WORKFLOW_NODE_OUTPUT_VAR_DEFS = {
   ],
   master_standardization: [
     { id: 'case.masterStatus', label: '照合状態', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.nodeStatus, description: '処理中は processing。Task が SUCCEEDED なら success。入力更新または再認識で旧 Task を取り消した場合は旧 Workflow を終了し、最新入力で開始ノードから全体を再実行。案件中止時は案件を中止状態にし、Workflow 全体を終了。取消を独立したノード状態として出力しない。Task の FAILED、送信失敗、再試行上限超過は failed。' },
-    { id: 'case.masterResult', label: '照合結果', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.processResult, description: 'Task 正常完了時に全 item 自動採用可能なら passed、要確認や阻害条件があれば reviewRequired。取消された Task の結果は適用しません。' },
+    { id: 'case.masterResult', label: '照合結果', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.processResult, description: 'Task 正常完了時に全 item 自動採用可能なら passed、要確認または阻害条件があれば reviewRequired。取消された Task の結果は適用しません。' },
   ],
   fraud_detect: [
     { id: 'case.fraudDetectStatus', label: '処理状態', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.nodeStatus, description: '本ノードの実行進捗。対象帳票 OFF または検知対象外の場合も success とし、skip は別値として出力しない。業務上通過したかは「処理結果」を見る。' },
@@ -3069,9 +3071,11 @@ function sanitizeHitlGateEdges(workflow) {
   const nodeMap = Object.fromEntries((workflow.nodes || []).map((n) => [n.id, n]));
   workflow.edges = workflow.edges.filter((edge) => {
     const from = nodeMap[edge.from];
+    const to = nodeMap[edge.to];
     if (!isHitlGateNode(from)) return true;
     if (!edge.branch) return false;
-    return normalizeHitlGateActions(from.actions).includes(edge.branch);
+    if (!normalizeHitlGateActions(from.actions).includes(edge.branch)) return false;
+    return true;
   });
   const seen = new Set();
   workflow.edges = workflow.edges.filter((edge) => {

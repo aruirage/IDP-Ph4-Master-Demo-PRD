@@ -208,6 +208,9 @@
     .priority-sheet.is-dense .lead { margin-top:9px; padding:8px 12px; font-size:11.5px; line-height:1.45; }
     .priority-sheet.is-dense .priority-table { margin-top:8px; font-size:10.5px; line-height:1.35; }
     .priority-sheet.is-dense .priority-table th, .priority-sheet.is-dense .priority-table td { padding:4px 6px; }
+    .priority-sheet.is-ultra-dense .priority-table { margin-top:4px; font-size:9px; line-height:1.2; }
+    .priority-sheet.is-ultra-dense .priority-table th, .priority-sheet.is-ultra-dense .priority-table td { padding:2px 4px; }
+    .priority-sheet.is-ultra-dense .lead { margin-top:6px; padding:5px 9px; font-size:10px; }
     .priority-sheet.is-dense .priority-table code { font-size:9.5px; }
     .priority-sheet.is-dense footer { margin-top:8px; padding-top:6px; font-size:10px; }
     .priority-sheet.is-next-phase .lead { border-left-color:var(--amber); background:var(--amber-soft); }
@@ -241,6 +244,14 @@
       body { background: #fff; }
       .sheet { width: auto; min-height: auto; height: 194mm; margin: 0; padding: 5mm 7mm; box-shadow: none; page-break-after: always; overflow: hidden; }
       .sheet:last-child { page-break-after: auto; }
+      .sheet:nth-of-type(1) { padding: 3mm 5mm; }
+      .sheet:nth-of-type(1) .conclusion { margin-top: 12px; padding: 10px 14px; }
+      .sheet:nth-of-type(1) h2 { margin: 16px 0 8px; }
+      .sheet:nth-of-type(1) .situation { gap: 8px; margin-top: 8px; }
+      .sheet:nth-of-type(1) .day-body { padding: 8px 10px; }
+      .sheet:nth-of-type(1) .two-col { gap: 10px; margin-top: 10px !important; }
+      .sheet:nth-of-type(1) .panel { padding: 10px 12px; }
+      .sheet:nth-of-type(1) .panel li { margin: 2px 0; }
       .reset-button, .language-switch { display: none; }
     }
   </style>
@@ -259,7 +270,7 @@
 
     <div class="conclusion">
       <strong>本次设计结论</strong>
-      <p>V1.1 已明确请求队列、同优先级受理顺序和 50 份以上拆分的关联方式。IDP 在此基础上确定：新文件或补件创建独立任务并分别进入 OCR抽出确认；同一业务批次拆成多个 API 任务时，由 IDP 合并展示结果。</p>
+      <p>API v1.2 明确每次请求的上限和拆分建议。IDP 本期超过 50 件时默认失败、不创建 Task；拆分及跨 Task 合并列为第 2 期候选。新文件或补件创建独立批次。</p>
     </div>
 
     <h2>真实案件会发生什么</h2>
@@ -272,16 +283,14 @@
     <div class="two-col" style="margin-top:18px">
       <div class="panel spec">
         <h3>式样书已经说明</h3>
-        <ul><li>以案件为单位执行照合</li><li>请求中包含案件全部文件</li><li>有异步任务和完成确认</li><li>案件中止并重新处理时，由 IDP 取消旧的照合任务</li></ul>
+        <ul><li>案件照合请求携带当时有效的全量单据</li><li>请求可异步执行，并通过任务查询确认完成</li><li>案件中止时取消未完成的 Task 并结束工作流</li><li>重新识别或输入变化时，旧执行结束并从开始节点重新运行最新案件资料</li></ul>
       </div>
       <div class="panel spec">
         <h3>IDP 已定处理方式</h3>
-        <ul><li>新文件或补件创建新的独立批次任务</li><li>每个独立任务的结果分别进入 OCR抽出确认</li><li>超过 50 份时，一个业务批次拆成多个 API 任务</li><li>多个 taskId 的结果由 IDP 合并为同一批次展示</li><li>同一优先级按受理顺序排队，并发量由 Zurich 控制</li></ul>
+        <ul><li>新文件或补件创建新的独立批次任务</li><li>每个独立任务的结果分别进入 OCR抽出确认</li><li>本期单次最多 50 件，超过时 IDP 节点失败且不创建 Task</li><li>超限拆分及跨 Task 合并列为第 2 期候选</li><li>同一优先级按受理顺序排队，并发量由 Zurich 控制</li></ul>
       </div>
     </div>
 
-    <div class="flow-note is-blue"><b>IDP 内部已定</b><span>旧任务结果晚到时，只更新该任务自己的结果和待办，不修改其他任务。</span></div>
-    <div class="callout">V1.1 已回答请求排队和 50 份以上拆分的接口规则。批次任务划分与多个 taskId 的合并展示属于 IDP 内部处理，本次无需再向 Zurich 提问。</div>
   </section>
 
   <section class="sheet">
@@ -293,32 +302,27 @@
         <tr><td><strong>补件到达</strong></td><td>没有补件专用字段</td><td>创建新的独立批次任务</td></tr>
         <tr><td><strong>每次重发全部文件</strong></td><td>要求发送全部有效文件</td><td>按提交时点的全部有效文件处理，生成本批次结果</td></tr>
         <tr><td><strong>多批次执行顺序</strong></td><td>同一优先级按受理顺序处理，并发量由 API 控制</td><td>沿用 Zurich 队列，不另建案件级队列</td></tr>
-        <tr><td><strong>单次超过 50 份文件</strong></td><td>相同 caseNo 拆分请求，变更 clientRequestId 序号</td><td>一个业务批次对应多个 API 任务，由 IDP 合并展示</td></tr>
+        <tr><td><strong>单次超过 50 件逻辑账票</strong></td><td>规格书 Q-01 建议按相同 caseNo 拆分请求并变更 clientRequestId 序号</td><td>本期 IDP 节点默认失败，不创建 Task；拆分及结果合并列为第 2 期候选</td></tr>
       </tbody>
     </table>
 
     <div class="proposal">
       <h3>IDP 批次处理方式</h3>
-      <p>新文件或补件创建独立批次任务，并分别进入 OCR抽出确认。超过 50 份时，一个业务批次拆成多个 Zurich 任务，由 IDP 保存 taskId 并合并结果。</p>
+      <p>新文件或补件创建独立批次任务，并分别进入 OCR抽出确认。每个请求对应一个 taskId。本期超过 50 件时直接失败，不拆分或合并多个 taskId。</p>
       <div class="task-architecture">
-        <div class="architecture-case">案件<br /><b>CLAIM-001</b></div>
-        <div class="architecture-down">↓ 分发批次任务</div>
         <div class="architecture-task-row">
           <div class="architecture-task"><b>任务 1｜初回</b><span>请求书＋诊断书</span><em>结果独立保存</em></div>
           <div class="architecture-task"><b>任务 2｜追加</b><span>请求书＋诊断书＋领收书</span><em>结果独立保存</em></div>
           <div class="architecture-task"><b>任务 3｜补件</b><span>全部有效文件＋本人确认书</span><em>结果独立保存</em></div>
         </div>
-        <div class="architecture-down">↓ 各批次独立推进</div>
-        <div class="architecture-summary">每个业务批次独立进入 OCR抽出确认<br /><span>50 份以上由 IDP 合并多个 taskId；旧任务只更新自身</span></div>
       </div>
     </div>
 
-    <div class="callout">V1.1 的队列与拆分规则作为接口依据。批次划分和结果合并由 IDP 实现，无需新增 Zurich 确认项。</div>
   </section>
 
-  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">接口流程</div><h1>1. 配置接口流程</h1></div><div class="page-no">3 / 10</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>1. 配置接口流程</b><span>P0 / S-01～S-08、S-10</span></div><div class="sequence-flow"><img src="assets/flow-zh1.svg" alt="配置接口流程" /></div><p class="flow-confirm-understanding"><b>IDP 理解</b>获取主数据、默认组和目录，配置输入与回填目标，保存前校验，并生成 groupsVersion 与版本快照。S-09 AI 建议安排在 P1。</p><div class="flow-question-link">配置流程已由 V1.1 明确</div></div></div></section>
+  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">接口流程</div><h1>1. 配置接口流程</h1></div><div class="page-no">3 / 10</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>1. 配置接口流程</b><span>P0 / S-01～S-07、S-10</span></div><div class="sequence-flow"><img src="assets/flow-zh1.svg" alt="配置接口流程" /></div><p class="flow-confirm-understanding"><b>IDP 理解</b>获取主数据、默认组和目录，配置输入与回填目标，保存前校验，并生成 groupsVersion 与版本快照。S-09 AI 建议原式样书列第 2 期，IDP 实际优先级为 P2。</p><div class="flow-question-link">配置流程按 v1.2 原文和 IDP 实际优先级确认</div></div></div></section>
 
-  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">业务流程</div><h1>2. 案件照合与批次/补件流程</h1></div><div class="page-no">4 / 10</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>2. 案件照合与批次/补件流程</b><span>P0 / Q-01～Q-07 · 结果应用 A/C</span></div><div class="sequence-flow"><img src="assets/flow-zh2.svg" alt="案件照合与批次/补件流程" /></div><p class="flow-confirm-understanding"><b>IDP 处理方式（已定）</b>新批次和补件独立创建任务，旧任务继续运行；重新识别使用新版本请求并取消旧任务；通过已完成任务列表轮询，结果分页读取，多个 taskId 合并为同一业务批次。</p><div class="flow-question-link">采用 Zurich 队列，不再向 Zurich 追加确认</div></div></div></section>
+  <section class="sheet flow-confirm-sheet"><div class="topline"><div><div class="eyebrow">业务流程</div><h1>2. 案件照合与批次/补件流程</h1></div><div class="page-no">4 / 10</div></div><div class="flow-confirm-list single"><div class="flow-confirm-card"><div class="flow-confirm-head"><b>2. 案件照合与批次/补件流程</b><span>P0 / Q-01～Q-06、Q-08～Q-09 · 结果应用 A/C；Q-07 为 P2</span></div><div class="sequence-flow"><img src="assets/flow-zh2.svg" alt="案件照合与批次/补件流程" /></div><p class="flow-confirm-understanding"><b>IDP 处理方式（已定）</b>新批次和补件独立创建任务，旧任务继续运行；重新识别或输入变化时取消旧任务、结束旧执行并从开始节点以最新资料重跑；通过已完成任务列表轮询并分页读取。每次请求最多 50 件，超限失败且不拆分。</p><div class="flow-question-link">本期超过 50 件失败；容量、并发和时限按客户确认页确认</div></div></div></section>
 
 <section class="sheet modes-sheet">
     <div class="topline"><div><div class="eyebrow">照合端三种模式</div><h1>三种照合模式的动作</h1></div><div class="page-no">5 / 10</div></div>
@@ -341,73 +345,36 @@
     <div class="flow-note is-blue"><b>确认页重新照合</b><span>只处理 INPUT／INPUT_OUTPUT 的修改。同一照合组的输入（PRIMARY／SUPPORTING）与输出目标（OUTPUT）在同一次结果中一起更新，不同组分别请求。</span></div>
   </section>
 
-  <section class="sheet priority-sheet is-dense">
-    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>设置与请求｜本期实施</h1><div class="meta">功能内容取自 v1.1 式样书 §1.4</div></div><div class="page-no">6 / 10</div></div>
+  <section class="sheet priority-sheet is-dense is-ultra-dense">
+    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>设置与请求｜本期实施</h1><div class="meta">要求编号、原文及原式样书期数取自 v1.2 §1.4</div></div><div class="page-no">6 / 10</div></div>
     <div class="lead">P0 仅列业务功能，S/Q 分组中的每项单独验收。</div>
-    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>功能要求（式样书原文）</th><th style="width:86px">式样书区分</th><th style="width:68px">优先级</th></tr></thead><tbody><tr><td>S-01</td><td>设置（标准化组）</td><td>具有可以创建、修改、删除标准化组的设置界面。组具有不变的唯一 <code>groupId</code>、显示名称、主数据表、项目（列或提示信息、使用方式、IDP 的项目指定）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-02</td><td>设置（标准化组）</td><td>设置界面根据主数据表一览（<code>GET /v1/masters</code>）生成。不在 IDP 中用固定的表持有主数据表、列、提示信息、显示名称、输入角色、可否回写。一览的版本（<code>schemaVersion</code>）变化时，无需重启即可反映</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-03</td><td>设置（标准化组）</td><td>项目指定中，可以选择单据的项目（单据类型＋项目名）、单据中表的列（单据类型＋表名＋列名）、案件的标准项目。在一个组中，可以选择其他单据类型的项目</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-04</td><td>设置（标准化组）</td><td>可以创建同一个主数据表的多个组。一个项目可以作为多个组的输入。将同一个项目设为多个组的回写目标时，给出警告</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-05</td><td>设置（标准化组）</td><td>保存之前，校验组的设置（<code>POST /v1/groups/validate</code>）。按项目显示错误，有错误的组不保存</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-06</td><td>设置（标准化组）</td><td>为设置附加版本（<code>groupsVersion</code>），保留变更的履历。可以在验证环境中确认后再放入生产环境</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-07</td><td>设置（标准化组）</td><td>可以将 Zurich 的默认组（<code>GET /v1/groups/defaults</code>）导入到设置中。导入后，作为 IDP 的设置持有</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>S-10</td><td>设置（标准化组）</td><td>写入值的设置：组的 <code>OUTPUT</code>、<code>INPUT_OUTPUT</code> 的项目中，可以选择主数据表一览中的任意列（包括不用于匹配的列〔<code>inputRole=NONE</code>〕）。写入目标可以选择单据的项目、表的列（与主输入相同的表）、案件的标准项目</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-01</td><td>请求与结束的确认</td><td>案件的 OCR 抽取之后，通过请求发送案件的所有单据（按 RESULT JSON 的原样，附带单据类型 ID）、有效的所有组的设置及其版本（单据超过 50 件时拆分）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-02</td><td>请求与结束的确认</td><td>组中有使用案件标准项目（<code>CASE_FIELD</code>）的设置时，发送案件的标准项目（<code>caseResult</code>）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-03</td><td>请求与结束的确认</td><td>附带 <code>clientRequestId</code>，超时或 500 时使用相同的值重发。重新识别后用新的版本发出请求，并取消旧的任务</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-04</td><td>请求与结束的确认</td><td>限制请求的发送并行数，429、503 时遵循 <code>Retry-After</code>。500 时一边延长间隔，一边加入随机波动后重试</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-05</td><td>请求与结束的确认</td><td>通过定期查询已完成任务列表（<code>GET /v1/standardizations?cursor=…</code>）得知结束。保存游标，即使 IDP 重启也从后续开始查询</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-06</td><td>请求与结束的确认</td><td>在任务进入终止状态之后读取结果。标准化对象较多时，分页获取</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>Q-07</td><td>请求与结束的确认</td><td>采用不使用回退的运用时，可以发送 <code>options.fallback=false</code>（可通过设置切换）</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
-    <footer>本页：设置 S-01～S-07、S-10，请求 Q-01～Q-07。</footer>
+    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>原式样书要求（v1.2 原文）</th><th style="width:86px">原式样书期数</th><th style="width:130px">IDP 实际优先级</th></tr></thead><tbody><tr><td>S-01</td><td>设置（标准化组）</td><td>具有可以创建、修改、删除标准化组的设置界面。组具有不变的唯一 <code>groupId</code>、显示名称、主数据表、项目（列或提示信息、使用方式、IDP 的项目指定）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-02</td><td>设置（标准化组）</td><td>设置界面根据主数据表一览（<code>GET /v1/masters</code>）生成。不在 IDP 中用固定的表持有主数据表、列、提示信息、显示名称、输入角色、可否回写。各列的角色显示名称、可选的使用方式、能否作为主输入，从列的 <code>configuration</code> 中获取并显示。一览的版本（<code>schemaVersion</code>）变化时，无需重启即可反映</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-03</td><td>设置（标准化组）</td><td>项目指定中，可以选择单据的项目（单据类型＋项目名）、单据中表的列（单据类型＋表名＋列名）、案件的标准项目。在一个组中，可以选择其他单据类型的项目</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-04</td><td>设置（标准化组）</td><td>可以创建同一个主数据表的多个组。单据的项目、表的列，只能放入一个组（无论是输入、回写还是两者）。选择了已在其他组中使用的项目时，显示正在使用它的组，并且不允许保存。案件的标准项目可以作为多个组的输入（可以作为回写目标的只有一个组）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-05</td><td>设置（标准化组）</td><td>保存之前，一次性校验所有有效组的设置（<code>POST /v1/groups/validate</code>。以便同时确认跨组的项目重复）。按项目显示错误，有错误的组不保存</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-06</td><td>设置（标准化组）</td><td>为设置附加版本（<code>groupsVersion</code>），保留变更的履历。可以在验证环境中确认后再放入生产环境</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-07</td><td>设置（标准化组）</td><td>可以将 Zurich 的默认组（<code>GET /v1/groups/defaults</code>）导入到设置中。导入后，作为 IDP 的设置持有</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>S-10</td><td>设置（标准化组）</td><td>写入值的设置：组的 <code>OUTPUT</code>、<code>INPUT_OUTPUT</code> 的项目中，可以选择主数据表一览中的任意列（包括不用于匹配的列〔<code>inputRole=NONE</code>〕）。写入目标可以选择单据的项目、表的列（与主输入相同的表）、案件的标准项目</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-01</td><td>请求与结束的确认</td><td>案件的单据齐全、OCR 抽取和数据映射（生成案件的标准项目）完成之后，通过一次请求发送案件的所有单据（按 RESULT JSON 的原样，附带单据类型 ID）、有效的所有组的设置及其版本（仅在单据超过 50 件时拆分）</td><td>必须</td><td><span class="status ask">P0 ≤50 / P2候选&gt;50</span></td></tr><tr><td>Q-02</td><td>请求与结束的确认</td><td>组中有使用案件标准项目（<code>CASE_FIELD</code>）的设置时，发送案件的标准项目（<code>caseResult</code>）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-03</td><td>请求与结束的确认</td><td>附带 <code>clientRequestId</code>，超时或 500 时使用相同的值重发。重新识别后用新的版本发出请求，并取消旧的任务</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-04</td><td>请求与结束的确认</td><td>限制请求的发送并行数，429、503 时遵循 <code>Retry-After</code>。500 时一边延长间隔，一边加入随机波动后重试</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-05</td><td>请求与结束的确认</td><td>通过定期查询已完成任务列表（<code>GET /v1/standardizations?cursor=…</code>）得知结束。保存游标，即使 IDP 重启也从后续开始查询</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-06</td><td>请求与结束的确认</td><td>在任务进入终止状态之后读取结果。标准化对象较多时，分页获取</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-08</td><td>请求与结束的确认</td><td>因单据的重新处理（重新识别）、追加、替换，或案件标准项目的修改，导致匹配的输入变化时，用最新的单据和标准项目，以新的版本对案件整体重新请求（取消尚未结束的旧任务）。推进工作流，应在该案件最后发送的请求的任务进入终止状态、并反映其结果之后进行</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-09</td><td>请求与结束的确认</td><td>业务上应为一个值的标准项目，其来源单据的值不一致时，将该标准项目通过 <code>caseFieldConflicts</code> 发送</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
+    <footer>本页：设置 S-01～S-07、S-10，请求 Q-01～Q-06。Q-07 列于第 2 期。</footer>
   </section>
   <section class="sheet priority-sheet is-dense">
-    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>结果反映与确认界面｜本期实施</h1><div class="meta">功能内容取自 v1.1 式样书 §1.4</div></div><div class="page-no">7 / 10</div></div>
+    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>结果反映与确认界面｜本期实施</h1><div class="meta">要求编号、原文及原式样书期数取自 v1.2 §1.4</div></div><div class="page-no">7 / 10</div></div>
     <div class="lead">自动采用、需确认、回填和人工改选分别对应独立功能项。</div>
-    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>功能要求（式样书原文）</th><th style="width:86px">式样书区分</th><th style="width:68px">优先级</th></tr></thead><tbody><tr><td>A-01</td><td>结果的反映</td><td>处理的分支只使用 <code>status</code>（任务、单据）、<code>needsReview</code>、<code>master.values</code> 与 <code>targets</code>、<code>master.selection</code>。<code>needsReview</code> 缺失或为 <code>null</code> 时作为需确认处理</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-02</td><td>结果的反映</td><td><code>needsReview=false</code> 的标准化对象，将 <code>master.values</code> 的值写入 <code>targets</code> 的位置（写入值。A-09），并保存 <code>selection</code> 用于登记。但是，用于匹配的输入中有 IDP 的 <code>needReview=1</code> 时，在识别确认之后采用</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-03</td><td>结果的反映</td><td><code>needsReview=true</code> 的标准化对象，不回写，作为 OCR 抽取确认的对象（追加确认条件“标准化需确认”）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-04</td><td>结果的反映</td><td>位置的 <code>type</code> 为未知的值、单据或任务为 <code>FAILED</code>、有 <code>INVALID_GROUP</code>、<code>MASTER_TABLE_NOT_ENABLED</code> 的提示时，将相应组的项目转为人工确认。不反映 <code>CANCELLED</code> 的结果</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-05</td><td>结果的反映</td><td>对于组的回写目标的项目，不重复设置 IDP 的“主数据匹配”</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-06</td><td>结果的反映</td><td>按标准化对象，保存 <code>itemId</code>、<code>groupId</code>、所采用的记录（<code>object</code>、<code>masterId</code>、<code>selection</code>、<code>values</code>）、<code>needsReview</code>、原因（用于确认、审计、输出、返回确定的结果）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-07</td><td>结果的反映</td><td>不将 <code>confidence</code> 作为阈值使用</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-08</td><td>结果的反映</td><td><code>groupId</code> 为 <code>FALLBACK</code> 的标准化对象（回退的结果），一定转为人工确认（以 <code>needsReview=true</code> 返回）。使用单据 <code>warnings</code> 中的 <code>FALLBACK_USED</code> 来发现没有设置的单据类型</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>A-09</td><td>结果的反映</td><td>开发<strong>写入值的功能</strong>：从所采用的行（<code>master</code>、候选、<code>alternatives</code>、<code>splitItems</code> 的 <code>master</code>、检索的结果均可）的 <code>values</code> 中，将 <code>targets</code> 中各列的值写入该位置的项目（没有值的列不写入）。不用于匹配的列（编码、分类等）的值，也用同一处理写入。作为与主数据表、列无关的通用处理，在自动采用时、在确认界面中选择候选时、重新标准化时，使用同一处理</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>C-01</td><td>确认界面</td><td>对于需确认的标准化对象，显示组的项目的识别值、<code>master</code>（推定值。初始值）、<code>candidates</code>（最多前 5 个）、原因（<code>reviewReasons[].message</code>）、依据（<code>reason</code>）、备注（<code>notesForAssessor</code>）。<code>SPLIT</code> 显示全部要素（主要素加标记），<code>NEW_CANDIDATE</code> 显示建议的名称和出处</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>C-02</td><td>确认界面</td><td>操作人员选择候选后，将该候选的 <code>values</code> 的值重新写入该标准化对象的 <code>targets</code>（A-09），并保存该候选的 <code>selection</code></td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>C-03</td><td>确认界面</td><td>操作人员修改了组的输入的识别值后，通过单个值的标准化（<code>ref</code> 中为原结果）重新标准化，并重新反映结果</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>C-05</td><td>确认界面</td><td>自动采用的标准化对象，也可以在确认界面中显示所采用的行和 <code>candidates</code>，操作人员可以改为其他候选（改选时与 C-02 同样处理）</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
+    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>原式样书要求（v1.2 原文）</th><th style="width:86px">原式样书期数</th><th style="width:130px">IDP 实际优先级</th></tr></thead><tbody><tr><td>A-01</td><td>结果的反映</td><td>处理的分支只使用 <code>status</code>（任务、单据）、<code>needsReview</code>、<code>shouldWriteBack</code>、<code>master.values</code> 与 <code>targets</code>、<code>master.selection</code>（对于选项，为该选项的 <code>master</code> 和 <code>targets</code>）。<code>needsReview</code> 缺失或为 <code>null</code> 时作为需确认处理，<code>shouldWriteBack</code> 缺失或为 <code>null</code> 时不回写</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-02</td><td>结果的反映</td><td><code>needsReview=false</code> 的标准化对象，如果 <code>shouldWriteBack=true</code>，将 <code>master</code>（与第一个选项“マスタ推奨”相同的行）的 <code>values</code> 的值写入 <code>targets</code> 的位置（写入值。A-09），并保存 <code>selection</code> 用于登记。但是，用于匹配的输入中有 IDP 的 <code>needReview=1</code> 时，在识别确认之后采用</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-03</td><td>结果的反映</td><td><code>needsReview=true</code> 的标准化对象，在确认结束之前不回写，作为 OCR 抽取确认的对象（追加确认条件“标准化需确认”）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-04</td><td>结果的反映</td><td>位置的 <code>type</code> 为未知的值、单据或任务为 <code>FAILED</code>、有 <code>INVALID_GROUP</code>、<code>MASTER_TABLE_NOT_ENABLED</code> 的提示时，将相应组的项目转为人工确认。不反映 <code>CANCELLED</code> 的结果</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-05</td><td>结果的反映</td><td>对于组的回写目标的项目，不重复设置 IDP 的“主数据匹配”</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-06</td><td>结果的反映</td><td>按标准化对象，保存 <code>itemId</code>、<code>groupId</code>、所采用的记录（<code>object</code>、<code>masterId</code>、<code>selection</code>、<code>values</code>）、<code>needsReview</code>、原因（用于确认、审计、输出、返回确定的结果）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-07</td><td>结果的反映</td><td>不将 <code>confidence</code> 作为阈值使用</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>A-09</td><td>结果的反映</td><td>开发**写入值的功能**：从所采用的行（选项〔<code>masterDataMatches</code>〕的 <code>master</code>、<code>master</code>、候选、<code>alternatives</code>、<code>splitItems</code> 的 <code>master</code>、检索的结果均可）的 <code>values</code> 中，将 <code>targets</code>（对于选项，为该选项的 <code>targets</code>）中各列的值写入该位置的项目（没有值的列不写入）。不用于匹配的列（编码、分类等）的值，也用同一处理写入。作为与主数据表、列无关的通用处理，在自动采用时、在确认界面中选择候选时、重新标准化时，使用同一处理</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>C-01</td><td>确认界面</td><td>确认界面按标准化对象的固定结构（§5.10）构建。确认项目显示在主输入的位置（<code>source</code>），并显示组的项目的识别值、选项（<code>masterDataMatches</code>。显示种类的显示名称〔<code>label</code>〕和 <code>confidence</code>，并可以通过 <code>primary</code> 区分主要素和追加要素。初始值为第一个“マスタ推奨”，没有时保持识别值）、确认原因（<code>reviewReason</code>）、其他信息（<code>remarks</code>。“照合根拠”（照合依据）、“確認時の備考”（确认备注）、“提案名称”（建议名称）等。只将有内容的部分显示在输入栏下方）。选项为空时，不显示下拉列表，可以保持识别值结束确认</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>C-02</td><td>确认界面</td><td>操作人员选择选项并结束确认后，如果 <code>shouldWriteBack=true</code>，将该选项的 <code>master.values</code> 的值写入该选项的 <code>targets</code>（覆盖原来的值。A-09），并保存该选项的 <code>master.selection</code>。<code>shouldWriteBack=false</code> 时不回写</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>C-03</td><td>确认界面</td><td>操作人员修改组的输入的识别值并点击“再照合”（重新照合）后，用确认界面中正在编辑的最新值，通过单个值的标准化（<code>ref</code> 中为原结果。最初为空、没有标准化对象的项目，<code>ref</code> 中为组和位置）重新标准化，并替换 <code>fieldId</code> 相同的确认项目的结果。涉及案件整体的变更，按 Q-08 重新请求</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>C-05</td><td>确认界面</td><td>自动采用的标准化对象，也可以在确认界面中显示选项，操作人员可以改为其他选项（包括拆分的追加要素）（改选时与 C-02 同样处理）</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
     <footer>本页：结果反映 A-01～A-09，确认界面 C-01～C-03、C-05。</footer>
   </section>
   <section class="sheet priority-sheet is-dense">
-    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>输出与后续系统｜本期实施</h1><div class="meta">功能内容取自 v1.1 式样书 §1.4</div></div><div class="page-no">8 / 10</div></div>
-    <div class="lead">该页只列输出功能，不混入非功能和兼容性要求。</div>
-    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>功能要求（式样书原文）</th><th style="width:86px">式样书区分</th><th style="width:68px">优先级</th></tr></thead><tbody><tr><td>E-02</td><td>输出与后续系统</td><td>在数据映射中，可以将写入的值和 <code>selection</code> 对应到输出的项目（也可以将所采用的行的 <code>values</code> 中的列，直接对应到输出的项目）</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
-    <footer>本页：E-02 数据映射与输出。E-01 已按原决定移至 P1。</footer>
+    <div class="topline"><div><div class="eyebrow">功能优先级 P0</div><h1>案件变更与冲突处理｜本期实施</h1><div class="meta">要求编号、原文及原式样书期数取自 v1.2 §1.4</div></div><div class="page-no">8 / 10</div></div>
+    <div class="lead">本页分别列出案件级重新请求（Q-08）和来源冲突处理（Q-09）。</div>
+    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>原式样书要求（v1.2 原文）</th><th style="width:86px">原式样书期数</th><th style="width:130px">IDP 实际优先级</th></tr></thead><tbody><tr><td>Q-08</td><td>请求与结束的确认</td><td>因单据的重新处理（重新识别）、追加、替换，或案件标准项目的修改，导致匹配的输入变化时，用最新的单据和标准项目，以新的版本对案件整体重新请求（取消尚未结束的旧任务）。推进工作流，应在该案件最后发送的请求的任务进入终止状态、并反映其结果之后进行</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>Q-09</td><td>请求与结束的确认</td><td>业务上应为一个值的标准项目，其来源单据的值不一致时，将该标准项目通过 <code>caseFieldConflicts</code> 发送</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
+    <footer>本页：Q-08 案件级重新请求与 Q-09 标准项目冲突处理。</footer>
   </section>
   <section class="sheet priority-sheet is-dense">
-    <div class="topline"><div><div class="eyebrow">横断要求 P0</div><h1>非功能与兼容性要求｜本期实施</h1><div class="meta">编号和内容取自 v1.1 式样书 §1.4，单独管理，不计入功能项</div></div><div class="page-no">9 / 10</div></div>
+    <div class="topline"><div><div class="eyebrow">横断要求 P0</div><h1>非功能与兼容性要求｜本期实施</h1><div class="meta">编号和内容取自 v1.2 式样书 §1.4，单独管理，不计入功能项</div></div><div class="page-no">9 / 10</div></div>
     <div class="lead">以下要求适用于整个模块，不作为独立业务功能计数。</div>
-    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>要求（式样书原文）</th><th style="width:86px">式样书区分</th><th style="width:68px">优先级</th></tr></thead><tbody><tr><td>G-01</td><td>通用性与兼容性</td><td>设置界面、请求、回写、确认界面、输出的任何地方，都不编写针对主数据表或列的专门处理（即使主数据表或列增加，只需设置即可使用）</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>G-02</td><td>通用性与兼容性</td><td>忽略响应中的未知字段，用字符串接收“会增加”的枚举值，ID 保持字符串处理</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>G-03</td><td>通用性与兼容性</td><td>显示名称从主数据表一览和目录中获取</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>N-01</td><td>非功能</td><td>通信使用 HTTPS，并信任内部证书颁发机构的证书。API Key 作为机密信息保管，不在界面和日志中显示</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>N-02</td><td>非功能</td><td>连接、等待响应的时间，以及接收缓冲区的大小，与 §8.5 一致</td><td>必须</td><td><span class="status do">P0</span></td></tr>
-        <tr><td>N-03</td><td>非功能</td><td>Zurich 通知时，可以去除个人信息项目后再发送</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
+    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>原式样书要求（v1.2 原文）</th><th style="width:86px">原式样书期数</th><th style="width:130px">IDP 实际优先级</th></tr></thead><tbody><tr><td>G-01</td><td>通用性与兼容性</td><td>设置界面、请求、回写、确认界面、输出的任何地方，都不编写针对主数据表或列的专门处理（即使主数据表或列增加，只需设置即可使用）</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>G-02</td><td>通用性与兼容性</td><td>忽略响应中的未知字段，用字符串接收“会增加”的枚举值，ID 保持字符串处理</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>G-03</td><td>通用性与兼容性</td><td>显示名称从主数据表一览和目录中获取</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>N-01</td><td>非功能</td><td>通信使用 HTTPS，并信任内部证书颁发机构的证书。API Key 作为机密信息保管，不在界面和日志中显示</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>N-02</td><td>非功能</td><td>连接、等待响应的时间，以及接收缓冲区的大小，与 §8.5 一致</td><td>必须</td><td><span class="status do">P0</span></td></tr><tr><td>N-03</td><td>非功能</td><td>Zurich 通知时，可以去除个人信息项目后再发送</td><td>必须</td><td><span class="status do">P0</span></td></tr></tbody></table>
     <footer>本页：通用性与兼容性 G-01～G-03，非功能 N-01～N-03。</footer>
   </section>
   <section class="sheet priority-sheet is-dense is-next-phase">
-    <div class="topline"><div><div class="eyebrow">功能优先级 P1</div><h1>下一期功能｜第 5 期实施</h1><div class="meta">保留已确认的内部延后项，并补入式样书“第 2 期”功能</div></div><div class="page-no">10 / 10</div></div>
-    <div class="lead">P1 统一安排到第 5 期。S-08、E-01 在式样书中标为“必须”，延后需同步对齐范围。</div>
-    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>功能要求（式样书原文）</th><th style="width:86px">式样书区分</th><th style="width:68px">优先级</th></tr></thead><tbody><tr><td>S-08</td><td>设置（标准化组）</td><td>不再使用的列和提示信息（<code>deprecated=true</code>）加上标记显示，在新的设置中不让选择（已有的设置继续运行）</td><td>必须</td><td><span class="status later">P1</span></td></tr>
-        <tr><td>S-09</td><td>设置（标准化组）</td><td>可以在由人确认之后，将 AI 对组设置的建议（<code>POST /v1/groups/suggest</code>）导入到设置中</td><td>第 2 期</td><td><span class="status later">P1</span></td></tr>
-        <tr><td>C-04</td><td>确认界面</td><td>可以通过主数据的检索（<code>POST /v1/masters/search</code>）查找并选择其他候选</td><td>第 2 期</td><td><span class="status later">P1</span></td></tr>
-        <tr><td>E-01</td><td>输出与后续系统</td><td>向后续系统（SFDC）登记时，将确定的记录的 <code>selection</code>（<code>object</code>、<code>recordType</code>、<code>recordId</code>）成对使用。<code>selection</code> 为 <code>null</code> 的主数据表（<code>DRUG</code>）仅用于写入值</td><td>必须</td><td><span class="status later">P1</span></td></tr>
-        <tr><td>E-03</td><td>输出与后续系统</td><td>返回确定的结果（<code>POST /v1/standardizations/{taskId}/feedback</code>）</td><td>第 2 期</td><td><span class="status later">P1</span></td></tr>
-        <tr><td>§4.15</td><td>完成通知（可选）</td><td>任务进入终止状态（<code>SUCCEEDED</code> / <code>FAILED</code> / <code>CANCELLED</code>）时，向 <code>callbackUrl</code> POST 以下请求体。不发送结果本身（收到后请通过 §4.2 获取）。</td><td>可选</td><td><span class="status later">P1</span></td></tr></tbody></table>
-    <footer>P1 共 6 项：S-08、S-09、C-04、E-01、E-03 和可选的完成通知。</footer>
+    <div class="topline"><div><div class="eyebrow">功能优先级 P1</div><h1>延期功能｜IDP 第 5 期实施</h1><div class="meta">原式样书期数与 IDP 实际优先级分列展示</div></div><div class="page-no">10 / 10</div></div>
+    <div class="lead">本页各项 IDP 实际优先级统一为 P1 / 第 5 期。原式样书期数保持各条要求中的原标记。</div>
+    <table class="priority-table"><thead><tr><th style="width:72px">编号</th><th style="width:132px">模块</th><th>原式样书要求（v1.2 原文）</th><th style="width:86px">原式样书期数</th><th style="width:130px">IDP 实际优先级</th></tr></thead><tbody><tr><td>S-08</td><td>设置（标准化组）</td><td>不再使用的列和提示信息（<code>deprecated=true</code>）加上标记显示，在新的设置中不让选择（已有的设置继续运行）</td><td>必须</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>S-09</td><td>设置（标准化组）</td><td>可以在由人确认之后，将 AI 对组设置的建议（<code>POST /v1/groups/suggest</code>）导入到设置中</td><td>第 2 期</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>Q-07</td><td>请求与结束的确认</td><td>使用回退时，可以发送 <code>options.fallback=true</code>（可通过设置切换。第 1 期不发送）</td><td>第 2 期</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>A-08</td><td>结果的反映</td><td><code>groupId</code> 为 <code>FALLBACK</code> 的标准化对象（回退的结果），一定转为人工确认（以 <code>needsReview=true</code> 返回）。使用单据 <code>warnings</code> 中的 <code>FALLBACK_USED</code> 来发现没有设置的单据类型</td><td>第 2 期</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>C-04</td><td>确认界面</td><td>可以通过主数据的检索（<code>POST /v1/masters/search</code>）查找并选择其他候选</td><td>第 2 期</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>E-01</td><td>输出与后续系统</td><td>向后续系统（SFDC）登记时，将确定的记录的 <code>selection</code>（<code>object</code>、<code>recordType</code>、<code>recordId</code>）成对使用。<code>selection</code> 为 <code>null</code> 的主数据表（<code>DRUG</code>）仅用于写入值</td><td>必须</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>E-02</td><td>输出与后续系统</td><td>在数据映射中，可以将写入的值和 <code>selection</code> 对应到输出的项目（也可以将所采用的行的 <code>values</code> 中的列，直接对应到输出的项目）</td><td>必须</td><td><span class="status later">P1 / 第 5 期</span></td></tr><tr><td>E-03</td><td>输出与后续系统</td><td>返回确定的结果（<code>POST /v1/standardizations/{taskId}/feedback</code>）</td><td>第 2 期</td><td><span class="status later">P1 / 第 5 期</span></td></tr></tbody></table>
+    <footer>逐项列出 S-08、S-09、Q-07、A-08、C-04、E-01、E-02、E-03。</footer>
   </section>
-
 <script>
     const storageKey = 'zurich-gap-confirmation-zh'
     const inputs = Array.from(document.querySelectorAll('input, textarea'))

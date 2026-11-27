@@ -924,6 +924,7 @@ const appOptions = {
       ['マイタスク', '我的任务'],
       ['マスタ一覧', 'Master 列表'],
       ['マスタ照合', 'Master照合'],
+      ['案件内の全帳票をまとめて照合します。帳票の追加・削除後は、次回実行時に最新の全帳票で再照合します。', '对案件内全部账票统一照合。账票新增或删除后，下次执行时使用最新全量账票重新照合。'],
       ['マスタ追加', '添加 Master'],
       ['マッピング', '映射'],
       ['メール宛先', '邮件收件人'],
@@ -4955,6 +4956,7 @@ const appOptions = {
       { value: 'preprocess', label: '前処理' },
       { value: 'ocr', label: 'OCR抽出' },
       { value: 'data_mapping', label: 'データマッピング' },
+      { value: 'master_standardization', label: 'マスタ照合' },
       { value: 'ai_verify', label: 'AI検証' },
       { value: 'hitl_gate', label: '目検チェック' },
     ];
@@ -4968,6 +4970,7 @@ const appOptions = {
       },
       ocr: { status: 'ocrStatus', result: 'ocrResult' },
       data_mapping: { status: 'mappingStatus' },
+      master_standardization: { status: 'masterStatus', result: 'masterResult' },
       ai_verify: { status: 'verifyStatus', result: 'verifyResult' },
     };
     const WORKFLOW_NOTIFICATION_HITL_EVENTS = [
@@ -6108,7 +6111,7 @@ const appOptions = {
     }
 
     function getHitlGateBranchConnectTitle(branchKey) {
-      return t(`${getHitlGateActionLabel(branchKey)}：クリックで追加、ドラッグで任意の有効なノードに接続`);
+      return t(`${getHitlGateActionLabel(branchKey)}：クリックで追加、ドラッグで接続`);
     }
 
     function applyJudgmentContextToNode(node, contextValue, force = false) {

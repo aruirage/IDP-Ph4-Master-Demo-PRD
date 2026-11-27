@@ -1150,6 +1150,13 @@ body {
   font-weight: 400;
 }
 
+.master-standardization-description {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 .verify-section-footer {
   display: flex;
   gap: 16px;

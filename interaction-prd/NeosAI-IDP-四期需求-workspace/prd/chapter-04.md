@@ -1,277 +1,1194 @@
-## 第 4 章｜API 契约
+## 第 4 章｜本期接口与主要字段
 
-字段名称、类型和必填性以 [综合主数据名称标准化 API 规格书 v1.2 中文版](/attachments/zurich-standardization-api-v1.2-zh-CN.md) 为准。本章只列 IDP 实际发送或使用的字段，不新增 API 字段。
+本章只列 IDP 本期使用的接口及主要字段。必填条件、完整结构和错误码以客户 API v1.2 式样书为准，不在 PRD 重复维护字段字典。下列接口由 IDP 后端对接，前端调用 IDP 自身服务。
 
-标记说明：`必填` 和 `条件必填` 取自式样书；`可选` 不表示 IDP 不发送；`IDP发送` 只说明实现策略。
+### 4.1 API 设定与组配置
 
-### 4.1 API 调用总览
+| 接口或配置 | 使用时机 | 本期主要数据 |
+| --- | --- | --- |
+| API 连接设定 | 管理员设置并测试连接 | Base URL、API Key、连接状态；认证信息由后端安全保存，不明文回显 |
+| GET /v1/masters | 获取主数据及可配置项目 | schemaVersion、masterTables 中的 masterTable、label、columns、hints；项目的 column 或 hint、label、configuration |
+| GET /v1/catalog | 获取照合方式显示名 | `data.enums.memberMode[].value`、`data.enums.memberMode[].label` |
+| GET /v1/groups/defaults | 导入默认组 | 默认组的 groupId、label、masterTable、members |
+| POST /v1/groups/validate | 保存当前组前校验跨组重复 | 请求包含当前组和其他已保存的有效组；返回每组 valid、errors，以及错误的 memberIndex、relatedGroupId 和 message |
 
-| 模块 | 接口 | IDP阶段 | 调用时机 | 同步性 |
-| --- | --- | --- | --- | --- |
-| 配置 | `GET /v1/masters` | 本期 | 展开「マスタ」或「マスタ項目」下拉 | 同步 |
-| 配置 | `GET /v1/catalog` | 本期 | 展开「マスタ」或「マスタ項目」下拉 | 同步 |
-| 配置 | `GET /v1/groups/defaults` | 本期 | 点击「既定グループ」 | 同步 |
-| 照合执行 | `POST /v1/standardizations` | 本期 | 每次工作流执行到节点时提交案件当前全部文件 | 异步，可由 `waitSeconds` 同步返回 |
-| 照合执行 | `GET /v1/standardizations` | 本期 | 轮询已完成任务 | 同步 |
-| 照合执行 | `GET /v1/standardizations/{taskId}` | 本期 | 任务进入终态或查询状态 | 同步 |
-| 照合执行 | `GET /v1/standardizations/{taskId}/items` | 本期 | `itemsNextCursor` 存在 | 同步 |
-| 照合执行 | `POST /v1/standardizations/{taskId}/cancel` | 本期 | 业务明确中止任务 | 同步 |
-| 人工确认 | `POST /v1/items/standardize` | 本期 | 修改识别值并保存成功后 | 同步 |
-| 运维 | `GET /v1/health` | 按需 | 连接排障或运行状态确认 | 同步 |
-| 后续 | `POST /v1/standardizations/{taskId}/feedback` | 第 5 期 | 本期不调用 | 同步 |
-| 后续 | `POST /v1/masters/search` | 第 5 期 | 本期不调用 | 同步 |
-| 后续 | `POST /v1/groups/suggest` | 第 5 期 | 本期不调用 | 同步 |
+以下 configuration 字段来自 `GET /v1/masters` 响应的 `data.masterTables[].columns[]` 或 `data.masterTables[].hints[]`。
 
-完成通知 `callbackUrl` 在第 5 期接入，本期使用轮询。`GET /v1/health` 不进入本期页面流程。
+| 配置数据 | 本期用途 |
+| --- | --- |
+| groupId、label、masterTable、members | 标识组、显示组名、指定主数据表及字段映射 |
+| 成员的 column 或 hint、mode、field | 指定主数据项目、读取／回写方式及 IDP 字段引用 |
+| `configuration.roleLabel` | 前端直接显示角色 |
+| `configuration.allowedModes` | 限定可选照合方式 |
+| `configuration.canBePrimary` | 后端保存时判断是否存在有效主输入 |
+| sceneIds | IDP 内部适用场景，发送客户 API 前移除 |
+| groupsVersion | 后端生成并随整案请求发送，记录本次使用的配置版本 |
 
-#### 总览时序图
+### 4.2 工作流整案照合
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Admin as 配置管理员
-    participant Settings as IDP设置界面
-    participant IDP as IDP后端
-    participant Zurich as Zurich标准化API
-    participant Operator as OCR经办人
+| 接口 | 调用顺序与用途 |
+| --- | --- |
+| POST /v1/standardizations | 工作流每次执行到节点，提交当时案件全部文件的结果、数据映射结果及有效组；取得 taskId 和状态 |
+| GET /v1/standardizations | 查询已完成任务，按 cursor 继续获取 |
+| GET /v1/standardizations/{taskId} | 获取任务状态和结果 |
+| GET /v1/standardizations/{taskId}/items | 结果含 itemsNextCursor 时继续取齐照合对象 |
+| POST /v1/standardizations/{taskId}/cancel | 需要中止旧任务时请求取消；以后端实际状态为准 |
 
-    rect rgb(245, 248, 255)
-    Note over Admin,Zurich: 设置时
-    Admin->>Settings: 打开主数据设定
-    Admin->>Settings: 展开主数据表或主数据项下拉
-    Settings->>IDP: 请求最新主数据定义
-    IDP->>Zurich: GET /v1/masters
-    Zurich-->>IDP: 主数据表、列、提示信息
-    IDP-->>Settings: 更新可选项
+| 主要字段 | IDP 如何使用 |
+| --- | --- |
+| sceneId、documents、groups、groupsVersion | 提交当前场景、全案单据结果及本次有效组配置 |
+| caseResult、caseFieldConflicts | 使用标准字段时提交数据映射结果及其冲突信息 |
+| taskId、status | 关联本次异步任务；完成后取得完整结果再衔接确认或后续流程 |
+| cursor、itemsNextCursor | 处理任务列表和结果分页，避免遗漏 |
+| items | 当前任务的照合对象结果，交给统一结果处理逻辑 |
 
-    opt 导入默认组
-        Admin->>Settings: 点击「既定グループ」
-        Settings->>IDP: 获取默认组
-        IDP->>Zurich: GET /v1/groups/defaults
-        Zurich-->>IDP: 默认组模板
-        IDP-->>Settings: 显示默认组差异
-    end
+请求按当前全案快照提交。Task 状态表示本次请求的处理结果，后续文件到达时由下一次工作流执行提交最新全案。
 
-    Admin->>Settings: 点击「保存」
-    Settings->>Settings: 执行前端草稿检查
-    Settings->>IDP: 通过后提交保存
-    alt 存在 errors
-        IDP-->>Settings: 显示错误，不保存
-    else 无错误
-        IDP->>IDP: 保存组配置和 groupsVersion
-        IDP-->>Settings: 保存成功
-    end
-    end
+### 4.3 OCR 确认与重新照合
 
-    rect rgb(248, 250, 246)
-    Note over IDP,Operator: 每个案件
-    IDP->>IDP: OCR抽出完成并冻结批次快照
-    IDP->>Zurich: POST /v1/standardizations<br/>案件全部单据＋组设置
-    alt waitSeconds 内完成
-        Zurich-->>IDP: status=SUCCEEDED＋结果
-    else 未完成
-        Zurich-->>IDP: status=PENDING/PROCESSING＋taskId
-        IDP->>IDP: 保存 taskId、clientRequestId、pollAfterMs
-        loop 每 5～10 秒
-            IDP->>Zurich: GET /v1/standardizations?cursor=...
-            Zurich-->>IDP: 已完成 tasks＋nextCursor
-        end
-        IDP->>Zurich: GET /v1/standardizations/{taskId}
-        Zurich-->>IDP: 任务、账票、items、caseReview
-        opt items 超过一页
-            IDP->>Zurich: GET /v1/standardizations/{taskId}/items?cursor=...
-            Zurich-->>IDP: 后续 items＋nextCursor
-        end
-    end
+#### 接口与调用顺序
 
-    alt needsReview=false
-        IDP->>IDP: 按 master.values 和 targets 自动回填
-    else needsReview=true
-        IDP-->>Operator: 进入 OCR抽出确认
-        Operator->>IDP: 选择候选或确认结果
-        IDP->>IDP: 按 values 和 targets 回填
-    end
+| 顺序 | 接口 | 调用时机 | 用途 |
+| --- | --- | --- | --- |
+| 1 | `GET /v1/standardizations/{taskId}` | 工作流完成整案请求后，进入确认页或恢复确认页 | 获取任务状态、主要照合结果及 `itemsNextCursor` |
+| 2 | `GET /v1/standardizations/{taskId}/items?cursor=...` | `itemsNextCursor` 或上一页 `nextCursor` 存在时 | 分页取齐当前任务的全部照合对象 |
+| 3 | `POST /v1/items/standardize` | 操作员修改照合输入并点击单项或一括「再照合」 | 使用页面缓存最新值重新照合被修改字段所属的 item，同步返回新结果 |
+| 4 | `POST /v1/standardizations` | 修改案件标准字段，或单据追加、替换、重新处理导致整案输入变化 | 使用最新全案数据重新提交请求，不用于单据字段的局部重新照合 |
 
-    opt 修改识别值后重新照合
-        Operator->>IDP: 修改并保存当前 item 的输入字段
-        IDP->>Zurich: POST /v1/items/standardize
-        Zurich-->>IDP: 当前 item 的新结果
-        IDP-->>Operator: 更新 master、candidates、targets
-    end
+普通候选确认、保留 OCR 原值和选择已有候选不需要调用 Zurich 接口。确认结果由 IDP 保存到自身的确认记录中。
 
-    opt 第 2 期
-        IDP->>Zurich: POST /v1/standardizations/{taskId}/feedback
-        Zurich-->>IDP: 人工确定结果已受理
-    end
-    end
+IDP 以 `groupId + source` 关联确认项目及结果。API 返回的 `fieldId` 仅作为兼容字段由后端接收和保存。
+
+#### 重新照合调用规则
+
+重新照合使用 `POST /v1/items/standardize`，主要提交 `ref`、`masterTable` 和修改后的 `inputs`。有原结果时，`ref` 引用原 `taskId` 和 `itemId`。原本为空、尚无照合对象时，按式样书使用 `groupId` 和 `source` 引用配置及位置。
+
+修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，其他输入从原结果继承。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。
+
+
+
+#### 主要字段
+
+| 结果字段 | 本期用途 |
+| --- | --- |
+| `status` | 用于识别任务和结果状态，不作为确认页按场景切换结构的依据 |
+| itemId、groupId | 关联照合对象及其配置组 |
+| inputs | 照合输入及原值；重新照合时继承未修改的输入 |
+| needsReview | 决定是否人工确认；缺失或 null 按需确认处理 |
+| shouldWriteBack | 决定是否回写；缺失或 null 不回写 |
+| `master` | 自动采用或作为初始值的主数据行；使用 `master.values` 回写 |
+| `targets` | 回写位置；按列将所采用行的值写入对应位置 |
+| `masterDataMatches` | 统一候选列表；使用 label、type、confidence、primary 以及每项自己的 master、targets，不由前端按场景重新拼装 |
+| reviewReason、remarks | 确认原因和其他信息，有内容则展示，无内容则隐藏 |
+
+### 4.4 公共处理
+
+- code、msg、requestId 用于判断接口成功与否、提示错误和后端排障；业务任务状态另看 status。
+- 保存校验或运行接口失败时保留当前配置或字段值，提示错误并按对应流程重试，不把失败当作成功。
+- API Key、请求快照、默认组来源及版本信息由后端维护。前端只展示业务需要的状态和内容。
+
+
+### 4.5 分模块调用示例
+
+以下示例统一使用展开缩进；每个例子只表达一个调用场景。客户接口均携带已配置的认证头，API Key 不在示例中展示。
+
+#### API 设定｜连接测试
+
+本期连接测试由 IDP 后端调用需要认证的主数据一览接口，验证地址和认证是否可用。请求及响应示例见下一节，认证按式样书通用认证规则携带。IDP 内部测试接口结构后续由开发定义。
+
+```http
+GET /v1/masters
 ```
 
-### 4.2 公共响应与对象
+成功取得合法响应时显示连接成功；认证失败、网络异常或响应错误时显示连接失败，不覆盖已保存配置。
 
-#### 公共响应 `code / msg / requestId / warnings / data`
+#### 组配置｜获取可配置项目
 
-| 字段 | 类型 | 含义 |
-| --- | --- | --- |
-| `code` | Integer | 成功为 0，失败时与 HTTP 状态码一致 |
-| `msg` | String | 错误或提示说明 |
-| `requestId` | String | 排障编号 |
-| `warnings` | Object[] | 响应警告。公共响应和单据警告含 `code`、`message`；任务级 `data.warnings[]` 在组相关警告时还含 `groupId` |
-| `data` | Object | 当前接口业务数据 |
+展开主数据下拉，取得角色及可选方式。
 
-#### 公共对象
+式样书 §4.7 摘录。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
-- `Group`：`groupId`必填、`label`可选、`masterTable`必填、`members`必填。
-- `Member`：`column` 或 `hint`条件必填、`mode`必填、`field`必填。
-- `Member.field`：`type`必填，`documentTypeId`、`fieldName`、`tableName`、`columnName`按字段类型条件必填。
-- `Document`：`documentId`、`documentTypeId`、`format`必填；`result` 或 `fields`按格式条件必填。
-- `Item`：`itemId`、`groupId`、`masterTable`、`source`、`inputs`、`targets`、`status`、`needsReview` 为核心字段；`master`、`proposedName`、`confidence`、`candidates`、`reviewReasons`、`notices`、`reason`、`notesForAssessor`、`alternatives`、`splitItems`、`webEvidence` 按结果使用。
-- `caseReview` 是任务级字段，位于任务结果的 `data.caseReview`，不属于单个 `Item`。
+**请求**
 
-#### 字段归属
+```http
+GET /v1/masters
+```
 
-| 名称 | 来源 | 含义 |
-| --- | --- | --- |
-| `sceneId` | Zurich 请求字段，值来自 IDP 业务场景 | 当前业务场景 ID |
-| `groupsVersion` | IDP 生成，作为 Zurich 请求字段发送 | 组配置整体版本。Zurich 在 `data.versions.groups` 中回显 |
-| `sourceDefaultGroupId` | IDP 内部字段 | IDP 保存的 Zurich 默认组来源 ID，不发送给 Zurich |
-| `masterStatus`、`masterResult` | IDP 工作流节点输出变量 | 节点处理状态和业务结果，不是 Zurich 返回字段 |
-| 组快照、组变更履历 | IDP 内部数据 | 用于版本留痕和审计，不是 Zurich 返回字段 |
+无请求体。
 
-### 4.3 配置接口
+**响应**
 
-#### `GET /v1/masters`
+<details>
+<summary>展开 JSON 示例</summary>
 
-调用条件：展开「マスタ」或「マスタ項目」下拉。请求无业务参数。
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "schemaVersion": "2026-11-25",
+    "masterTables": [
+      {
+        "masterTable": "DISEASE",
+        "label": "傷病名マスタ",
+        "columns": [
+          {
+            "column": "CLM_ICD10Mst__c.NAME",
+            "label": "傷病名",
+            "configuration": {
+              "roleLabel": "主入力・書き戻し可",
+              "allowedModes": [
+                "INPUT",
+                "OUTPUT",
+                "INPUT_OUTPUT"
+              ],
+              "canBePrimary": true
+            }
+          },
+          {
+            "column": "CLM_ICD10Mst__c.ICD10__C",
+            "label": "ICD10 コード",
+            "configuration": {
+              "roleLabel": "補助入力・書き戻し可",
+              "allowedModes": [
+                "INPUT",
+                "OUTPUT",
+                "INPUT_OUTPUT"
+              ],
+              "canBePrimary": false
+            }
+          }
+        ],
+        "hints": [
+          {
+            "hint": "sex",
+            "label": "性別",
+            "deprecated": false,
+            "configuration": {
+              "roleLabel": "ヒント（照合に使うだけ）",
+              "allowedModes": [
+                "INPUT"
+              ],
+              "canBePrimary": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-| IDP读取并使用的返回字段（式样书字段子集） | 类型 | 必填性 | 用途 |
-| --- | --- | --- | --- |
-| `data.schemaVersion` | String | 返回 | 判断 schema 是否更新 |
-| `data.masterTables[]` | Object[] | 返回 | 主数据表列表 |
-| `data.masterTables[].masterTable` | String | 返回 | 组引用的主数据表键 |
-| `data.masterTables[].label` | String | 返回 | 主数据表显示名 |
-| `data.masterTables[].enabled` | Boolean | 返回 | 是否可用于新配置 |
-| `data.masterTables[].deprecated` | Boolean | 返回 | 废弃标记，本期不使用 |
-| `data.masterTables[].columns[]` | Object[] | 返回 | 该主数据表的列定义 |
-| `data.masterTables[].columns[].column` | String | 返回 | 列键 |
-| `data.masterTables[].columns[].label` | String | 返回 | 列显示名 |
-| `data.masterTables[].columns[].inputRole` | String | 返回 | `PRIMARY`、`SUPPORTING`、`NONE` |
-| `data.masterTables[].columns[].writable` | Boolean | 返回 | 是否可回填 |
-| `data.masterTables[].columns[].deprecated` | Boolean | 返回 | 废弃标记，本期不使用 |
-| `data.masterTables[].hints[]` | Object[] | 返回 | 该主数据表的 hint 定义 |
-| `data.masterTables[].hints[].hint` | String | 返回 | hint 键 |
-| `data.masterTables[].hints[].label` | String | 返回 | hint 显示名 |
-| `data.masterTables[].hints[].deprecated` | Boolean | 返回 | 废弃标记，本期不使用 |
+</details>
 
-#### `GET /v1/catalog`
+**IDP 处理：** 显示 label 和 roleLabel，按 allowedModes 提供选项。
 
-调用条件：展开「マスタ」或「マスタ項目」下拉。请求无业务参数。
+#### 组配置｜获取方式名称
 
-| IDP读取并使用的返回字段（式样书字段子集） | 类型 | 必填性 | 用途 |
-| --- | --- | --- | --- |
-| `data.catalogVersion` | String | 返回 | 枚举版本 |
-| `data.enums` | Object | 返回 | 枚举值和显示名 |
+取得照合方式的日文显示名。
 
-#### `GET /v1/groups/defaults`
+式样书 §4.10 摘录。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
-调用条件：点击「既定グループ」。请求无业务参数。
+**请求**
 
-| IDP读取并使用的返回字段（式样书字段子集） | 类型 | 必填性 | 用途 |
-| --- | --- | --- | --- |
-| `data.version` | String | 返回 | 默认组版本 |
-| `data.groups[]` | Object[] | 返回 | 默认组模板 |
-| `data.groups[].groupId` | String | 返回 | Zurich 默认组 ID |
-| `data.groups[].label` | String | 返回 | 组名 |
-| `data.groups[].masterTable` | String | 返回 | 主数据表键 |
-| `data.groups[].members[]` | Object[] | 返回 | 组成员 |
+```http
+GET /v1/catalog
+```
 
-#### 组配置校验
+无请求体。
 
-保存时由 IDP 前端检查照合组草稿，通过后提交保存。配置服务负责保存和版本记录，不重复执行前端控件的业务校验。四期配置流程不调用 Zurich 的 `POST /v1/groups/validate`。
+**响应**
 
-### 4.4 照合执行接口
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "catalogVersion": "2026-11-25",
+    "enums": {
+      "memberMode": [
+        {
+          "value": "INPUT",
+          "label": "読み取り（照合に使う）"
+        },
+        {
+          "value": "OUTPUT",
+          "label": "書き戻し"
+        },
+        {
+          "value": "INPUT_OUTPUT",
+          "label": "読み取り・書き戻し"
+        }
+      ]
+    }
+  }
+}
+```
 
-#### `POST /v1/standardizations`
+**IDP 处理：** 按 value 关联选项，显示 label。
 
-调用条件：每次工作流执行到主数据照合节点，且本次待提交案件文件均已完成 OCR 抽出和数据映射。
+#### 组配置｜导入默认组
 
-| 请求字段 | 类型 | 必填性 | IDP发送策略 |
-| --- | --- | --- | --- |
-| `clientRequestId` | String | 可选 | 每次请求发送，用于幂等 |
-| `caseNo` | String | 必填 | IDP 案件编号 |
-| `sceneId` | String | 可选 | 当前业务场景 ID |
-| `groups` | Object[] | 可选 | IDP 有有效组时发送 |
-| `groupsVersion` | String | 可选 | 发送当前保存版本 |
-| `waitSeconds` | Integer | 可选 | IDP 设置同步等待秒数 |
-| `options.fallback` | Boolean | 可选 | v1.2 默认 `false`，fallback 属于第 2 期；本期不发送 `true` |
-| `options.maxCandidates` | Integer | 可选 | 默认值 5，可设置范围 1 至 10，候选数包含 `isMaster=true` 的主数据行 |
-| `caseResult` | Object | 可选 | 案件标准字段容器，组使用 `CASE_FIELD` 时发送 |
-| `caseResult.fields[]` | Object[] | 条件必填 | 标准字段数组，`CASE_FIELD.fieldName` 与其中 `name` 对应 |
-| `caseResult.fields[].name` | String | 条件必填 | 案件标准字段名 |
-| `caseResult.fields[].value` | JSON value | 条件必填 | 案件标准字段值，按 IDP 输出原样发送 |
-| `documents` | Object[] | 必填 | 当前批次账票 |
-| `documents[].documentId` | String | 必填 | 逻辑文件 ID |
-| `documents[].documentTypeId` | String | 必填 | 账票类别 ID |
-| `documents[].format` | String | 必填 | IDP 使用 `IDP_RESULT_JSON` |
-| `documents[].result` | Object | 条件必填 | `format=IDP_RESULT_JSON` 时必填 |
+点击既定グループ，获取模板后载入草稿。
 
-`FIELDS` 和 `documents[].fields` 属于式样书能力，本期 IDP 不发送。
+式样书 §4.8 摘录。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
-本接口不传输原始文件的二进制内容。`documents[].result` 发送每张账票完整的 OCR RESULT JSON，包含 `fields`、`table_list` 和 OCR 状态信息。请求发送当前批次内的全部账票；组只决定哪些账票项目参与照合，不用于裁剪 `documents[].result`。
+**请求**
 
-IDP读取并使用的返回字段（式样书字段子集）：`data.taskId`、`data.clientRequestId`、`data.caseNo`、`data.status`、`data.queue`、`data.progress`、`data.pollAfterMs`、`data.versions`、`data.summary`、`data.warnings`、`data.failure`、`data.documents`、`data.items`、`data.itemsNextCursor`、`data.caseReview`。
+```http
+GET /v1/groups/defaults
+```
 
-#### `GET /v1/standardizations`
+无请求体。
 
-| 查询参数 | 类型 | 必填性 | IDP发送策略 |
-| --- | --- | --- | --- |
-| `finishedAfter` | Long | 条件必填 | 首次查询发送 |
-| `cursor` | String | 条件必填 | 第二次起发送上次 `nextCursor` |
-| `limit` | Integer | 可选 | IDP 使用 100 |
+**响应**
 
-IDP读取并使用的返回字段（式样书字段子集）：`data.tasks[].taskId`、`data.tasks[].clientRequestId`、`data.tasks[].caseNo`、`data.tasks[].status`、`data.tasks[].completedAt`、`data.nextCursor`。
+<details>
+<summary>展开 JSON 示例</summary>
 
-#### `GET /v1/standardizations/{taskId}`
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "version": "2026-11-19",
+    "groups": [
+      {
+        "groupId": "DEFAULT:HG02-OPE",
+        "label": "手術（診療明細書2）",
+        "masterTable": "OPERATION",
+        "members": [
+          {
+            "column": "CLM_OperationMst__c.NAME",
+            "mode": "INPUT_OUTPUT",
+            "field": {
+              "type": "TABLE_COLUMN",
+              "documentTypeId": "20001",
+              "tableName": "手術情報",
+              "columnName": "手術名"
+            }
+          },
+          {
+            "column": "CLM_OperationMst__c.KCODE__C",
+            "mode": "INPUT",
+            "field": {
+              "type": "TABLE_COLUMN",
+              "documentTypeId": "20001",
+              "tableName": "手術情報",
+              "columnName": "手術コード"
+            }
+          },
+          {
+            "hint": "operationDate",
+            "mode": "INPUT",
+            "field": {
+              "type": "TABLE_COLUMN",
+              "documentTypeId": "20001",
+              "tableName": "手術情報",
+              "columnName": "手術日"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-| Path/查询参数 | 类型 | 必填性 | IDP使用方式 |
-| --- | --- | --- | --- |
-| `taskId` | String | 必填 | Path 参数 |
-| `includeItems` | Boolean | 可选 | IDP 发送 `true` |
+</details>
 
-IDP读取并使用的返回字段（式样书字段子集）：完整 `data` 任务对象，使用 `data.status`、`data.documents`、`data.items`、`data.itemsNextCursor`、`data.caseReview`、`data.warnings` 驱动流程和展示。
+**IDP 处理：** 默认组按已保存的来源组 ID 与本地组匹配，不使用组名匹配。来源 ID 已对应时在当前组内覆盖更新，未对应时追加新组。首次导入时，适用场景和 IDP 字段映射均置空。后续组内覆盖时，保留原适用场景。主数据项目和字段名称完全一致的成员保留原 IDP 字段映射，名称或字段类型变化时只清空该成员字段。保存前仍需完整校验。
 
-#### `GET /v1/standardizations/{taskId}/items`
+#### 组配置｜保存校验
 
-| Path/查询参数 | 类型 | 必填性 | IDP使用方式 |
-| --- | --- | --- | --- |
-| `taskId` | String | 必填 | Path 参数 |
-| `cursor` | String | 可选 | 存在后续页时发送 |
-| `limit` | Integer | 可选 | IDP 使用 100 |
+保存当前组时，请求包含当前组和其他已保存的有效组，用于检查跨组重复。以下展示当前组通过校验的结果；跨组重复时返回 FIELD_IN_OTHER_GROUP 并阻止当前组保存。
 
-IDP读取并使用的返回字段（式样书字段子集）：`data.items[]`、`data.nextCursor`。
+请求按 §4.9 规则 mock，响应为成功结构示意；实际 groupId 与提交组对应。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
-#### `POST /v1/standardizations/{taskId}/cancel`
+**请求**
 
-请求只有 Path 参数 `taskId`，无请求体。IDP读取并使用的返回字段（式样书字段子集）：`data.status`。
+```http
+POST /v1/groups/validate
+```
 
-### 4.5 人工确认与重新照合接口
+<details>
+<summary>展开 JSON 示例</summary>
 
-#### `POST /v1/items/standardize`
+```json
+{
+  "groups": [
+    {
+      "groupId": "DEFAULT:HG02-OPE",
+      "label": "手術（診療明細書2）",
+      "masterTable": "OPERATION",
+      "members": [
+        {
+          "column": "CLM_OperationMst__c.NAME",
+          "mode": "INPUT_OUTPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術名"
+          }
+        },
+        {
+          "column": "CLM_OperationMst__c.KCODE__C",
+          "mode": "INPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術コード"
+          }
+        },
+        {
+          "hint": "operationDate",
+          "mode": "INPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術日"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
-| 请求字段 | 类型 | 必填性 | IDP发送策略 |
-| --- | --- | --- | --- |
-| `clientRequestId` | String | 可选 | IDP 发送 |
-| `caseNo` | String | 可选 | IDP 发送用于审计 |
-| `ref` | Object | 可选 | 原任务与 item 的引用容器 |
-| `ref.taskId` | String | 条件必填 | 指定 `ref` 时发送 |
-| `ref.itemId` | String | 条件必填 | 指定 `ref` 时发送 |
-| `masterTable` | String | 必填 | 当前 item 的主数据表 |
-| `inputs[]` | Object[] | 必填 | 修改后的输入 |
-| `inputs[].column` | String | 条件必填 | 与 `hint` 二选一 |
-| `inputs[].hint` | String | 条件必填 | 与 `column` 二选一 |
-| `inputs[].value` | String | 必填 | 修改后的值 |
-| `targets` | Object | 可选 | IDP 有明确 targets 时发送 |
-| `options.timeoutSeconds` | Integer | 可选 | Zurich 重新照合处理时限，5～30 秒，默认 30 秒 |
+</details>
 
-IDP读取并使用的返回字段（式样书字段子集）：`data.itemId`、`data.groupId`、`data.masterTable`、`data.source`、`data.inputs`、`data.targets`、`data.status`、`data.needsReview`、`data.master`、`data.proposedName`、`data.candidates`、`data.reviewReasons`、`data.notices`、`data.reason`、`data.notesForAssessor`、`data.alternatives`、`data.splitItems`、`data.ref`。
+**响应**
 
-该接口不发送文件、`documents` 或完整 OCR 结果。它只发送原任务引用、主数据表和修改过的输入字段。接口以 item 为执行单位，同一 item 的多个修改字段可以放入同一个 `inputs[]`；不同 item 需要分别调用。`mode` 不随请求发送，由原任务组快照决定字段用途。重新照合不创建任务，不重跑组，也不修改批次任务状态。
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "groups": [
+      {
+        "groupId": "HE03-DIS-1",
+        "valid": true,
+        "errors": []
+      }
+    ]
+  }
+}
+```
+
+**IDP 处理：** 存在错误则停止保存，Toast 提示占用组并保留草稿。
+
+#### 工作流｜发起整案照合
+
+工作流执行到节点，以当时全案数据提交；示例仅保留第一组和第一份单据。
+
+式样书 §4.1 摘录。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+POST /v1/standardizations
+```
+
+<details>
+<summary>展开 JSON 示例</summary>
+
+```json
+{
+  "clientRequestId": "CLAIM-20261118000123-v1-1",
+  "caseNo": "CLAIM-20261118000123",
+  "sceneId": "1001",
+  "groupsVersion": "2026-11-19-01",
+  "caseResult": {
+    "fields": [
+      {
+        "name": "性別",
+        "value": "女"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "groupId": "HG02-OPE",
+      "label": "手術",
+      "masterTable": "OPERATION",
+      "members": [
+        {
+          "column": "CLM_OperationMst__c.NAME",
+          "mode": "INPUT_OUTPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術名"
+          }
+        },
+        {
+          "column": "CLM_OperationMst__c.KCODE__C",
+          "mode": "INPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術コード"
+          }
+        },
+        {
+          "hint": "operationDate",
+          "mode": "INPUT",
+          "field": {
+            "type": "TABLE_COLUMN",
+            "documentTypeId": "20001",
+            "tableName": "手術情報",
+            "columnName": "手術日"
+          }
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "documentId": "991243705301",
+      "documentTypeId": "20001",
+      "documentTypeName": "診療明細書2",
+      "docCode": "HG02-001",
+      "format": "IDP_RESULT_JSON",
+      "result": {
+        "fields": [
+          {
+            "name": "帳票ID",
+            "value": "HG02-001",
+            "confidence": 1.0,
+            "needReview": 0
+          },
+          {
+            "name": "病院住所",
+            "value": "東京都〇〇区〇〇町1-2-3",
+            "confidence": 0.95,
+            "needReview": 0
+          },
+          {
+            "name": "診療科",
+            "value": "循環器内科",
+            "confidence": 0.98,
+            "needReview": 0
+          }
+        ],
+        "table_list": [
+          {
+            "tableName": "手術情報",
+            "table_fields": [
+              [
+                {
+                  "name": "手術名",
+                  "value": "経皮的冠動脈形成術（その他のもの）",
+                  "confidence": 0.93,
+                  "needReview": 0
+                },
+                {
+                  "name": "手術日",
+                  "value": "2026-10-02",
+                  "confidence": 0.99,
+                  "needReview": 0
+                },
+                {
+                  "name": "手術コード",
+                  "value": "K5463",
+                  "confidence": 0.96,
+                  "needReview": 0
+                }
+              ]
+            ]
+          },
+          {
+            "tableName": "薬剤情報",
+            "table_fields": [
+              [
+                {
+                  "name": "商品名",
+                  "value": "ティーエスワン配合カプセルT20 1C",
+                  "confidence": 0.91,
+                  "needReview": 0
+                },
+                {
+                  "name": "回数",
+                  "value": "28",
+                  "confidence": 0.97,
+                  "needReview": 0
+                },
+                {
+                  "name": "ATC分類",
+                  "value": "",
+                  "confidence": null,
+                  "needReview": 0
+                },
+                {
+                  "name": "薬効分類",
+                  "value": "",
+                  "confidence": null,
+                  "needReview": 0
+                },
+                {
+                  "name": "薬価基準コード",
+                  "value": "",
+                  "confidence": null,
+                  "needReview": 0
+                }
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "taskId": "MS-20261118-7Q3K9D",
+    "status": "PENDING",
+    "pollAfterMs": 5000
+  }
+}
+```
+
+**IDP 处理：** 保存 taskId；未完成时继续等待。后续工作流执行时重新提交最新全案数据。
+
+#### 工作流｜获取已结束任务
+
+后端定期获取结束任务，第二次起带上次返回的 nextCursor。
+
+响应为式样书 §4.4 原例；请求游标为占位 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+GET /v1/standardizations?cursor=c-previous&limit=100
+```
+
+无请求体。
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-20261118-000141",
+  "warnings": [],
+  "data": {
+    "tasks": [
+      {
+        "taskId": "MS-20261118-7Q3K9D",
+        "clientRequestId": "CLAIM-20261118000123-v1-1",
+        "caseNo": "CLAIM-20261118000123",
+        "status": "SUCCEEDED",
+        "completedAt": 1794963681300
+      }
+    ],
+    "nextCursor": "c-000000001794963681300-7Q3K9D"
+  }
+}
+```
+
+**IDP 处理：** 保存 nextCursor，再按 taskId 获取完整结果。
+
+#### 工作流与 OCR 确认｜取得照合结果
+
+任务完成后，取得供确认页使用的结果。
+
+式样书 §4.2 摘录。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+GET /v1/standardizations/MS-20261118-7Q3K9D
+```
+
+无请求体。
+
+**响应**
+
+<details>
+<summary>展开 JSON 示例</summary>
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "taskId": "MS-20261118-7Q3K9D",
+    "status": "SUCCEEDED",
+    "items": [
+      {
+        "itemId": "ope1",
+        "fieldId": "fd-9c1e5a20",
+        "groupId": "HG02-OPE",
+        "needsReview": false,
+        "shouldWriteBack": true,
+        "masterDataMatches": [
+          {
+            "type": "recommended",
+            "label": "マスタ推奨",
+            "value": "経皮的冠動脈形成術（その他のもの）",
+            "confidence": 100.0,
+            "primary": true,
+            "master": {
+              "masterTable": "OPERATION",
+              "object": "CLM_OperationMst__c",
+              "masterId": "a0V000000000000301",
+              "displayName": "経皮的冠動脈形成術",
+              "values": {
+                "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+                "CLM_OperationMst__c.KCODE__C": "K546-00",
+                "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）"
+              },
+              "active": true,
+              "selection": {
+                "object": "CWF_OperationMstAlias__c",
+                "recordType": "ALIAS",
+                "recordId": "a0W000000000000301",
+                "name": "経皮的冠動脈形成術（その他のもの）"
+              }
+            },
+            "targets": {
+              "CLM_OperationMst__c.NAME": {
+                "type": "TABLE_CELL",
+                "documentId": "991243705301",
+                "tableName": "手術情報",
+                "tableIndex": 0,
+                "rowIndex": 0,
+                "columnName": "手術名",
+                "columnIndex": 0
+              }
+            }
+          },
+          {
+            "type": "candidate",
+            "label": "マスタ候補",
+            "value": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）",
+            "confidence": 88.4,
+            "primary": true,
+            "master": {
+              "masterTable": "OPERATION",
+              "object": "CLM_OperationMst__c",
+              "masterId": "a0V000000000000301",
+              "displayName": "経皮的冠動脈形成術",
+              "values": {
+                "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+                "CLM_OperationMst__c.KCODE__C": "K546-00",
+                "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
+              },
+              "active": true,
+              "selection": {
+                "object": "CWF_OperationMstAlias__c",
+                "recordType": "ALIAS",
+                "recordId": "a0W000000000000302",
+                "name": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
+              }
+            },
+            "targets": {
+              "CLM_OperationMst__c.NAME": {
+                "type": "TABLE_CELL",
+                "documentId": "991243705301",
+                "tableName": "手術情報",
+                "tableIndex": 0,
+                "rowIndex": 0,
+                "columnName": "手術名",
+                "columnIndex": 0
+              }
+            }
+          },
+          {
+            "type": "candidate",
+            "label": "マスタ候補",
+            "value": "経皮的冠動脈形成術（不安定狭心症に対するもの）",
+            "confidence": 87.9,
+            "primary": true,
+            "master": {
+              "masterTable": "OPERATION",
+              "object": "CLM_OperationMst__c",
+              "masterId": "a0V000000000000301",
+              "displayName": "経皮的冠動脈形成術",
+              "values": {
+                "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+                "CLM_OperationMst__c.KCODE__C": "K546-00",
+                "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
+              },
+              "active": true,
+              "selection": {
+                "object": "CWF_OperationMstAlias__c",
+                "recordType": "ALIAS",
+                "recordId": "a0W000000000000303",
+                "name": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
+              }
+            },
+            "targets": {
+              "CLM_OperationMst__c.NAME": {
+                "type": "TABLE_CELL",
+                "documentId": "991243705301",
+                "tableName": "手術情報",
+                "tableIndex": 0,
+                "rowIndex": 0,
+                "columnName": "手術名",
+                "columnIndex": 0
+              }
+            }
+          },
+          {
+            "type": "candidate",
+            "label": "マスタ候補",
+            "value": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+            "confidence": 80.2,
+            "primary": true,
+            "master": {
+              "masterTable": "OPERATION",
+              "object": "CLM_OperationMst__c",
+              "masterId": "a0V000000000000311",
+              "displayName": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+              "values": {
+                "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+                "CLM_OperationMst__c.KCODE__C": "K548-00",
+                "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
+              },
+              "active": true,
+              "selection": {
+                "object": "CWF_OperationMstAlias__c",
+                "recordType": "ALIAS",
+                "recordId": "a0W000000000000311",
+                "name": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
+              }
+            },
+            "targets": {
+              "CLM_OperationMst__c.NAME": {
+                "type": "TABLE_CELL",
+                "documentId": "991243705301",
+                "tableName": "手術情報",
+                "tableIndex": 0,
+                "rowIndex": 0,
+                "columnName": "手術名",
+                "columnIndex": 0
+              }
+            }
+          },
+          {
+            "type": "candidate",
+            "label": "マスタ候補",
+            "value": "経皮的冠動脈ステント留置術（その他のもの）",
+            "confidence": 76.5,
+            "primary": true,
+            "master": {
+              "masterTable": "OPERATION",
+              "object": "CLM_OperationMst__c",
+              "masterId": "a0V000000000000312",
+              "displayName": "経皮的冠動脈ステント留置術",
+              "values": {
+                "CLM_OperationMst__c.NAME": "経皮的冠動脈ステント留置術",
+                "CLM_OperationMst__c.KCODE__C": "K549-00",
+                "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈ステント留置術（その他のもの）"
+              },
+              "active": true,
+              "selection": {
+                "object": "CWF_OperationMstAlias__c",
+                "recordType": "ALIAS",
+                "recordId": "a0W000000000000312",
+                "name": "経皮的冠動脈ステント留置術（その他のもの）"
+              }
+            },
+            "targets": {
+              "CLM_OperationMst__c.NAME": {
+                "type": "TABLE_CELL",
+                "documentId": "991243705301",
+                "tableName": "手術情報",
+                "tableIndex": 0,
+                "rowIndex": 0,
+                "columnName": "手術名",
+                "columnIndex": 0
+              }
+            }
+          }
+        ],
+        "reviewReason": null,
+        "remarks": [
+          {
+            "label": "照合根拠",
+            "value": "読取値が、画面で選べる別名「経皮的冠動脈形成術（その他のもの）」と完全に一致し、帳票の手術コードとも矛盾しないため確定した。"
+          }
+        ]
+      }
+    ],
+    "itemsNextCursor": null
+  }
+}
+```
+
+</details>
+
+**IDP 处理：** 按 needsReview 和 shouldWriteBack 分流，候选及原因直接交确认页显示。
+
+#### 工作流｜取齐分页结果
+
+itemsNextCursor 非空时继续获取；示例为空末页。
+
+按式样书 §4.3 规则 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+GET /v1/standardizations/MS-20261118-7Q3K9D/items?cursor=cursor-example&limit=100
+```
+
+无请求体。
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "items": [],
+    "nextCursor": null
+  }
+}
+```
+
+**IDP 处理：** 汇总所有页，nextCursor 为 null 后结束取数。
+
+#### 工作流｜取消旧任务
+
+案件中止或重新请求前，需要取消未结束的旧任务。
+
+按式样书 §4.5 规则 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+POST /v1/standardizations/MS-20261118-7Q3K9D/cancel
+```
+
+无请求体。
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "taskId": "MS-20261118-7Q3K9D",
+    "status": "CANCELLED"
+  }
+}
+```
+
+**IDP 处理：** 取消结果不采用；若任务已完成，按接口实际状态处理。
+
+#### OCR 确认｜修改输入后重新照合
+
+操作员修改伤病名，点击再照合，直接提交缓存最新值。
+
+请求为式样书 §4.6 原例；响应为 §4.6 规定的对象结构 mock，业务值仅示意，非该输入的真实匹配结果。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+
+**请求**
+
+```http
+POST /v1/items/standardize
+```
+
+```json
+{
+  "clientRequestId": "CLAIM-20261118000123-dis2-r1",
+  "caseNo": "CLAIM-20261118000123",
+  "ref": {
+    "taskId": "MS-20261118-7Q3K9D",
+    "itemId": "dis2"
+  },
+  "masterTable": "DISEASE",
+  "inputs": [
+    {
+      "column": "CLM_ICD10Mst__c.NAME",
+      "value": "乳房下内側部乳癌",
+      "source": {
+        "type": "FIELD",
+        "documentId": "991243705302",
+        "fieldName": "傷病名2",
+        "fieldIndex": 4
+      }
+    }
+  ],
+  "options": {
+    "allowWebSearch": false,
+    "timeoutSeconds": 30
+  }
+}
+```
+
+**响应**
+
+<details>
+<summary>展开 JSON 示例</summary>
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "requestId": "req-example",
+  "data": {
+    "itemId": "restandardized-example",
+    "fieldId": "fd-9c1e5a20",
+    "groupId": "HG02-OPE",
+    "needsReview": false,
+    "shouldWriteBack": true,
+    "master": {
+      "masterTable": "OPERATION",
+      "object": "CLM_OperationMst__c",
+      "masterId": "a0V000000000000301",
+      "displayName": "経皮的冠動脈形成術",
+      "values": {
+        "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+        "CLM_OperationMst__c.KCODE__C": "K546-00",
+        "CLM_OperationMst__c.KCODEOPNAME__C": "経皮的冠動脈形成術（その他のもの）",
+        "CLM_OperationMst__c.KANA1__C": "ケイヒテキカンドウミャクケイセイジュツ",
+        "CLM_OperationMst__c.CANCEROPERATION__C": "false",
+        "CLM_OperationMst__c.CWFDENTISTRY__C": "false",
+        "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）",
+        "CWF_OperationMstAlias__c.ID": "a0W000000000000301"
+      },
+      "active": true,
+      "selection": {
+        "object": "CWF_OperationMstAlias__c",
+        "recordType": "ALIAS",
+        "recordId": "a0W000000000000301",
+        "name": "経皮的冠動脈形成術（その他のもの）"
+      }
+    },
+    "targets": {
+      "CLM_OperationMst__c.NAME": {
+        "type": "TABLE_CELL",
+        "documentId": "991243705301",
+        "tableName": "手術情報",
+        "tableIndex": 0,
+        "rowIndex": 0,
+        "columnName": "手術名",
+        "columnIndex": 0
+      }
+    },
+    "masterDataMatches": [
+      {
+        "type": "recommended",
+        "label": "マスタ推奨",
+        "value": "経皮的冠動脈形成術（その他のもの）",
+        "confidence": 100.0,
+        "primary": true,
+        "master": {
+          "masterTable": "OPERATION",
+          "object": "CLM_OperationMst__c",
+          "masterId": "a0V000000000000301",
+          "displayName": "経皮的冠動脈形成術",
+          "values": {
+            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+            "CLM_OperationMst__c.KCODE__C": "K546-00",
+            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）"
+          },
+          "active": true,
+          "selection": {
+            "object": "CWF_OperationMstAlias__c",
+            "recordType": "ALIAS",
+            "recordId": "a0W000000000000301",
+            "name": "経皮的冠動脈形成術（その他のもの）"
+          }
+        },
+        "targets": {
+          "CLM_OperationMst__c.NAME": {
+            "type": "TABLE_CELL",
+            "documentId": "991243705301",
+            "tableName": "手術情報",
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "columnName": "手術名",
+            "columnIndex": 0
+          }
+        }
+      },
+      {
+        "type": "candidate",
+        "label": "マスタ候補",
+        "value": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）",
+        "confidence": 88.4,
+        "primary": true,
+        "master": {
+          "masterTable": "OPERATION",
+          "object": "CLM_OperationMst__c",
+          "masterId": "a0V000000000000301",
+          "displayName": "経皮的冠動脈形成術",
+          "values": {
+            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+            "CLM_OperationMst__c.KCODE__C": "K546-00",
+            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
+          },
+          "active": true,
+          "selection": {
+            "object": "CWF_OperationMstAlias__c",
+            "recordType": "ALIAS",
+            "recordId": "a0W000000000000302",
+            "name": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
+          }
+        },
+        "targets": {
+          "CLM_OperationMst__c.NAME": {
+            "type": "TABLE_CELL",
+            "documentId": "991243705301",
+            "tableName": "手術情報",
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "columnName": "手術名",
+            "columnIndex": 0
+          }
+        }
+      },
+      {
+        "type": "candidate",
+        "label": "マスタ候補",
+        "value": "経皮的冠動脈形成術（不安定狭心症に対するもの）",
+        "confidence": 87.9,
+        "primary": true,
+        "master": {
+          "masterTable": "OPERATION",
+          "object": "CLM_OperationMst__c",
+          "masterId": "a0V000000000000301",
+          "displayName": "経皮的冠動脈形成術",
+          "values": {
+            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
+            "CLM_OperationMst__c.KCODE__C": "K546-00",
+            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
+          },
+          "active": true,
+          "selection": {
+            "object": "CWF_OperationMstAlias__c",
+            "recordType": "ALIAS",
+            "recordId": "a0W000000000000303",
+            "name": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
+          }
+        },
+        "targets": {
+          "CLM_OperationMst__c.NAME": {
+            "type": "TABLE_CELL",
+            "documentId": "991243705301",
+            "tableName": "手術情報",
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "columnName": "手術名",
+            "columnIndex": 0
+          }
+        }
+      },
+      {
+        "type": "candidate",
+        "label": "マスタ候補",
+        "value": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+        "confidence": 80.2,
+        "primary": true,
+        "master": {
+          "masterTable": "OPERATION",
+          "object": "CLM_OperationMst__c",
+          "masterId": "a0V000000000000311",
+          "displayName": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+          "values": {
+            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
+            "CLM_OperationMst__c.KCODE__C": "K548-00",
+            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
+          },
+          "active": true,
+          "selection": {
+            "object": "CWF_OperationMstAlias__c",
+            "recordType": "ALIAS",
+            "recordId": "a0W000000000000311",
+            "name": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
+          }
+        },
+        "targets": {
+          "CLM_OperationMst__c.NAME": {
+            "type": "TABLE_CELL",
+            "documentId": "991243705301",
+            "tableName": "手術情報",
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "columnName": "手術名",
+            "columnIndex": 0
+          }
+        }
+      },
+      {
+        "type": "candidate",
+        "label": "マスタ候補",
+        "value": "経皮的冠動脈ステント留置術（その他のもの）",
+        "confidence": 76.5,
+        "primary": true,
+        "master": {
+          "masterTable": "OPERATION",
+          "object": "CLM_OperationMst__c",
+          "masterId": "a0V000000000000312",
+          "displayName": "経皮的冠動脈ステント留置術",
+          "values": {
+            "CLM_OperationMst__c.NAME": "経皮的冠動脈ステント留置術",
+            "CLM_OperationMst__c.KCODE__C": "K549-00",
+            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈ステント留置術（その他のもの）"
+          },
+          "active": true,
+          "selection": {
+            "object": "CWF_OperationMstAlias__c",
+            "recordType": "ALIAS",
+            "recordId": "a0W000000000000312",
+            "name": "経皮的冠動脈ステント留置術（その他のもの）"
+          }
+        },
+        "targets": {
+          "CLM_OperationMst__c.NAME": {
+            "type": "TABLE_CELL",
+            "documentId": "991243705301",
+            "tableName": "手術情報",
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "columnName": "手術名",
+            "columnIndex": 0
+          }
+        }
+      }
+    ],
+    "reviewReason": null,
+    "remarks": [
+      {
+        "label": "照合根拠",
+        "value": "読取値が、画面で選べる別名「経皮的冠動脈形成術（その他のもの）」と完全に一致し、帳票の手術コードとも矛盾しないため確定した。"
+      }
+    ],
+    "ref": {
+      "taskId": "MS-20261118-7Q3K9D",
+      "itemId": "dis2"
+    }
+  }
+}
+```
+
+</details>
+
+**IDP 处理：** 继承未修改输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。
