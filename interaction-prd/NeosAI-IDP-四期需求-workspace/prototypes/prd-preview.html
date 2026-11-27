@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NeosAI IDP · 四期 PRD</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:32px}body{margin:0;background:#fafafa;color:#202939;font:15px/1.8 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}aside{position:fixed;inset:0 auto 0 0;width:270px;padding:28px 20px;border-right:1px solid #e5e7eb;background:#fff;overflow:auto}aside strong{display:block;font-size:20px;margin-bottom:4px}aside small{color:#697586}nav{margin-top:22px}nav a{display:block;color:#536174;text-decoration:none;padding:5px 10px;border-radius:4px;line-height:1.6}nav a:hover,nav a.active{background:#edf4ff;color:#175cd3}nav .level-2{font-weight:600;margin-top:12px}nav .level-3{padding-left:22px;font-size:13px}.document{margin-left:270px;padding:28px 40px 100px;max-width:1600px}.tools{display:flex;justify-content:flex-end;gap:10px;margin-bottom:20px}.tools a,.tools button{font:inherit;font-size:14px;padding:5px 13px;background:#fff;color:#175cd3;border:1px solid #d0d5dd;border-radius:4px;text-decoration:none;cursor:pointer}article{background:white;padding:36px 42px;border:1px solid #e5e7eb;border-radius:8px}h1{font-size:27px;line-height:1.5;margin:0 0 30px}h2{font-size:23px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-top:50px}h3{font-size:19px;margin-top:32px}h4{font-size:16px;margin-top:25px}p{margin:12px 0}li{margin:5px 0}a{color:#175cd3}table{border-collapse:collapse;width:100%;font-size:14px;margin:24px 0;overflow-wrap:anywhere}table+table{margin-top:32px}th,td{text-align:left;border:1px solid #dce2eb;padding:10px 12px;vertical-align:top}th{background:#f1f5fb;font-weight:600}pre{padding:18px;background:#111111;color:#eeeeee;overflow:auto;border-radius:5px;font-size:13px;line-height:1.7}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}p code,td code{background:#f0f3f7;padding:2px 4px;border-radius:3px}.diagram{overflow:auto;border:1px solid #e5e7eb;border-radius:5px;margin:20px 0;padding:18px;background:#fff}.mermaid{min-width:1100px}.mermaid svg{max-width:none!important;width:auto;min-width:1100px}a:focus-visible,button:focus-visible{outline:2px solid #175cd3;outline-offset:3px}@media(max-width:1000px){aside{position:relative;width:auto;max-height:300px}.document{margin:0;padding:16px}article{padding:20px}.diagram{padding:8px}}@media print{aside,.tools{display:none}.document{margin:0;padding:0;max-width:none}article{border:0;padding:0}h2,h3,h4{break-after:avoid}tr{break-inside:avoid}.diagram{overflow:visible}.mermaid{min-width:0}.mermaid svg{min-width:0;width:100%;max-width:100%!important}}
-</style></head><body><aside><strong>NeosAI IDP</strong><small>四期产品需求文档</small><nav><a class="level-2" href="#section-1">第 1 章｜本期范围与优先级</a><a class="level-3" href="#section-2">1.1 背景与目标</a><a class="level-3" href="#section-3">1.2 本期范围</a><a class="level-3" href="#section-4">1.4 里程碑与优先级</a><a class="level-3" href="#section-5">1.5 上下游关系与依赖</a><a class="level-2" href="#section-6">第 2 章｜使用流程</a><a class="level-3" href="#section-7">2.1 配置准备</a><a class="level-3" href="#section-8">2.2 工作流执行</a><a class="level-3" href="#section-9">2.3 OCR 确认与重新照合</a><a class="level-2" href="#section-10">第 3 章｜数据结构与职责</a><a class="level-3" href="#section-11">3.1 配置结构</a><a class="level-3" href="#section-12">3.2 请求与结果结构</a><a class="level-3" href="#section-13">3.3 职责与留存</a><a class="level-2" href="#section-14">第 4 章｜本期接口与主要字段</a><a class="level-3" href="#section-15">4.1 API 设定与组配置</a><a class="level-3" href="#section-16">4.2 工作流整案照合</a><a class="level-3" href="#section-17">4.3 OCR 确认与重新照合</a><a class="level-3" href="#section-18">4.4 公共处理</a><a class="level-3" href="#section-19">4.5 分模块调用示例</a><a class="level-2" href="#section-20">第 5 章｜功能详情</a><a class="level-3" href="#section-21">5.1 API设定</a><a class="level-3" href="#section-22">5.2 组配置</a><a class="level-3" href="#section-23">5.3 工作流</a><a class="level-3" href="#section-24">5.4 OCR抽出确认</a><a class="level-3" href="#section-25">5.5 重新照合</a><a class="level-2" href="#section-26">第 6 章｜异常、注意点与附件</a><a class="level-3" href="#section-27">6.1 跨模块异常情况</a><a class="level-3" href="#section-28">6.2 各模块边界场景</a><a class="level-3" href="#section-29">6.4 接口规格书附件</a><a class="level-3" href="#section-30">6.5 主数据照合功能列表附件</a></nav></aside><main class="document"><div class="tools"><a href="/v4/standardization" target="_blank" rel="noopener">打开原型</a><button onclick="window.print()">打印 / PDF</button></div><article><h2 id="section-1">第 1 章｜本期范围与优先级</h2>
+</style></head><body><aside><strong>NeosAI IDP</strong><small>四期产品需求文档</small><nav><a class="level-2" href="#section-1">第 1 章｜本期范围与优先级</a><a class="level-3" href="#section-2">1.1 背景与目标</a><a class="level-3" href="#section-3">1.2 本期范围</a><a class="level-3" href="#section-4">1.4 里程碑与优先级</a><a class="level-3" href="#section-5">1.5 上下游关系与依赖</a><a class="level-2" href="#section-6">第 2 章｜使用流程</a><a class="level-3" href="#section-7">2.1 配置准备</a><a class="level-3" href="#section-8">2.2 工作流执行</a><a class="level-3" href="#section-9">2.3 OCR 确认与重新照合</a><a class="level-2" href="#section-10">第 3 章｜数据结构与职责</a><a class="level-3" href="#section-11">3.1 配置结构</a><a class="level-3" href="#section-12">3.2 请求与结果结构</a><a class="level-3" href="#section-13">3.3 职责与留存</a><a class="level-2" href="#section-14">第 4 章｜本期接口与主要字段</a><a class="level-3" href="#section-15">4.1 API 设定与组配置</a><a class="level-3" href="#section-16">4.2 工作流整案照合</a><a class="level-3" href="#section-17">4.3 OCR 确认与重新照合</a><a class="level-3" href="#section-18">4.4 公共处理</a><a class="level-3" href="#section-19">4.5 分模块调用示例</a><a class="level-2" href="#section-20">第 5 章｜功能详情</a><a class="level-3" href="#section-21">5.1 API设定</a><a class="level-3" href="#section-22">5.2 组配置</a><a class="level-3" href="#section-23">5.3 工作流</a><a class="level-3" href="#section-24">5.4 OCR抽出确认</a><a class="level-3" href="#section-25">5.5 重新照合</a><a class="level-2" href="#section-26">第 6 章｜异常、注意点与附件</a><a class="level-3" href="#section-27">6.1 跨模块异常情况</a><a class="level-3" href="#section-28">6.2 各模块边界场景</a><a class="level-3" href="#section-29">6.3 组配置边界场景</a><a class="level-3" href="#section-30">6.4 接口规格书附件</a><a class="level-3" href="#section-31">6.5 主数据照合功能列表附件</a></nav></aside><main class="document"><div class="tools"><a href="/v4/standardization" target="_blank" rel="noopener">打开原型</a><button onclick="window.print()">打印 / PDF</button></div><article><h2 id="section-1">第 1 章｜本期范围与优先级</h2>
 <h3 id="section-2">1.1 背景与目标</h3>
 <p>四期接入 Zurich 综合主数据名称标准化 API。上游已有案件集约、文件补件、OCR抽出和 OCR抽出确认任务。主数据照合按案件当前完整资料发起请求，并使用异步任务和现有 OCR抽出确认待办。</p>
 <p>本 PRD 的正文、字段说明和流程说明使用简体中文。界面文案、API 字段值、接口返回内容和示例中的日语保留原文。</p>
@@ -1811,7 +1811,7 @@
     J --&gt;|false| L[&quot;仅保存确认结果&lt;br/&gt;不回写，保留原值&quot;]
 </code></pre>
 <p>回写时，没有值的列保持原值。API 返回的 <code>selection</code> 作为原始响应保存，本期不向后续系统登记。自动采用的照合对象仍可在确认页查看和改选候选。</p>
-<p><code>confidence</code> 只用于显示和排序，不作为人工确认或自动采用的阈值。<code>status</code> 用于结果解释和接口契约检查，不用于按场景切换确认页结构。</p>
+<p><code>confidence</code> 只用于显示，不作为人工确认或自动采用的阈值。<code>status</code> 用于结果解释和接口契约检查，不用于按场景切换确认页结构。</p>
 <p>异常兜底：按式样书 §2.8，needsReview 缺失或为 null 时按需人工确认处理，shouldWriteBack 缺失或为 null 时不回写。这属于响应异常的兼容处理，不是正常业务状态。</p>
 <h4>确认页结构</h4>
 <p>确认页统一使用 API 返回的固定结构。</p>
@@ -1829,7 +1829,7 @@
 <td>OCR 原值</td>
 <td>IDP 原始 OCR 结果</td>
 <td>按 <code>item.source</code> 的 documentId、fieldIndex 或表格位置定位原始字段值；不使用候选值替代原始 OCR 值</td>
-<td>主字段默认显示 OCR 原值</td>
+<td>保留原始识别值；候选初始项为第一个推荐，没有推荐时保持识别值（式样书 §5.10、§1.4 C-01）</td>
 </tr>
 <tr>
 <td>候选列表</td>
@@ -1887,7 +1887,7 @@
 只有一份适用申请书时
   目标可以唯一确定，不显示该选择框
 </code></pre>
-<p>这里选择的是结果写入哪份账票，与主数据候选下拉中选择采用哪条记录是两个不同操作。</p>
+<p>这里选择的是结果写入哪份逻辑文件，与主数据候选下拉中选择采用哪条记录是两个不同操作。</p>
 <h4>候选确认与回写</h4>
 <ol>
 <li>操作员可以保留 OCR 原值，也可以选择一个 <code>masterDataMatches</code>。</li>
@@ -1897,6 +1897,28 @@
 <li>没有值的列不覆盖原值。</li>
 <li>同一 item 的所有目标字段作为一个结果一起更新。</li>
 </ol>
+<p>候选选择与字段回写是两个不同动作。前端不能在选中 <code>masterDataMatches</code> 后直接把候选的显示值写入 OCR 字段，也不能因操作员选择了候选就将 <code>shouldWriteBack</code> 改为 true。</p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>候选交互</th>
+<th>回写行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>shouldWriteBack=false</code>，没有可回写位置</td>
+<td>有候选时仍可展示和选择，保存所选候选的确认记录</td>
+<td>不更新 OCR 字段或关联输出字段，保留原值</td>
+</tr>
+<tr>
+<td><code>shouldWriteBack=true</code>，部分回写位置明确、部分不明确</td>
+<td>操作员选择采用记录；目标不唯一的位置按“回写目标文件选择”处理</td>
+<td>仅向已确定的 targets 写入。未确定位置不能直接回写；操作员明确选择后，由 IDP 补齐当前采用结果的对应 targets，再沿用统一回写逻辑</td>
+</tr>
+</tbody></table>
+<p>例如 F1 申请书的伤病名位置明确，而 F2、F3 诊断书的 ICD 编码位置需要选择。API 可返回 shouldWriteBack=true，targets 只包含 F1 的伤病名。选择主数据候选后，可以按确认规则回写 F1；在目标文件尚未确定前，不能向 F2 或 F3 的编码栏写入。确定目标后，使用同一采用记录的编码值回写到选定位置。</p>
+<p>界面应分别保存“当前采用的候选”和“实际字段值”。只有允许回写并且目标位置已确定时，才从所选候选的 master.values 取对应列值，写入该候选的 targets。缺失或 null 的 shouldWriteBack 按不回写处理。</p>
 <h4>拆分结果</h4>
 <p><code>splitItems</code> 的主要素和追加要素由 API 整合到 <code>masterDataMatches</code> 返回。<code>primary=true</code> 显示为「主要素」，<code>primary=false</code> 显示为「追加要素」。</p>
 <p>操作员可以改选主要素或追加要素。最终采用后，回写值仍取所选项的 <code>master.values</code>，写入所选项的 <code>targets</code>。页面不根据 <code>SPLIT</code> 状态另建一套候选组件。</p>
@@ -1920,17 +1942,50 @@
 </tr>
 <tr>
 <td><code>INVALID_GROUP</code>、<code>MASTER_TABLE_NOT_ENABLED</code></td>
-<td>对应组结果不自动采用，转人工确认</td>
+<td>获取任务详情后读取 <code>data.warnings[]</code>，通过 <code>code</code> 判断警告类型、<code>groupId</code> 定位未处理组、<code>message</code> 获取原因。该组未执行照合，相关项目按下述人工确认规则处理，其他有效组照常处理。</td>
 </tr>
 <tr>
-<td>位置类型未知</td>
-<td>不自动采用，转人工确认</td>
-</tr>
-<tr>
-<td><code>needsReview=false</code> 但缺少自动采用所需值</td>
-<td>不自动采用，按异常转人工确认</td>
+<td>位置类型未知，无法定位输入或回写字段</td>
+<td>不向无法定位的位置写入，保持 OCR 原值；不因位置无法定位而新增人工确认。已能定位的正常结果仍按 needsReview、shouldWriteBack 处理。</td>
 </tr>
 </tbody></table>
+<p>位置无法定位的处理为 IDP 已确认规则：保留 OCR 原值，不通过人工确认猜测目标位置。式样书 §2.8、§8.4 原有“未知位置类型转人工”表述与此不同，附件原文保留，执行按本节规则处理。</p>
+<table>
+<thead>
+<tr>
+<th>无法定位的范围</th>
+<th>候选下拉展示</th>
+<th>选择后的处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>能定位输入字段，仅回写位置无法定位</td>
+<td>masterDataMatches 非空时，在对应输入字段展示候选下拉；为空时不展示</td>
+<td>可以保存候选选择，但不能向无法定位的位置回写，OCR 原值保持不变</td>
+</tr>
+<tr>
+<td>输入字段也无法定位</td>
+<td>无法确定所属字段，不将候选下拉挂到任意字段</td>
+<td>不更新字段，保留 OCR 原值</td>
+</tr>
+</tbody></table>
+<p>候选内容由 masterDataMatches 决定。显示或选择候选不代表允许回写，回写仍受 shouldWriteBack 和目标位置是否明确共同约束。</p>
+<p>组级警告的取得与处理（式样书 §4.2、§4.7、§4.9、§8.4）：</p>
+<pre><code class="language-text">GET /v1/standardizations/{taskId}
+  → data.warnings[]
+      code = INVALID_GROUP
+        组配置不合法，例如缺少主输入、字段跨组重复
+      code = MASTER_TABLE_NOT_ENABLED
+        当前 API Key 未开通该组使用的主数据表
+      groupId
+        定位 IDP 保存的组配置和该组涉及的项目
+      message
+        获取 API 返回的具体原因
+</code></pre>
+<p>警告表示该组未执行照合，不是“返回了一个待选候选”。该组可能没有生成 item，不能要求操作员从不存在的候选中选择，也不能把其他组的候选用于该组。</p>
+<p>人工确认按式样书 §8.4 的异常规则，将该组对应的 OCR 项目交由操作员核对原始文件与识别值。操作员保留正确识别值，或按原始文件修正识别值，沿用普通 OCR 确认操作；没有有效主数据结果时不进行主数据回写，也不能将 OCR 确认视为主数据照合成功。式样书未要求操作员手动编造主数据编码或处理 API 权限。</p>
+<p>组配置错误需由配置管理员修正，主数据表未授权需核对 API Key 的授权范围。修正后如需获得主数据结果，再按工作流规则重新执行照合。其他已正常完成的组仍按自身返回结果处理。</p>
+<p>单项接口区别：<code>POST /v1/items/standardize</code> 使用未授权的主数据表时，按式样书 §4.6、§7 返回 HTTP 400、<code>MASTER_TABLE_NOT_ENABLED</code>，不是任务详情中的组级 warnings。此时属于本次重新照合请求失败，不能展示为新的照合结果。</p>
 <p>所有错误文案使用日文，错误提示使用红色样式。</p>
 <h3 id="section-25">5.5 重新照合</h3>
 <h4>入口与调用范围</h4>
@@ -2437,14 +2492,14 @@
 </tr>
 <tr>
 <td>案件账票超过 50 件</td>
-<td>拆分请求及多 Task 语义待客户/Zurich 确认；本期不自行推断如何跨请求传递辅助输入或案件标准字段</td>
-<td>不提交拆分请求；按本期超限处理提示阻止照合继续。客户确认事项见 §5.3.2</td>
+<td>本期不拆分，节点失败，不创建 Task；拆分部分延期</td>
+<td>显示超出本期上限</td>
 <td>P1</td>
 </tr>
 <tr>
 <td>请求体超过 10 MB，或有效组超过 200 个</td>
-<td>不提交无效请求。多请求拆分涉及同一案件语义时遵循 §5.3.2 待确认规则；不得静默漏组</td>
-<td>显示具体超限项；保留案件和组配置，缩小请求内容或调整适用组后重试</td>
+<td>不提交超限请求，不静默遗漏组</td>
+<td>显示具体超限项；调整内容或适用组后重试</td>
 <td>P2</td>
 </tr>
 </tbody></table>
@@ -2475,18 +2530,6 @@
 <td>保存采用记录但不修改目标字段</td>
 <td>明确显示本次不回填；操作员仍可完成确认</td>
 <td>P2</td>
-</tr>
-<tr>
-<td><code>shouldWriteBack=true</code> 但目标缺失、无效或无法唯一定位</td>
-<td>不写入任何目标，避免部分或错误回填；将项目转人工</td>
-<td>显示目标定位错误；修复映射后重新照合</td>
-<td>P1</td>
-</tr>
-<tr>
-<td>API 返回未知 status、缺少必需 master，或 <code>SPLIT</code> 缺少主要素</td>
-<td>不自动采用该结果；保留原始响应供追溯并转人工</td>
-<td>显示无法自动处理的结果及原值；经办人确认后继续</td>
-<td>P1</td>
 </tr>
 <tr>
 <td>多个组指向同一目标且结果值冲突</td>
@@ -2571,8 +2614,8 @@
 <li>Zurich 返回可展示的日文 <code>msg</code> 时原样展示，并同时保留 <code>errorCode</code> 供支持人员排查；不得把原始堆栈、API Key 或认证头展示给用户。</li>
 <li>API 错误没有可展示消息时，按模块显示明确动作提示：连接错误引导测试连接；组校验错误定位具体字段；案件请求错误保留请求并说明是否自动重试；确认页错误提示刷新或重试。</li>
 <li>自动重试期间保留草稿、案件快照和待办，不创建重复 Task；超过式样书可恢复条件后停止自动重试并提供人工恢复入口。</li>
-<li>对本节标明待客户/Zurich 确认的超 50 件拆分语义，不显示“已拆分成功”或合并后的整案通过状态。### 6.3 组配置边界场景</li>
 </ul>
+<h3 id="section-29">6.3 组配置边界场景</h3>
 <h4>输入与保存</h4>
 <table>
 <thead>
@@ -2813,12 +2856,12 @@
 <li>主数据响应缺少 <code>configuration</code> 时，应禁用项目还是显示接口原始值尚未定义。</li>
 <li>默认组返回未知字段类型时，应清空字段还是直接阻止导入尚未定义。</li>
 </ul>
-<h3 id="section-29">6.4 接口规格书附件</h3>
+<h3 id="section-30">6.4 接口规格书附件</h3>
 <ul>
 <li><a href="/%E4%B8%BB%E6%95%B0%E6%8D%AEAPI/%E7%BB%BC%E5%90%88%E4%B8%BB%E6%95%B0%E6%8D%AE%E5%90%8D%E7%A7%B0%E6%A0%87%E5%87%86%E5%8C%96API%E8%A7%84%E6%A0%BC%E4%B9%A6_v1.2_zh-CN.md">综合主数据名称标准化 API 规格书 v1.2 中文版</a></li>
 </ul>
 <p>完整接口、公共对象、枚举、错误码和通知格式以该附件为准。本 PRD 只列 IDP 实际发送或使用的字段。</p>
-<h3 id="section-30">6.5 主数据照合功能列表附件</h3>
+<h3 id="section-31">6.5 主数据照合功能列表附件</h3>
 <h4>设置（标准化组）</h4>
 <table>
 <thead>
@@ -3145,7 +3188,7 @@
 <td>N-03</td>
 <td>Zurich 通知时，可以去除个人信息项目后再发送</td>
 <td>必须</td>
-<td>P0（本期）</td>
+<td>P1（IDP 第 5 期）</td>
 </tr>
 </tbody></table>
 </article></main><script type="module">
