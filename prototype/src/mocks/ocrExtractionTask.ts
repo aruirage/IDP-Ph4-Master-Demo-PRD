@@ -776,10 +776,10 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
       apiStandardizationApplied: true,
       masterRecommendation: { ...candidate('ティーエスワン配合カプセルT20', 'マスタ推奨'), isMaster: true },
       masterMatchCandidates: [candidate('ティーエスワン配合顆粒T20')],
-      standardizationReview: createStandardizationReview('MATCHED', true, '複数の帳票に異なる薬剤名が記載されています。', {
+      standardizationReview: createStandardizationReview('MATCHED', true, '書き込み先の商品名が複数の診断書にあり、1つに決められません。', {
         confidence: 0.61,
         shouldWriteBack: true,
-        reviewReasons: [{ code: 'AMBIGUOUS_SOURCE', message: '複数の帳票で入力値が一致しません。' }],
+        reviewReasons: [{ code: 'AMBIGUOUS_SOURCE', message: '書き込み先のファイルを確認してください。' }],
         targets: ['商品名']
       }),
       bbox: { top: 72, left: 32, width: 32, height: 2.2 }
@@ -834,10 +834,11 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
       standardizationReview: createStandardizationReview(
         'UNRESOLVED',
         false,
-        'API の needsReview とステータスが一致しないため、IDP は結果を強制的に人工確認へ移動します。',
+        '書き込み先を特定できないため、OCR 抽出値を保持します。',
         {
-          reviewReasons: [{ code: 'UNRESOLVED', message: '照合結果を判断できません。' }],
-          targets: ['傷病名']
+          shouldWriteBack: false,
+          reviewReasons: [],
+          targets: []
         }
       ),
       bbox: { top: 84, left: 32, width: 32, height: 2.2 }
@@ -853,7 +854,7 @@ const RICH_TASKS: Record<string, Omit<OcrExtractionTaskDetail, 'taskId'>> = {
     pages: [
       {
         id: 'page-phase4-master-standardization-review',
-        docType: 'マスタ照合API（3方式・要確認）',
+        docType: '申請書-1',
         fileName: '',
         imageUrl: MOCK_SAMPLE_MEDIA_URL,
         pageCount: 1,
@@ -884,7 +885,7 @@ const RICH_TASKS: Record<string, Omit<OcrExtractionTaskDetail, 'taskId'>> = {
       },
       {
         id: 'page-phase4-master-standardization-auto',
-        docType: 'マスタ照合API（3方式・確認不要）',
+        docType: '申請書-2',
         fileName: '',
         imageUrl: MOCK_SAMPLE_MEDIA_URL,
         pageCount: 1,
@@ -893,7 +894,16 @@ const RICH_TASKS: Record<string, Omit<OcrExtractionTaskDetail, 'taskId'>> = {
           ...createPhase4StatusFields().filter((field) => field.standardizationReview?.needsReview === false)
         ],
         tables: []
-      }
+      },
+      ...['F2', 'F3'].map((id, index) => ({
+        id,
+        docType: `診断書-${index + 1}`,
+        fileName: '',
+        imageUrl: MOCK_SAMPLE_MEDIA_URL,
+        pageCount: 1,
+        fields: [{ id: `${id}-product`, section: '基本情報', label: '商品名', value: 'ティーエスワンT20', ocrOriginalValue: 'ティーエスワンT20', confidence: 92, required: false, bbox: { top: 30, left: 30, width: 35, height: 3 } }],
+        tables: []
+      }))
     ]
   },
   'TASK-OCR-002': {

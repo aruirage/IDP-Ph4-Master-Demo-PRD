@@ -76,7 +76,7 @@ const INSPECTOR_HINTS = {
   masterRules: '登録済み照合ルールの一覧です。下のフォームから追加・編集できます。',
   masterRuleAdd: '帳票タイプ・照合元 OCR 項目・照合先・出力フィールドを指定してルールを追加します。',
   aiVerify: 'AI検証設定で定義した検証ルールを参照します。検証項目ごとに実行有無を選択し、検証ルールは「AI検証設定」で編集します。',
-  masterStandardization: '現在の業務シーンに適用される照合グループを自動取得します。設定変更は「設定ページへ」から行います。\n未設定帳票は、ON の場合は Zurich の既定ルールで照合して確認待ち、OFF の場合は OCR 抽出値のままにします。',
+  masterStandardization: '現在の業務シーンに適用される照合グループを自動取得します。設定変更は「設定ページへ」から行います。\n未設定帳票は OCR 抽出値を保持します。フォールバックは本期の対象外です。',
   completeness: '必須・任意帳票の収集状態と、帳票ごとの必須項目を検証します。帳票タイプは業務シーン設定で登録し、ここで必須/任意と必須項目を指定します。',
   textVerify: '自然言語で記述し、AI補助で実行式を生成します。入力欄の下にプレビューが表示されます。',
   dataVerify: '帳票間の整合性と業務ロジックを自然言語で記述し、AI補助で実行式をプレビュー表示します。',
@@ -109,7 +109,7 @@ const INSPECTOR_HINTS = {
   sceneMatchingDefaults: '既定動作：補件ファイルは既存案件に紐付け、マスタなしファイルは保留プールへ送ります（本画面では変更できません）。',
 };
 
-const CASE_WORKFLOW_TEMPLATE_VERSION = 38;
+const CASE_WORKFLOW_TEMPLATE_VERSION = 39;
 const CANONICAL_CASE_WORKFLOW_LAYOUT_VERSION = 33;
 const WF_LAYOUT_PAD = { x: 72, y: 132 };
 const WF_BRANCH_LANE_GAP = 108;
@@ -4229,119 +4229,41 @@ function buildDefaultCaseWorkflow() {
 
   place({ id: 'wf-start', type: 'start', label: '開始' });
   place({ id: 'wf-pp', type: 'preprocess', label: '前処理' });
-  place({ id: 'wf-d-pre', type: 'decision', label: '条件分岐', judgmentContext: 'custom' });
   place({ id: 'wf-oc', type: 'ocr', label: 'OCR抽出' });
-  place({ id: 'wf-std', type: 'master_standardization', label: 'マスタ照合' });
-  place({ id: 'wf-d-ocr', type: 'decision', label: '条件分岐', judgmentContext: 'custom' });
   place({ id: 'wf-map', type: 'data_mapping', label: 'データマッピング' });
+  place({ id: 'wf-std', type: 'master_standardization', label: 'マスタ照合' });
   place({ id: 'wf-ai', type: 'ai_verify', label: 'AI検証' });
   place({ id: 'wf-d-final', type: 'decision', label: '条件分岐', judgmentContext: 'custom' });
-  place({
-    id: 'wf-hu-pre',
-    type: 'hitl_gate',
-    label: '前処理人工確認',
-    hitlContext: 'preprocess',
-    role: 'operator',
-  });
-  place({
-    id: 'wf-hu-ocr',
-    type: 'hitl_gate',
-    label: 'OCR人工確認',
-    hitlContext: 'ocr',
-    role: 'operator',
-  });
-  place({
-    id: 'wf-hu-final',
-    type: 'hitl_gate',
-    label: 'AI検証人工確認',
-    hitlContext: 'verification',
-    role: 'operation_admin',
-  });
-  place({ id: 'wf-code', type: 'code', label: 'カスタム関数' });
+  place({ id: 'wf-hu-final', type: 'hitl_gate', label: '目検チェック', hitlContext: 'verification', role: 'operation_admin' });
   place({ id: 'wf-end', type: 'end', label: '終了' });
 
   const ppVar = getWorkflowNodeVarName(nodes.find((n) => n.id === 'wf-pp'), wf);
-  const ocrVar = getWorkflowNodeVarName(nodes.find((n) => n.id === 'wf-oc'), wf);
   const stdVar = getWorkflowNodeVarName(nodes.find((n) => n.id === 'wf-std'), wf);
   const aiVar = getWorkflowNodeVarName(nodes.find((n) => n.id === 'wf-ai'), wf);
-  const dPre = nodes.find((n) => n.id === 'wf-d-pre');
-  Object.assign(dPre, {
+  Object.assign(nodes.find((n) => n.id === 'wf-d-final'), {
     judgmentContext: 'custom',
-    cases: [
-      createDecisionCase('if', {
-        id: 'if',
-        label: '通過',
-        logic: 'and',
-        conditions: [
-          cond(`${ppVar}.case.preprocessResult`, 'is', 'passed'),
-        ],
-      }),
-    ],
-    elseLabel: '人工確認',
+    cases: [createDecisionCase('if', {
+      id: 'if', label: '要確認', logic: 'or',
+      conditions: [
+        cond(`${aiVar}.case.verifyResult`, 'is', 'reviewRequired'),
+        cond(`${stdVar}.case.masterResult`, 'is', 'reviewRequired'),
+        cond(`${ppVar}.case.preprocessResult`, 'is', 'reviewRequired'),
+      ],
+    })],
+    elseLabel: '終了',
   });
-
-  const dOcr = nodes.find((n) => n.id === 'wf-d-ocr');
-  Object.assign(dOcr, {
-    judgmentContext: 'custom',
-    cases: [
-      createDecisionCase('if', {
-        id: 'if',
-        label: '通過',
-        logic: 'and',
-        conditions: [
-          cond(`${ocrVar}.case.ocrResult`, 'is', 'passed'),
-          cond(`${stdVar}.case.masterResult`, 'is', 'passed'),
-        ],
-      }),
-    ],
-    elseLabel: '人工確認',
-  });
-
-  const dFinal = nodes.find((n) => n.id === 'wf-d-final');
-  Object.assign(dFinal, {
-    judgmentContext: 'custom',
-    cases: [
-      createDecisionCase('if', {
-        id: 'if',
-        label: '通過',
-        logic: 'and',
-        conditions: [
-          cond(`${aiVar}.case.verifyResult`, 'is', 'passed'),
-        ],
-      }),
-      createDecisionCase('elif', {
-        id: 'elif-error',
-        label: '異常',
-        logic: 'and',
-        conditions: [
-          cond(`${aiVar}.case.verifyStatus`, 'is', 'failed'),
-        ],
-      }),
-    ],
-    elseLabel: '人工確認',
-  });
-
   edges.push(
     { from: 'wf-start', to: 'wf-pp' },
-    { from: 'wf-pp', to: 'wf-d-pre' },
-    { from: 'wf-d-pre', to: 'wf-oc', branch: 'if', label: '通過' },
-    { from: 'wf-d-pre', to: 'wf-hu-pre', branch: 'else', label: '人工確認' },
-    { from: 'wf-oc', to: 'wf-std' },
-    { from: 'wf-std', to: 'wf-d-ocr' },
-    { from: 'wf-d-ocr', to: 'wf-map', branch: 'if', label: '通過' },
-    { from: 'wf-d-ocr', to: 'wf-hu-ocr', branch: 'else', label: '人工確認' },
-    { from: 'wf-map', to: 'wf-ai' },
+    { from: 'wf-pp', to: 'wf-oc' },
+    { from: 'wf-oc', to: 'wf-map' },
+    { from: 'wf-map', to: 'wf-std' },
+    { from: 'wf-std', to: 'wf-ai' },
     { from: 'wf-ai', to: 'wf-d-final' },
-    { from: 'wf-d-final', to: 'wf-code', branch: 'if', label: '通過' },
-    { from: 'wf-d-final', to: 'wf-end', branch: 'elif-error', label: '異常' },
-    { from: 'wf-d-final', to: 'wf-hu-final', branch: 'else', label: '人工確認' },
-    { from: 'wf-hu-pre', to: 'wf-oc', branch: 'approve', label: '完了' },
-    { from: 'wf-hu-pre', to: 'wf-pp', branch: 'request_supplement', label: '補件' },
-    { from: 'wf-hu-ocr', to: 'wf-map', branch: 'approve', label: '完了' },
-    { from: 'wf-hu-ocr', to: 'wf-oc', branch: 'request_supplement', label: '補件' },
-    { from: 'wf-hu-final', to: 'wf-code', branch: 'approve', label: '完了' },
-    { from: 'wf-hu-final', to: 'wf-ai', branch: 'request_supplement', label: '補件' },
-    { from: 'wf-code', to: 'wf-end' },
+    { from: 'wf-d-final', to: 'wf-hu-final', branch: 'if', label: '要確認' },
+    { from: 'wf-d-final', to: 'wf-end', branch: 'else', label: '終了' },
+    { from: 'wf-hu-final', to: 'wf-end', branch: 'approve', label: '完了' },
+    { from: 'wf-hu-final', to: 'wf-pp', branch: 'request_supplement', label: '補件' },
+    { from: 'wf-hu-final', to: 'wf-end', branch: 'reject', label: '案件中止' },
   );
 
   wf.nodes = wf.nodes.map((n) => {
@@ -4373,6 +4295,16 @@ function buildDefaultCaseWorkflow() {
 
 function applyDefaultCaseWorkflowStaticLayout(workflow) {
   if (!workflow?.nodes?.length) return workflow;
+  if (workflow.nodes.length === 9 && workflow.nodes.some((n) => n.id === 'wf-hu-final')) {
+    const order = ['wf-start', 'wf-pp', 'wf-oc', 'wf-map', 'wf-std', 'wf-ai', 'wf-d-final', 'wf-end'];
+    order.forEach((id, index) => {
+      const node = workflow.nodes.find((n) => n.id === id);
+      if (node) { node.x = 72 + index * 280; node.y = 132; }
+    });
+    const manual = workflow.nodes.find((n) => n.id === 'wf-hu-final');
+    manual.x = 1920; manual.y = 400;
+    return workflow;
+  }
   const byId = Object.fromEntries(workflow.nodes.map((node) => [node.id, node]));
   const rowY = 132;
   const branchY = 372;
@@ -4381,9 +4313,9 @@ function applyDefaultCaseWorkflowStaticLayout(workflow) {
     'wf-pp': { x: 200, y: rowY },
     'wf-d-pre': { x: 380, y: rowY },
     'wf-oc': { x: 560, y: rowY },
-    'wf-std': { x: 760, y: rowY },
-    'wf-d-ocr': { x: 1040, y: rowY },
-    'wf-map': { x: 1400, y: rowY },
+    'wf-std': { x: 1040, y: rowY },
+    'wf-d-ocr': { x: 1400, y: rowY },
+    'wf-map': { x: 760, y: rowY },
     'wf-ai': { x: 1680, y: rowY },
     'wf-d-final': { x: 1960, y: rowY },
     'wf-code': { x: 2240, y: rowY },
@@ -4397,7 +4329,7 @@ function applyDefaultCaseWorkflowStaticLayout(workflow) {
 
   [
     ['wf-hu-pre', 'wf-d-pre', 'wf-oc'],
-    ['wf-hu-ocr', 'wf-d-ocr', 'wf-map'],
+    ['wf-hu-ocr', 'wf-d-ocr', 'wf-ai'],
     ['wf-hu-final', 'wf-d-final', 'wf-code'],
   ].forEach(([hitlId, fromId, toId]) => {
     const hitl = byId[hitlId];
@@ -5291,12 +5223,12 @@ function layoutStraightCaseWorkflow(workflow, sizes) {
   }
   const byId = Object.fromEntries(workflow.nodes.map((node) => [node.id, node]));
   const mainIds = [
-    'wf-start', 'wf-pp', 'wf-d-pre', 'wf-oc', 'wf-std', 'wf-d-ocr',
-    'wf-map', 'wf-ai', 'wf-d-final', 'wf-code',
+    'wf-start', 'wf-pp', 'wf-d-pre', 'wf-oc', 'wf-map', 'wf-std', 'wf-d-ocr',
+    'wf-ai', 'wf-d-final', 'wf-code',
   ].filter((id) => byId[id]);
   const hitlAnchors = [
     ['wf-hu-pre', 'wf-d-pre', 'wf-oc'],
-    ['wf-hu-ocr', 'wf-d-ocr', 'wf-map'],
+    ['wf-hu-ocr', 'wf-d-ocr', 'wf-ai'],
     ['wf-hu-final', 'wf-d-final', 'wf-code'],
   ].filter(([hitlId, anchorId]) => byId[hitlId] && byId[anchorId]);
   const notifyIds = ['wf-n-ok', 'wf-n-supp', 'wf-n-error'].filter((id) => byId[id]);

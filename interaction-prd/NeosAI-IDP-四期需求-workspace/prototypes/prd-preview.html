@@ -191,7 +191,7 @@
     n9 --&gt; n92[&quot;targets&quot;]
 </code></pre>
 <h4>单字段重新照合｜请求与结果结构</h4>
-<p>图中请求携带 ref.fieldId、按 fieldId 覆盖旧输入及更新上下文的方案待客户确认。</p>
+<p>重新照合请求携带稳定的 <code>fieldId</code>，按 <code>fieldId</code> 更新当前照合对象的输入和上下文。</p>
 <p><code>ref</code> 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 <code>taskId + itemId</code>，并在 <code>ref.fieldId</code> 传入同一确认项目的稳定标识。原本为空、没有 item 时传原 <code>taskId + groupId + source</code>，定位原任务中的组及主输入位置。</p>
 <pre><code class="language-mermaid">flowchart LR
     r1[&quot;页面缓存最新输入&quot;] --&gt; r3[&quot;单项重新照合请求&lt;br/&gt;POST /v1/items/standardize&quot;]
@@ -492,7 +492,7 @@
 <p>普通候选确认、保留 OCR 原值和选择已有候选不需要调用 Zurich 接口。确认结果由 IDP 保存到自身的确认记录中。</p>
 <p>IDP 以 <code>fieldId</code> 关联重新照合前后的确认项目及结果。<code>groupId</code> 用于关联组配置，<code>source</code> 用于定位主输入，<code>targets</code> 用于定位回写位置。</p>
 <h4>重新照合调用规则</h4>
-<p>请求补充 ref.fieldId、连续引用原 itemId 及后端上下文覆盖行为待客户确认，以下按拟采用方案说明。</p>
+<p>重新照合在 <code>ref</code> 中携带原 <code>taskId</code>、原 <code>itemId</code> 和稳定 <code>fieldId</code>，并以该对象全部最新输入更新对应上下文。</p>
 <p>重新照合使用 <code>POST /v1/items/standardize</code>，主要提交 <code>ref</code>、<code>masterTable</code> 和该对象全部最新 <code>inputs</code>。有原结果时，<code>ref</code> 携带原 <code>taskId</code>、原 <code>itemId</code> 及稳定的 <code>fieldId</code>。后端按 fieldId 更新该项目的输入及照合上下文，再重新判断。原本为空、尚无照合对象时，按式样书使用 <code>groupId</code> 和 <code>source</code> 引用配置及位置。</p>
 <p>修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，每次显式提交该对象全部最新输入。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。</p>
 <h4>主要字段</h4>
@@ -1254,7 +1254,7 @@
 <p><strong>IDP 处理：</strong> 取消结果不采用；若任务已完成，按接口实际状态处理。</p>
 <h4>OCR 确认｜修改输入后重新照合</h4>
 <p>操作员修改伤病名，点击再照合，直接提交缓存最新值。</p>
-<p>请求以式样书 §4.6 为基础，暂按待客户确认方案在 ref 中补充 fieldId；响应仅示意 §4.6 的结果关联字段，省略匹配结果与回填字段。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。</p>
+<p>请求以式样书 §4.6 为基础，并在 <code>ref</code> 中携带稳定 <code>fieldId</code>；响应仅示意 §4.6 的结果关联字段，省略匹配结果与回填字段。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。</p>
 <p><strong>请求</strong></p>
 <pre><code class="language-http">POST /v1/items/standardize
 </code></pre>
@@ -1641,6 +1641,45 @@
 <h4>节点与执行顺序</h4>
 <p>流程为：OCR抽出 → 数据映射 → 主数据照合 → OCR抽出确认 → 后续节点。</p>
 <p>业务场景工作流放置「マスタ照合」节点时，使用本期的外部主数据照合。节点读取当前场景已保存的适用组，并使用这些组的版本快照发起请求。没有该节点时，继续使用原有内部主数据规则。</p>
+<h4>默认工作流</h4>
+<p>默认模板采用“保险金请求”当前确认的流程。节点顺序与条件如下。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[&quot;开始&quot;] --&gt; B[&quot;前处理&quot;] --&gt; C[&quot;OCR抽出&quot;] --&gt; D[&quot;数据映射&quot;] --&gt; E[&quot;主数据照合&quot;] --&gt; F[&quot;AI验证&quot;] --&gt; G{&quot;条件分支：OR&quot;}
+    G --&gt;|任一条件为 reviewRequired| H[&quot;目检&quot;]
+    G --&gt;|ELSE| I[&quot;结束&quot;]
+    H --&gt;|完成| I
+    H --&gt;|补件| B
+    H --&gt;|案件中止| I
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>条件节点</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IF 条件 1</td>
+<td>verifyResult = reviewRequired</td>
+</tr>
+<tr>
+<td>OR 条件 2</td>
+<td>masterResult = reviewRequired</td>
+</tr>
+<tr>
+<td>OR 条件 3</td>
+<td>preprocessResult = reviewRequired</td>
+</tr>
+<tr>
+<td>IF 去向</td>
+<td>目检</td>
+</tr>
+<tr>
+<td>ELSE 去向</td>
+<td>结束</td>
+</tr>
+</tbody></table>
+<p>目检完成后结束，补件回到前处理，案件中止后结束。此处为默认模板，用户仍可按既有工作流编辑能力调整。</p>
 <h4>整案请求</h4>
 <p>工作流每次执行到主数据照合节点时，IDP 使用该时点案件已有的全部文件、最新 OCR 抽出结果、数据映射结果、有效组和 <code>groupsVersion</code> 发起一次整案请求。</p>
 <table>
@@ -1666,7 +1705,7 @@
 <p>每次工作流执行直接使用该时点案件已有的全量资料。后续文件到达、删除或替换时，下一次工作流执行使用最新全案数据重新请求。批次标识由 IDP 内部管理。</p>
 <p>同一案件已有整案请求处理中，且发生需要整案重新照合的输入变化时，IDP 取消旧 Task，结束旧工作流执行，并从开始节点以最新全案数据重新执行完整工作流。旧 Task 的结果仅保留为执行记录，不应用到案件。</p>
 <p>本期每个整案请求最多提交 50 件逻辑账票（<code>documents[]</code>）。IDP 在发请求前检查案件账票数，超过 50 件时节点默认失败，不创建 Task。客户式样书中的拆分请求方案属于 IDP 本期范围外。</p>
-<p>批次再次执行与超限拆分不同：批次处理是在后续文件到达后重新提交“一个最新全案请求”，每次执行仍对应一个 Task。超限拆分是在同一时点把全案拆成多个请求和多个 Task，并需要合并跨请求结果，本期不实现。如果后续批次累计后案件超过 50 件，下一次整案请求同样直接失败。</p>
+<p>批次再次执行与超限拆分不同：批次处理是在后续文件到达后重新提交“一个最新全案请求”，每次执行仍对应一个 Task。单次整案请求最多包含 50 件账票；超过上限时节点失败且不创建 Task。产品不支持将同一案件拆成多个请求并合并跨请求结果。</p>
 <h4>异步状态</h4>
 <p>节点保存 <code>taskId</code>、<code>clientRequestId</code>、查询游标和轮询状态。<code>masterStatus</code> 表示流程状态，<code>masterResult</code> 表示业务结果。</p>
 <table>
@@ -2065,10 +2104,8 @@
 <h4>结果关联与替换</h4>
 <p>响应中的 <code>itemId</code> 是本次调用新分配的标识，<code>fieldId</code> 与原确认项目保持相同。IDP 按返回的 <code>fieldId</code> 找到对应确认项目，替换其照合结果并保存新 <code>itemId</code>。需要更新的候选、确认原因、判断信息及关联回填结果均属于该确认项目，其他确认项目保持原结果。</p>
 <p>例如，原结果为 <code>fieldId=F1、itemId=I1</code>，第一次重新照合返回 <code>fieldId=F1、itemId=I2</code>。IDP 更新 F1 的结果，保留 F1 与界面项目的关联，不因为 itemId 变化新增一个确认项目。</p>
-<h4>连续重新照合的引用与输入规则（待客户确认）</h4>
-<p>以下为拟采用方案，待客户确认后作为接口实现依据。式样书 §4.6 已定义响应 fieldId，但请求 ref 尚未包含 fieldId，也未明确连续调用时 itemId 的引用及后端上下文覆盖规则。</p>
-<p>确认问题：是否支持在 ref 中携带原 taskId、原 itemId 和稳定 fieldId，每次提交同一对象全部最新输入，由后端按 fieldId 替换旧输入并更新照合上下文，响应返回相同 fieldId 和新 itemId，后续仍引用原 taskId、原 itemId？如不支持，请客户明确现有接口的连续调用及覆盖方式。</p>
-<p>影响范围：连续重新照合的请求组装、后端输入覆盖和上下文更新。该接口实现需在客户确认后定稿，当前不假定现有服务已经支持。</p>
+<h4>连续重新照合的引用与输入规则</h4>
+<p>按稳定 <code>fieldId</code> 定位同一确认项目。每次请求沿用原 <code>taskId</code>、原 <code>itemId</code> 和 <code>fieldId</code>，并提交该对象全部最新输入；后端以本次输入替换该对象此前的照合输入并更新照合上下文。响应保持 <code>fieldId</code>，返回新的 <code>itemId</code>。后续连续重新照合仍沿用原任务和原对象引用，避免把新结果标识误作新的原始上下文。</p>
 <p>后端收到请求后，按当前案件任务上下文中的 fieldId 找到原确认项目，用本次 inputs 替换其旧输入。后续照合参考该项目更新后的输入，其他项目保留各自最新有效状态，不能重新引入已被替换的旧值。重新判断后返回相同 fieldId 和新 itemId。此更新用于照合上下文，不等同于直接覆盖尚待人工确认的 IDP 回填值。</p>
 <p>每次重新照合均提交新请求，同步返回新 itemId，不创建 Task。</p>
 <ul>
@@ -2492,8 +2529,8 @@
 </tr>
 <tr>
 <td>案件账票超过 50 件</td>
-<td>本期不拆分，节点失败，不创建 Task；拆分部分延期</td>
-<td>显示超出本期上限</td>
+<td>超过单次照合上限，不拆分，节点失败且不创建 Task</td>
+<td>显示超过 50 件上限</td>
 <td>P1</td>
 </tr>
 <tr>
@@ -2841,21 +2878,15 @@
 <td>重新选择失效字段</td>
 </tr>
 </tbody></table>
-<h4>延期与产品限制</h4>
+<h4>产品限制</h4>
 <ul>
-<li><code>deprecated=true</code> 字段的显示和禁用属于下一期。</li>
-<li>多用户同时编辑同一组的冲突检测属于下一期。</li>
-<li>默认组批量导入后，其他未保存组允许通过重新同步恢复。</li>
-<li>普通字段与表格列不能混用、案件标准字段只能属于一个组，属于 IDP 产品限制。</li>
-<li>外部 <code>documentTypeId</code> 与 IDP 不一致，不直接使用外部 ID。字段名称或类型变化时由用户核对。</li>
+<li>单次整案照合最多提交 50 件账票；不支持拆分为多个请求后合并结果。</li>
+<li>普通字段与表格列不能混用；案件标准字段只能属于一个组。</li>
+<li><code>deprecated=true</code> 的字段不用于新建配置。</li>
+<li>不提供多用户同时编辑同一组时的冲突检测。</li>
+<li>外部 <code>documentTypeId</code> 与 IDP 不一致时，不直接使用外部 ID；由用户核对字段名称或类型。</li>
 </ul>
-<h4>待确认</h4>
-<ul>
-<li>组名最大长度尚未定义。</li>
-<li>删除接口失败时，页面如何恢复被删除组尚未定义。</li>
-<li>主数据响应缺少 <code>configuration</code> 时，应禁用项目还是显示接口原始值尚未定义。</li>
-<li>默认组返回未知字段类型时，应清空字段还是直接阻止导入尚未定义。</li>
-</ul>
+<p>组名最多 30 个字符；超出时阻止保存并保留草稿。删除失败时恢复列表中的原组和关联配置并提示错误。主数据响应缺少 <code>configuration</code> 时仍可查看该项目，但因无法确定角色与用途，不允许加入照合组。默认组导入时仅保留 IDP 当前需要且支持的字段，忽略其他字段。</p>
 <h3 id="section-30">6.4 接口规格书附件</h3>
 <ul>
 <li><a href="/%E4%B8%BB%E6%95%B0%E6%8D%AEAPI/%E7%BB%BC%E5%90%88%E4%B8%BB%E6%95%B0%E6%8D%AE%E5%90%8D%E7%A7%B0%E6%A0%87%E5%87%86%E5%8C%96API%E8%A7%84%E6%A0%BC%E4%B9%A6_v1.2_zh-CN.md">综合主数据名称标准化 API 规格书 v1.2 中文版</a></li>

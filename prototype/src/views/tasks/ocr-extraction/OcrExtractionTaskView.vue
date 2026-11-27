@@ -51,7 +51,9 @@ watch(
       restandardizeEligibleFieldIds.value = []
       return
     }
-    pages.value = task.pages
+    pages.value = task.pages.map((page, index) => JSON.parse(
+      JSON.stringify(page).replace(/"p4-/g, `"file${index}-p4-`)
+    ))
     restandardizeEligibleFieldIds.value = []
     activePageId.value = task.pages[0]?.id ?? ''
     selectedFieldId.value = task.pages[0]?.fields[0]?.id ?? null
@@ -208,6 +210,19 @@ function resolveFieldValue(fieldId: string, value: string) {
   }
 }
 
+function applySelectedCandidate(owner: OcrExtractionField, candidate: OcrMasterMatchCandidate) {
+  if (owner.writeSourceOptions?.length) {
+    const destination = pages.value.find((page) => page.id === owner.selectedWriteSourceId)
+    const target = destination?.fields.find((field) => field.label === owner.label.replace('薬剤名', '商品名'))
+    if (!target) return
+    applyMasterMatchSelection(allFields.value, { ...candidate, linkedValues: { [target.id]: candidate.value } })
+    owner.masterSelection = candidate.selection
+    owner.masterValuesSnapshot = candidate.masterValues
+    return
+  }
+  applyMasterMatchSelection(allFields.value, candidate)
+}
+
 function toggleFieldConfirm(fieldId: string) {
   const field = findField(fieldId)
   if (!field) return
@@ -223,7 +238,11 @@ function toggleFieldConfirm(fieldId: string) {
         ? undefined
         : presentation.masterDataMatches.find((option) => option.isMaster && option.selectable !== false)
     )
-    if (selected) applyMasterMatchSelection(allFields.value, selected)
+    if (selected) applySelectedCandidate(owner, selected)
+  }
+  if (owner.pendingMasterMatch && presentation?.shouldWriteBack === false) {
+    owner.masterSelection = owner.pendingMasterMatch.selection
+    owner.masterValuesSnapshot = owner.pendingMasterMatch.masterValues
   }
   delete owner.pendingMasterMatch
   toggleMasterMatchGroupConfirm(field, allFields.value)
@@ -254,7 +273,7 @@ function selectMasterMatch(fieldId: string, candidate: OcrMasterMatchCandidate) 
     owner.userConfirmed = false
     return
   }
-  applyMasterMatchSelection(allFields.value, candidate)
+  applySelectedCandidate(owner, candidate)
 }
 
 function goBack() {

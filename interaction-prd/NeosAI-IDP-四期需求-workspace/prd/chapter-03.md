@@ -52,7 +52,7 @@ flowchart LR
 
 #### 单字段重新照合｜请求与结果结构
 
-图中请求携带 ref.fieldId、按 fieldId 覆盖旧输入及更新上下文的方案待客户确认。
+重新照合请求携带稳定的 `fieldId`，按 `fieldId` 更新当前照合对象的输入和上下文。
 
 `ref` 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 `taskId + itemId`，并在 `ref.fieldId` 传入同一确认项目的稳定标识。原本为空、没有 item 时传原 `taskId + groupId + source`，定位原任务中的组及主输入位置。
 
