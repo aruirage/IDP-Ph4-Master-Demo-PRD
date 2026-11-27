@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NeosAI IDP · 四期 PRD</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:32px}body{margin:0;background:#fafafa;color:#202939;font:15px/1.8 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}aside{position:fixed;inset:0 auto 0 0;width:270px;padding:28px 20px;border-right:1px solid #e5e7eb;background:#fff;overflow:auto}aside strong{display:block;font-size:20px;margin-bottom:4px}aside small{color:#697586}nav{margin-top:22px}nav a{display:block;color:#536174;text-decoration:none;padding:5px 10px;border-radius:4px;line-height:1.6}nav a:hover,nav a.active{background:#edf4ff;color:#175cd3}nav .level-2{font-weight:600;margin-top:12px}nav .level-3{padding-left:22px;font-size:13px}.document{margin-left:270px;padding:28px 40px 100px;max-width:1600px}.tools{display:flex;justify-content:flex-end;gap:10px;margin-bottom:20px}.tools a,.tools button{font:inherit;font-size:14px;padding:5px 13px;background:#fff;color:#175cd3;border:1px solid #d0d5dd;border-radius:4px;text-decoration:none;cursor:pointer}article{background:white;padding:36px 42px;border:1px solid #e5e7eb;border-radius:8px}h1{font-size:27px;line-height:1.5;margin:0 0 30px}h2{font-size:23px;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-top:50px}h3{font-size:19px;margin-top:32px}h4{font-size:16px;margin-top:25px}p{margin:12px 0}li{margin:5px 0}a{color:#175cd3}table{border-collapse:collapse;width:100%;font-size:14px;margin:24px 0;overflow-wrap:anywhere}table+table{margin-top:32px}th,td{text-align:left;border:1px solid #dce2eb;padding:10px 12px;vertical-align:top}th{background:#f1f5fb;font-weight:600}pre{padding:18px;background:#111111;color:#eeeeee;overflow:auto;border-radius:5px;font-size:13px;line-height:1.7}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}p code,td code{background:#f0f3f7;padding:2px 4px;border-radius:3px}.diagram{overflow:auto;border:1px solid #e5e7eb;border-radius:5px;margin:20px 0;padding:18px;background:#fff}.mermaid{min-width:1100px}.mermaid svg{max-width:none!important;width:auto;min-width:1100px}a:focus-visible,button:focus-visible{outline:2px solid #175cd3;outline-offset:3px}@media(max-width:1000px){aside{position:relative;width:auto;max-height:300px}.document{margin:0;padding:16px}article{padding:20px}.diagram{padding:8px}}@media print{aside,.tools{display:none}.document{margin:0;padding:0;max-width:none}article{border:0;padding:0}h2,h3,h4{break-after:avoid}tr{break-inside:avoid}.diagram{overflow:visible}.mermaid{min-width:0}.mermaid svg{min-width:0;width:100%;max-width:100%!important}}
-</style></head><body><aside><strong>NeosAI IDP</strong><small>四期产品需求文档</small><nav><a class="level-2" href="#section-1">第 1 章｜本期范围与优先级</a><a class="level-3" href="#section-2">1.1 背景与目标</a><a class="level-3" href="#section-3">1.2 本期范围</a><a class="level-3" href="#section-4">1.4 里程碑与优先级</a><a class="level-3" href="#section-5">1.5 上下游关系与依赖</a><a class="level-2" href="#section-6">第 2 章｜使用流程</a><a class="level-3" href="#section-7">2.1 配置准备</a><a class="level-3" href="#section-8">2.2 工作流执行</a><a class="level-3" href="#section-9">2.3 OCR 确认与重新照合</a><a class="level-2" href="#section-10">第 3 章｜数据结构与职责</a><a class="level-3" href="#section-11">3.1 配置结构</a><a class="level-3" href="#section-12">3.2 请求与结果结构</a><a class="level-3" href="#section-13">3.3 职责与留存</a><a class="level-2" href="#section-14">第 4 章｜本期接口与主要字段</a><a class="level-3" href="#section-15">4.1 API 设定与组配置</a><a class="level-3" href="#section-16">4.2 工作流整案照合</a><a class="level-3" href="#section-17">4.3 OCR 确认与重新照合</a><a class="level-3" href="#section-18">4.4 公共处理</a><a class="level-3" href="#section-19">4.5 分模块调用示例</a><a class="level-2" href="#section-20">第 5 章｜功能详情</a><a class="level-3" href="#section-21">5.1 API设定</a><a class="level-3" href="#section-22">5.2 组配置</a><a class="level-3" href="#section-23">5.3 工作流</a><a class="level-3" href="#section-24">5.4 OCR抽出确认</a><a class="level-3" href="#section-25">5.5 重新照合</a><a class="level-2" href="#section-26">第 6 章｜异常、注意点与附件</a><a class="level-3" href="#section-27">6.1 跨模块异常情况</a><a class="level-3" href="#section-28">6.2 注意点</a><a class="level-3" href="#section-29">6.3 组配置边界场景</a><a class="level-3" href="#section-30">6.4 接口规格书附件</a><a class="level-3" href="#section-31">6.5 主数据照合功能列表附件</a></nav></aside><main class="document"><div class="tools"><a href="/v4/standardization" target="_blank" rel="noopener">打开原型</a><button onclick="window.print()">打印 / PDF</button></div><article><h2 id="section-1">第 1 章｜本期范围与优先级</h2>
+</style></head><body><aside><strong>NeosAI IDP</strong><small>四期产品需求文档</small><nav><a class="level-2" href="#section-1">第 1 章｜本期范围与优先级</a><a class="level-3" href="#section-2">1.1 背景与目标</a><a class="level-3" href="#section-3">1.2 本期范围</a><a class="level-3" href="#section-4">1.4 里程碑与优先级</a><a class="level-3" href="#section-5">1.5 上下游关系与依赖</a><a class="level-2" href="#section-6">第 2 章｜使用流程</a><a class="level-3" href="#section-7">2.1 配置准备</a><a class="level-3" href="#section-8">2.2 工作流执行</a><a class="level-3" href="#section-9">2.3 OCR 确认与重新照合</a><a class="level-2" href="#section-10">第 3 章｜数据结构与职责</a><a class="level-3" href="#section-11">3.1 配置结构</a><a class="level-3" href="#section-12">3.2 请求与结果结构</a><a class="level-3" href="#section-13">3.3 职责与留存</a><a class="level-2" href="#section-14">第 4 章｜本期接口与主要字段</a><a class="level-3" href="#section-15">4.1 API 设定与组配置</a><a class="level-3" href="#section-16">4.2 工作流整案照合</a><a class="level-3" href="#section-17">4.3 OCR 确认与重新照合</a><a class="level-3" href="#section-18">4.4 公共处理</a><a class="level-3" href="#section-19">4.5 分模块调用示例</a><a class="level-2" href="#section-20">第 5 章｜功能详情</a><a class="level-3" href="#section-21">5.1 API设定</a><a class="level-3" href="#section-22">5.2 组配置</a><a class="level-3" href="#section-23">5.3 工作流</a><a class="level-3" href="#section-24">5.4 OCR抽出确认</a><a class="level-3" href="#section-25">5.5 重新照合</a><a class="level-2" href="#section-26">第 6 章｜异常、注意点与附件</a><a class="level-3" href="#section-27">6.1 跨模块异常情况</a><a class="level-3" href="#section-28">6.3 组配置边界场景</a><a class="level-3" href="#section-29">6.4 接口规格书附件</a><a class="level-3" href="#section-30">6.5 主数据照合功能列表附件</a></nav></aside><main class="document"><div class="tools"><a href="/v4/standardization" target="_blank" rel="noopener">打开原型</a><button onclick="window.print()">打印 / PDF</button></div><article><h2 id="section-1">第 1 章｜本期范围与优先级</h2>
 <h3 id="section-2">1.1 背景与目标</h3>
 <p>四期接入 Zurich 综合主数据名称标准化 API。上游已有案件集约、文件补件、OCR抽出和 OCR抽出确认任务。主数据照合按案件当前完整资料发起请求，并使用异步任务和现有 OCR抽出确认待办。</p>
 <p>本 PRD 的正文、字段说明和流程说明使用简体中文。界面文案、API 字段值、接口返回内容和示例中的日语保留原文。</p>
@@ -8,10 +8,9 @@
 <ul>
 <li>配置管理员可以通过 Zurich 返回的主数据 schema 配置可复用的照合组。</li>
 <li>业务场景管理员可以在 OCR抽出后放置「マスタ照合」节点。节点按当前业务场景自动读取适用的照合组。</li>
-<li>每次工作流执行到主数据照合节点时，发送该时点案件下已有的全部账票；一次工作流执行对应一次 API 请求和一个 Task。工作流等待该 Task 结束后继续。后续工作流再次执行时仍发送当时案件的全部账票，不只发送新增文件。</li>
+<li>每次工作流执行到主数据照合节点时，发送该时点案件下已有的全部账票；一次工作流执行中的整案提交对应一个 Task。后续单项重新照合另发同步请求，不创建 Task。工作流等待该 Task 结束后继续。后续工作流再次执行时仍发送当时案件的全部账票，不只发送新增文件。</li>
 <li>IDP 按结果中的 targets 回填无须确认的项目，将需要确认的结果送入本次案件工作流对应的 OCR抽出确认。</li>
 <li>组外字段保持 OCR抽出值。</li>
-<li>前端展示照合组变更履历；默认组来源、整体版本和配置快照由后端留存，用于追溯。</li>
 </ul>
 <h3 id="section-3">1.2 本期范围</h3>
 <table>
@@ -35,7 +34,11 @@
 </tr>
 <tr>
 <td>OCR 确认</td>
-<td>展示候选及确认说明，支持人工确认、候选选择和使用缓存最新值重新照合，包含文本字段与表格字段</td>
+<td>展示文本与表格字段的候选及确认说明，支持人工确认和候选选择</td>
+</tr>
+<tr>
+<td>重新照合</td>
+<td>在 OCR 确认页修改照合输入后，支持对文本与表格字段发起单项或一括重新照合，直接使用页面缓存中的最新值，无需先保存</td>
 </tr>
 </tbody></table>
 <h3 id="section-4">1.4 里程碑与优先级</h3>
@@ -126,7 +129,7 @@
 <li>确认页使用 API 返回的统一候选列表、确认原因和其他信息。有内容则显示，无内容则隐藏；主要素及追加要素使用同一候选列表。</li>
 <li>操作员选择已有候选后，按该候选的值和目标位置采用结果。</li>
 <li>修改照合输入后，可单项或一括重新照合，直接使用页面缓存最新值，无需先保存。一括处理已修改的文本和表格输入，不增加勾选框。</li>
-<li>重新照合只处理被修改字段所属的照合对象：修改值使用最新缓存，其他输入继承原结果；该对象关联的回填结果可能一起更新，其他对象保持原结果。</li>
+<li>重新照合只处理被修改字段所属的照合对象：每次提交该对象全部输入的最新缓存值；该对象关联的回填结果可能一起更新，其他对象保持原结果。</li>
 </ul>
 <h2 id="section-10">第 3 章｜数据结构与职责</h2>
 <h3 id="section-11">3.1 配置结构</h3>
@@ -167,6 +170,7 @@
     n3 --&gt;|超过 50 张| n13[&quot;节点失败，不创建 Task&quot;]
     n4 --&gt; n5[&quot;多个 item&quot;]
     n5 --&gt; n6[&quot;item 定位信息&quot;]
+    n6 --&gt; n60[&quot;fieldId（确认项目标识）&quot;]
     n6 --&gt; n61[&quot;itemId&quot;]
     n6 --&gt; n62[&quot;groupId&quot;]
     n6 --&gt; n63[&quot;source&quot;]
@@ -187,13 +191,16 @@
     n9 --&gt; n92[&quot;targets&quot;]
 </code></pre>
 <h4>单字段重新照合｜请求与结果结构</h4>
-<p><code>ref</code> 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 <code>taskId + itemId</code>。原本为空、没有 item 时传原 <code>taskId + groupId + source</code>，定位原任务中的组及主输入位置。</p>
+<p>图中请求携带 ref.fieldId、按 fieldId 覆盖旧输入及更新上下文的方案待客户确认。</p>
+<p><code>ref</code> 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 <code>taskId + itemId</code>，并在 <code>ref.fieldId</code> 传入同一确认项目的稳定标识。原本为空、没有 item 时传原 <code>taskId + groupId + source</code>，定位原任务中的组及主输入位置。</p>
 <pre><code class="language-mermaid">flowchart LR
     r1[&quot;页面缓存最新输入&quot;] --&gt; r3[&quot;单项重新照合请求&lt;br/&gt;POST /v1/items/standardize&quot;]
-    r2[&quot;原结果引用 ref&lt;br/&gt;taskId + itemId&lt;br/&gt;原本为空时：taskId + groupId + source&quot;] --&gt; r3
+    r2[&quot;原结果引用 ref&lt;br/&gt;taskId + itemId + fieldId&lt;br/&gt;原本为空时：taskId + groupId + source&quot;] --&gt; r3
     r0[&quot;主数据表 masterTable&quot;] --&gt; r3
-    r3 --&gt; r4[&quot;同步返回单个 item&lt;br/&gt;不创建新的 Task&quot;]
+    r3 --&gt; r31[&quot;按 fieldId 替换旧输入&lt;br/&gt;基于更新后的案件上下文重新判断&quot;]
+    r31 --&gt; r4[&quot;同步返回单个 item&lt;br/&gt;相同 fieldId、新 itemId，不创建 Task&quot;]
     r4 --&gt; r5[&quot;item 定位信息&quot;]
+    r5 --&gt; r50[&quot;fieldId（与原确认项目相同）&quot;]
     r5 --&gt; r51[&quot;itemId（本次新分配）&quot;]
     r5 --&gt; r52[&quot;groupId&quot;]
     r5 --&gt; r53[&quot;source&quot;]
@@ -210,7 +217,7 @@
     r8 --&gt; r81[&quot;master.values&quot;]
     r8 --&gt; r82[&quot;targets&quot;]
 </code></pre>
-<p>请求中的 <code>inputs</code> 使用页面当前编辑的最新值。同一 item 的多个修改合并为一次请求，未修改输入及回写位置从原结果继承。响应只更新对应照合对象及关联回填结果，其他对象保持原结果。一括再照合按照合对象分别调用。</p>
+<p>请求中的 <code>inputs</code> 使用页面当前编辑的最新值。同一 item 的多个修改合并为一次请求，inputs 显式提交该对象全部最新输入，回写位置由原结果引用定位，照合使用按 fieldId 更新后的最新上下文。响应只更新对应照合对象及关联回填结果，其他对象保持原结果。一括再照合按照合对象分别调用。</p>
 <table>
 <thead>
 <tr>
@@ -220,8 +227,13 @@
 </tr>
 </thead>
 <tbody><tr>
+<td><code>fieldId</code></td>
+<td>确认项目标识，重新照合前后保持相同</td>
+<td>关联重新照合前后的同一确认项目，替换该项目的结果</td>
+</tr>
+<tr>
 <td><code>itemId</code></td>
-<td>当前 Task 内的照合对象标识</td>
+<td>一次照合结果的对象标识。整案结果中位于 Task 的 items 内，单项重新照合会分配新值但不创建 Task</td>
 <td>工作流结果处理、局部重新照合和结果更新</td>
 </tr>
 <tr>
@@ -237,7 +249,7 @@
 <tr>
 <td><code>inputs</code></td>
 <td>实际参与匹配的值及位置</td>
-<td>确认页判断依据，也用于重新照合时继承其他输入</td>
+<td>确认页判断依据，重新照合时提交该对象全部最新输入</td>
 </tr>
 <tr>
 <td><code>status</code></td>
@@ -281,9 +293,9 @@
 </tr>
 </tbody></table>
 <p><code>masterDataMatches[]</code> 每一项都包含自己的 <code>label</code>、<code>confidence</code>、<code>primary</code>、<code>master</code> 和 <code>targets</code>。操作员选择候选后，IDP 使用该候选自己的数据回写，不从 <code>splitItems</code> 等详细结果自行拼接。</p>
-<p>IDP 使用 <code>groupId + source</code> 识别同一确认项目。API 返回的 <code>fieldId</code> 仅作为兼容字段由后端保存，不作为前端业务主键，也不用于确定回写位置。</p>
+<p>IDP 使用 <code>fieldId</code> 关联重新照合前后的同一确认项目，并替换该项目的结果。<code>groupId</code> 关联组配置，<code>source</code> 定位主输入在账票中的实际位置，<code>targets</code> 定位回写位置。<code>fieldId</code> 不用于确定回写位置，也不决定输入数据的版本。</p>
 <p>自动采用使用 item 的 <code>master.values</code> 和 <code>targets</code>。人工确认使用操作员所选项的 <code>master.values</code> 和 <code>targets</code>。没有值的列保持原值。<code>selection</code> 随响应保存为原始记录，本期不参与展示、回写或后续系统登记。</p>
-<p>后续文件新增、删除或替换后再次执行工作流时，IDP 提交新的整案请求并生成新的 Task。单项重新照合使用原 <code>taskId</code>、<code>itemId</code> 和缓存最新输入，只更新当前 item。</p>
+<p>后续文件新增、删除或替换后再次执行工作流时，IDP 提交新的整案请求并生成新的 Task。单项重新照合使用原 <code>taskId</code>、<code>itemId</code> 和缓存最新输入，按相同 <code>fieldId</code> 替换当前确认项目的结果，保存新 <code>itemId</code>。</p>
 <h4>整案照合与字段重新照合</h4>
 <pre><code class="language-mermaid">flowchart TD
     A[&quot;OCR 确认中的变更&quot;] --&gt; B{&quot;变更范围&quot;}
@@ -295,11 +307,11 @@
     B --&gt;|单据的照合输入修改，点击再照合| H[&quot;读取页面缓存最新值，无需先保存&quot;]
     H --&gt; I[&quot;按 item 合并修改，一括再照合也按 item 分别处理&quot;]
     I --&gt; J{&quot;是否已有原 item&quot;}
-    J --&gt;|有| K[&quot;ref 引用原 taskId 与 itemId&quot;]
+    J --&gt;|有| K[&quot;ref：原 taskId、itemId 及稳定 fieldId&quot;]
     J --&gt;|原本为空，无照合对象| L[&quot;ref 引用 groupId 与 source&quot;]
     K --&gt; M[&quot;POST /v1/items/standardize
-提交 masterTable 与修改后的 inputs
-未修改输入继承原结果&quot;]
+提交 masterTable 与全部最新 inputs
+按 fieldId 替换旧信息后重新判断&quot;]
     L --&gt; M
     M --&gt; N[&quot;同步返回当前对象结果，不创建新 Task&quot;]
     N --&gt; O[&quot;更新当前 item 及关联回填结果
@@ -478,10 +490,11 @@
 </tr>
 </tbody></table>
 <p>普通候选确认、保留 OCR 原值和选择已有候选不需要调用 Zurich 接口。确认结果由 IDP 保存到自身的确认记录中。</p>
-<p>IDP 以 <code>groupId + source</code> 关联确认项目及结果。API 返回的 <code>fieldId</code> 仅作为兼容字段由后端接收和保存。</p>
+<p>IDP 以 <code>fieldId</code> 关联重新照合前后的确认项目及结果。<code>groupId</code> 用于关联组配置，<code>source</code> 用于定位主输入，<code>targets</code> 用于定位回写位置。</p>
 <h4>重新照合调用规则</h4>
-<p>重新照合使用 <code>POST /v1/items/standardize</code>，主要提交 <code>ref</code>、<code>masterTable</code> 和修改后的 <code>inputs</code>。有原结果时，<code>ref</code> 引用原 <code>taskId</code> 和 <code>itemId</code>。原本为空、尚无照合对象时，按式样书使用 <code>groupId</code> 和 <code>source</code> 引用配置及位置。</p>
-<p>修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，其他输入从原结果继承。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。</p>
+<p>请求补充 ref.fieldId、连续引用原 itemId 及后端上下文覆盖行为待客户确认，以下按拟采用方案说明。</p>
+<p>重新照合使用 <code>POST /v1/items/standardize</code>，主要提交 <code>ref</code>、<code>masterTable</code> 和该对象全部最新 <code>inputs</code>。有原结果时，<code>ref</code> 携带原 <code>taskId</code>、原 <code>itemId</code> 及稳定的 <code>fieldId</code>。后端按 fieldId 更新该项目的输入及照合上下文，再重新判断。原本为空、尚无照合对象时，按式样书使用 <code>groupId</code> 和 <code>source</code> 引用配置及位置。</p>
+<p>修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，每次显式提交该对象全部最新输入。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。</p>
 <h4>主要字段</h4>
 <table>
 <thead>
@@ -500,7 +513,7 @@
 </tr>
 <tr>
 <td>inputs</td>
-<td>照合输入及原值；重新照合时继承未修改的输入</td>
+<td>照合输入及原值；重新照合时提交该对象全部最新输入</td>
 </tr>
 <tr>
 <td>needsReview</td>
@@ -1221,7 +1234,7 @@
 </code></pre>
 <p><strong>IDP 处理：</strong> 汇总所有页，nextCursor 为 null 后结束取数。</p>
 <h4>工作流｜取消旧任务</h4>
-<p>案件中止或重新请求前，需要取消未结束的旧任务。</p>
+<p>案件中止或重新提交整案请求前，需要取消未结束的旧任务。单项重新照合不创建新 Task，不适用此取消流程。</p>
 <p>按式样书 §4.5 规则 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。</p>
 <p><strong>请求</strong></p>
 <pre><code class="language-http">POST /v1/standardizations/MS-20261118-7Q3K9D/cancel
@@ -1241,7 +1254,7 @@
 <p><strong>IDP 处理：</strong> 取消结果不采用；若任务已完成，按接口实际状态处理。</p>
 <h4>OCR 确认｜修改输入后重新照合</h4>
 <p>操作员修改伤病名，点击再照合，直接提交缓存最新值。</p>
-<p>请求为式样书 §4.6 原例；响应为 §4.6 规定的对象结构 mock，业务值仅示意，非该输入的真实匹配结果。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。</p>
+<p>请求以式样书 §4.6 为基础，暂按待客户确认方案在 ref 中补充 fieldId；响应仅示意 §4.6 的结果关联字段，省略匹配结果与回填字段。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。</p>
 <p><strong>请求</strong></p>
 <pre><code class="language-http">POST /v1/items/standardize
 </code></pre>
@@ -1250,7 +1263,8 @@
   &quot;caseNo&quot;: &quot;CLAIM-20261118000123&quot;,
   &quot;ref&quot;: {
     &quot;taskId&quot;: &quot;MS-20261118-7Q3K9D&quot;,
-    &quot;itemId&quot;: &quot;dis2&quot;
+    &quot;itemId&quot;: &quot;dis2&quot;,
+    &quot;fieldId&quot;: &quot;fd-dis2-example&quot;
   },
   &quot;masterTable&quot;: &quot;DISEASE&quot;,
   &quot;inputs&quot;: [
@@ -1280,244 +1294,20 @@
   &quot;msg&quot;: &quot;&quot;,
   &quot;requestId&quot;: &quot;req-example&quot;,
   &quot;data&quot;: {
-    &quot;itemId&quot;: &quot;restandardized-example&quot;,
-    &quot;fieldId&quot;: &quot;fd-9c1e5a20&quot;,
-    &quot;groupId&quot;: &quot;HG02-OPE&quot;,
-    &quot;needsReview&quot;: false,
-    &quot;shouldWriteBack&quot;: true,
-    &quot;master&quot;: {
-      &quot;masterTable&quot;: &quot;OPERATION&quot;,
-      &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-      &quot;masterId&quot;: &quot;a0V000000000000301&quot;,
-      &quot;displayName&quot;: &quot;経皮的冠動脈形成術&quot;,
-      &quot;values&quot;: {
-        &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈形成術&quot;,
-        &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K546-00&quot;,
-        &quot;CLM_OperationMst__c.KCODEOPNAME__C&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;,
-        &quot;CLM_OperationMst__c.KANA1__C&quot;: &quot;ケイヒテキカンドウミャクケイセイジュツ&quot;,
-        &quot;CLM_OperationMst__c.CANCEROPERATION__C&quot;: &quot;false&quot;,
-        &quot;CLM_OperationMst__c.CWFDENTISTRY__C&quot;: &quot;false&quot;,
-        &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;,
-        &quot;CWF_OperationMstAlias__c.ID&quot;: &quot;a0W000000000000301&quot;
-      },
-      &quot;active&quot;: true,
-      &quot;selection&quot;: {
-        &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-        &quot;recordType&quot;: &quot;ALIAS&quot;,
-        &quot;recordId&quot;: &quot;a0W000000000000301&quot;,
-        &quot;name&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;
-      }
-    },
-    &quot;targets&quot;: {
-      &quot;CLM_OperationMst__c.NAME&quot;: {
-        &quot;type&quot;: &quot;TABLE_CELL&quot;,
-        &quot;documentId&quot;: &quot;991243705301&quot;,
-        &quot;tableName&quot;: &quot;手術情報&quot;,
-        &quot;tableIndex&quot;: 0,
-        &quot;rowIndex&quot;: 0,
-        &quot;columnName&quot;: &quot;手術名&quot;,
-        &quot;columnIndex&quot;: 0
-      }
-    },
-    &quot;masterDataMatches&quot;: [
-      {
-        &quot;type&quot;: &quot;recommended&quot;,
-        &quot;label&quot;: &quot;マスタ推奨&quot;,
-        &quot;value&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;,
-        &quot;confidence&quot;: 100.0,
-        &quot;primary&quot;: true,
-        &quot;master&quot;: {
-          &quot;masterTable&quot;: &quot;OPERATION&quot;,
-          &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-          &quot;masterId&quot;: &quot;a0V000000000000301&quot;,
-          &quot;displayName&quot;: &quot;経皮的冠動脈形成術&quot;,
-          &quot;values&quot;: {
-            &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈形成術&quot;,
-            &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K546-00&quot;,
-            &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;
-          },
-          &quot;active&quot;: true,
-          &quot;selection&quot;: {
-            &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-            &quot;recordType&quot;: &quot;ALIAS&quot;,
-            &quot;recordId&quot;: &quot;a0W000000000000301&quot;,
-            &quot;name&quot;: &quot;経皮的冠動脈形成術（その他のもの）&quot;
-          }
-        },
-        &quot;targets&quot;: {
-          &quot;CLM_OperationMst__c.NAME&quot;: {
-            &quot;type&quot;: &quot;TABLE_CELL&quot;,
-            &quot;documentId&quot;: &quot;991243705301&quot;,
-            &quot;tableName&quot;: &quot;手術情報&quot;,
-            &quot;tableIndex&quot;: 0,
-            &quot;rowIndex&quot;: 0,
-            &quot;columnName&quot;: &quot;手術名&quot;,
-            &quot;columnIndex&quot;: 0
-          }
-        }
-      },
-      {
-        &quot;type&quot;: &quot;candidate&quot;,
-        &quot;label&quot;: &quot;マスタ候補&quot;,
-        &quot;value&quot;: &quot;経皮的冠動脈形成術（急性心筋梗塞に対するもの）&quot;,
-        &quot;confidence&quot;: 88.4,
-        &quot;primary&quot;: true,
-        &quot;master&quot;: {
-          &quot;masterTable&quot;: &quot;OPERATION&quot;,
-          &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-          &quot;masterId&quot;: &quot;a0V000000000000301&quot;,
-          &quot;displayName&quot;: &quot;経皮的冠動脈形成術&quot;,
-          &quot;values&quot;: {
-            &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈形成術&quot;,
-            &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K546-00&quot;,
-            &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈形成術（急性心筋梗塞に対するもの）&quot;
-          },
-          &quot;active&quot;: true,
-          &quot;selection&quot;: {
-            &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-            &quot;recordType&quot;: &quot;ALIAS&quot;,
-            &quot;recordId&quot;: &quot;a0W000000000000302&quot;,
-            &quot;name&quot;: &quot;経皮的冠動脈形成術（急性心筋梗塞に対するもの）&quot;
-          }
-        },
-        &quot;targets&quot;: {
-          &quot;CLM_OperationMst__c.NAME&quot;: {
-            &quot;type&quot;: &quot;TABLE_CELL&quot;,
-            &quot;documentId&quot;: &quot;991243705301&quot;,
-            &quot;tableName&quot;: &quot;手術情報&quot;,
-            &quot;tableIndex&quot;: 0,
-            &quot;rowIndex&quot;: 0,
-            &quot;columnName&quot;: &quot;手術名&quot;,
-            &quot;columnIndex&quot;: 0
-          }
-        }
-      },
-      {
-        &quot;type&quot;: &quot;candidate&quot;,
-        &quot;label&quot;: &quot;マスタ候補&quot;,
-        &quot;value&quot;: &quot;経皮的冠動脈形成術（不安定狭心症に対するもの）&quot;,
-        &quot;confidence&quot;: 87.9,
-        &quot;primary&quot;: true,
-        &quot;master&quot;: {
-          &quot;masterTable&quot;: &quot;OPERATION&quot;,
-          &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-          &quot;masterId&quot;: &quot;a0V000000000000301&quot;,
-          &quot;displayName&quot;: &quot;経皮的冠動脈形成術&quot;,
-          &quot;values&quot;: {
-            &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈形成術&quot;,
-            &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K546-00&quot;,
-            &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈形成術（不安定狭心症に対するもの）&quot;
-          },
-          &quot;active&quot;: true,
-          &quot;selection&quot;: {
-            &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-            &quot;recordType&quot;: &quot;ALIAS&quot;,
-            &quot;recordId&quot;: &quot;a0W000000000000303&quot;,
-            &quot;name&quot;: &quot;経皮的冠動脈形成術（不安定狭心症に対するもの）&quot;
-          }
-        },
-        &quot;targets&quot;: {
-          &quot;CLM_OperationMst__c.NAME&quot;: {
-            &quot;type&quot;: &quot;TABLE_CELL&quot;,
-            &quot;documentId&quot;: &quot;991243705301&quot;,
-            &quot;tableName&quot;: &quot;手術情報&quot;,
-            &quot;tableIndex&quot;: 0,
-            &quot;rowIndex&quot;: 0,
-            &quot;columnName&quot;: &quot;手術名&quot;,
-            &quot;columnIndex&quot;: 0
-          }
-        }
-      },
-      {
-        &quot;type&quot;: &quot;candidate&quot;,
-        &quot;label&quot;: &quot;マスタ候補&quot;,
-        &quot;value&quot;: &quot;経皮的冠動脈形成術（特殊カテーテルによるもの）&quot;,
-        &quot;confidence&quot;: 80.2,
-        &quot;primary&quot;: true,
-        &quot;master&quot;: {
-          &quot;masterTable&quot;: &quot;OPERATION&quot;,
-          &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-          &quot;masterId&quot;: &quot;a0V000000000000311&quot;,
-          &quot;displayName&quot;: &quot;経皮的冠動脈形成術（特殊カテーテルによるもの）&quot;,
-          &quot;values&quot;: {
-            &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈形成術（特殊カテーテルによるもの）&quot;,
-            &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K548-00&quot;,
-            &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈形成術（特殊カテーテルによるもの）&quot;
-          },
-          &quot;active&quot;: true,
-          &quot;selection&quot;: {
-            &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-            &quot;recordType&quot;: &quot;ALIAS&quot;,
-            &quot;recordId&quot;: &quot;a0W000000000000311&quot;,
-            &quot;name&quot;: &quot;経皮的冠動脈形成術（特殊カテーテルによるもの）&quot;
-          }
-        },
-        &quot;targets&quot;: {
-          &quot;CLM_OperationMst__c.NAME&quot;: {
-            &quot;type&quot;: &quot;TABLE_CELL&quot;,
-            &quot;documentId&quot;: &quot;991243705301&quot;,
-            &quot;tableName&quot;: &quot;手術情報&quot;,
-            &quot;tableIndex&quot;: 0,
-            &quot;rowIndex&quot;: 0,
-            &quot;columnName&quot;: &quot;手術名&quot;,
-            &quot;columnIndex&quot;: 0
-          }
-        }
-      },
-      {
-        &quot;type&quot;: &quot;candidate&quot;,
-        &quot;label&quot;: &quot;マスタ候補&quot;,
-        &quot;value&quot;: &quot;経皮的冠動脈ステント留置術（その他のもの）&quot;,
-        &quot;confidence&quot;: 76.5,
-        &quot;primary&quot;: true,
-        &quot;master&quot;: {
-          &quot;masterTable&quot;: &quot;OPERATION&quot;,
-          &quot;object&quot;: &quot;CLM_OperationMst__c&quot;,
-          &quot;masterId&quot;: &quot;a0V000000000000312&quot;,
-          &quot;displayName&quot;: &quot;経皮的冠動脈ステント留置術&quot;,
-          &quot;values&quot;: {
-            &quot;CLM_OperationMst__c.NAME&quot;: &quot;経皮的冠動脈ステント留置術&quot;,
-            &quot;CLM_OperationMst__c.KCODE__C&quot;: &quot;K549-00&quot;,
-            &quot;CWF_OperationMstAlias__c.NAME&quot;: &quot;経皮的冠動脈ステント留置術（その他のもの）&quot;
-          },
-          &quot;active&quot;: true,
-          &quot;selection&quot;: {
-            &quot;object&quot;: &quot;CWF_OperationMstAlias__c&quot;,
-            &quot;recordType&quot;: &quot;ALIAS&quot;,
-            &quot;recordId&quot;: &quot;a0W000000000000312&quot;,
-            &quot;name&quot;: &quot;経皮的冠動脈ステント留置術（その他のもの）&quot;
-          }
-        },
-        &quot;targets&quot;: {
-          &quot;CLM_OperationMst__c.NAME&quot;: {
-            &quot;type&quot;: &quot;TABLE_CELL&quot;,
-            &quot;documentId&quot;: &quot;991243705301&quot;,
-            &quot;tableName&quot;: &quot;手術情報&quot;,
-            &quot;tableIndex&quot;: 0,
-            &quot;rowIndex&quot;: 0,
-            &quot;columnName&quot;: &quot;手術名&quot;,
-            &quot;columnIndex&quot;: 0
-          }
-        }
-      }
-    ],
-    &quot;reviewReason&quot;: null,
-    &quot;remarks&quot;: [
-      {
-        &quot;label&quot;: &quot;照合根拠&quot;,
-        &quot;value&quot;: &quot;読取値が、画面で選べる別名「経皮的冠動脈形成術（その他のもの）」と完全に一致し、帳票の手術コードとも矛盾しないため確定した。&quot;
-      }
-    ],
+    &quot;itemId&quot;: &quot;dis2-r1-example&quot;,
+    &quot;fieldId&quot;: &quot;fd-dis2-example&quot;,
+    &quot;groupId&quot;: &quot;HE03-DIS-1&quot;,
     &quot;ref&quot;: {
       &quot;taskId&quot;: &quot;MS-20261118-7Q3K9D&quot;,
-      &quot;itemId&quot;: &quot;dis2&quot;
+      &quot;itemId&quot;: &quot;dis2&quot;,
+    &quot;fieldId&quot;: &quot;fd-dis2-example&quot;
     }
   }
 }
 </code></pre>
 </details>
 
-<p><strong>IDP 处理：</strong> 继承未修改输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。</p>
+<p><strong>IDP 处理：</strong> 每次提交该对象全部最新输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。</p>
 <h2 id="section-20">第 5 章｜功能详情</h2>
 <h3 id="section-21">5.1 API设定</h3>
 <h4>页面与入口</h4>
@@ -1874,8 +1664,8 @@
 </tr>
 </tbody></table>
 <p>每次工作流执行直接使用该时点案件已有的全量资料。后续文件到达、删除或替换时，下一次工作流执行使用最新全案数据重新请求。批次标识由 IDP 内部管理。</p>
-<p>同一案件已有请求处理中且输入发生变化时，IDP 取消旧 Task，结束旧工作流执行，并从开始节点以最新全案数据重新执行完整工作流。旧 Task 的结果仅保留为执行记录，不应用到案件。</p>
-<p>本期每个请求最多提交 50 件逻辑账票（<code>documents[]</code>）。IDP 在发请求前检查案件账票数，超过 50 件时节点默认失败，不创建 Task。客户式样书中的拆分请求方案属于 IDP 本期范围外。</p>
+<p>同一案件已有整案请求处理中，且发生需要整案重新照合的输入变化时，IDP 取消旧 Task，结束旧工作流执行，并从开始节点以最新全案数据重新执行完整工作流。旧 Task 的结果仅保留为执行记录，不应用到案件。</p>
+<p>本期每个整案请求最多提交 50 件逻辑账票（<code>documents[]</code>）。IDP 在发请求前检查案件账票数，超过 50 件时节点默认失败，不创建 Task。客户式样书中的拆分请求方案属于 IDP 本期范围外。</p>
 <p>批次再次执行与超限拆分不同：批次处理是在后续文件到达后重新提交“一个最新全案请求”，每次执行仍对应一个 Task。超限拆分是在同一时点把全案拆成多个请求和多个 Task，并需要合并跨请求结果，本期不实现。如果后续批次累计后案件超过 50 件，下一次整案请求同样直接失败。</p>
 <h4>异步状态</h4>
 <p>节点保存 <code>taskId</code>、<code>clientRequestId</code>、查询游标和轮询状态。<code>masterStatus</code> 表示流程状态，<code>masterResult</code> 表示业务结果。</p>
@@ -1966,7 +1756,7 @@
 </li>
 <li><p><strong>区分两种游标</strong>　<code>nextCursor</code> 用于继续读取已完成 Task 列表。<code>itemsNextCursor</code> 只用于同一个 Task 内的照合对象分页。两者不能互换。</p>
 </li>
-<li><p><strong>恢复与结果归属</strong>　IDP 重启后从持久化的 <code>nextCursor</code> 继续轮询，并重试持久化队列中未处理的 <code>taskId</code>。仅最新请求的结果更新案件，旧 Task 的结果保留为执行记录。</p>
+<li><p><strong>恢复与结果归属</strong>　IDP 重启后从持久化的 <code>nextCursor</code> 继续轮询，并重试持久化队列中未处理的 <code>taskId</code>。整案轮询仅将最新整案请求的结果更新到案件，旧 Task 的结果保留为执行记录。单项重新照合的同步结果按 fieldId 更新对应确认项目。</p>
 </li>
 <li><p><strong>取消旧 Task</strong>　取消未结束请求时调用 <code>POST /v1/standardizations/{taskId}/cancel</code>。取消结果不应用到案件。</p>
 </li>
@@ -2091,7 +1881,7 @@
 <p><code>splitItems</code> 的主要素和追加要素由 API 整合到 <code>masterDataMatches</code> 返回。<code>primary=true</code> 显示为「主要素」，<code>primary=false</code> 显示为「追加要素」。</p>
 <p>操作员可以改选主要素或追加要素。最终采用后，回写值仍取所选项的 <code>master.values</code>，写入所选项的 <code>targets</code>。页面不根据 <code>SPLIT</code> 状态另建一套候选组件。</p>
 <h4>采用记录</h4>
-<p>每个 item 保存 <code>itemId</code>、<code>groupId</code>、所采用的主数据行、<code>values</code>、<code>needsReview</code>、确认原因和最终采用方式。采用记录用于确认页展示和审计。<code>selection</code> 仅作为 API 原始响应留存，本期不向后续系统登记。</p>
+<p>每个 item 保存 <code>fieldId</code>、<code>itemId</code>、<code>groupId</code>、所采用的主数据行、<code>values</code>、<code>needsReview</code>、确认原因和最终采用方式。采用记录用于确认页展示和审计。<code>selection</code> 仅作为 API 原始响应留存，本期不向后续系统登记。</p>
 <h4>异常处理</h4>
 <table>
 <thead>
@@ -2141,11 +1931,11 @@
 <td>处理所有已修改且参与主数据读取的文本字段和表格字段</td>
 </tr>
 </tbody></table>
-<p>一括再照合不受当前文本／表格 Tab 限制，不增加字段勾选框。重新照合直接使用页面缓存中的最新值，无需先保存。</p>
-<p>同一 item 的多个修改合并为一次 <code>POST /v1/items/standardize</code>。请求只提交修改过的输入，其他输入从原结果继承。接口通过 <code>ref</code> 引用原结果，结合最新输入值同步返回新结果，不创建新的 Task。</p>
+<p>重新照合直接使用页面缓存中的最新值，无需先保存。</p>
+<p>同一 item 的多个修改合并为一次 <code>POST /v1/items/standardize</code>。每次显式提交该照合对象全部最新输入，包括此前修改后已完成照合的输入。ref 携带原整案 Task、原 item 和稳定 fieldId。回写位置由原引用定位，照合参考按 fieldId 更新后的最新案件上下文。接口同步返回新结果，不创建新的 Task。</p>
 <p>重新照合更新当前 item 及其关联回填结果。同一 item 中未修改的回填字段也可能随新结果变化，其他 item 保持原结果。旧响应不能覆盖较新的重新照合结果。</p>
 <h4>原结果引用 ref</h4>
-<p><code>ref</code> 是原照合结果的引用，用于定位本次重新照合的对象，并继承其未修改输入、案件上下文和回写位置。传法如下。</p>
+<p><code>ref</code> 是原照合结果的引用，用于定位本次重新照合的对象，并继承其案件上下文和回写位置。传法如下。</p>
 <table>
 <thead>
 <tr>
@@ -2156,8 +1946,8 @@
 </thead>
 <tbody><tr>
 <td>已有照合结果</td>
-<td><code>taskId</code> 为原任务，<code>itemId</code> 为要重新照合的原对象</td>
-<td>继承原对象未修改的输入、案件上下文和回写位置，再使用本次修改的输入进行匹配</td>
+<td>原 <code>taskId</code>、原 <code>itemId</code> 和稳定 <code>fieldId</code></td>
+<td>原任务与原对象定位执行上下文及回写位置，fieldId 定位需要覆盖的确认项目。用全部最新输入替换旧输入，更新上下文后重新匹配</td>
 </tr>
 <tr>
 <td>原主输入为空，尚未生成 item</td>
@@ -2197,7 +1987,115 @@
 </tr>
 </tbody></table>
 <p>新结果返回不等于立即覆盖所有字段。是否需要人工确认由新结果的 <code>needsReview</code> 决定，回写遵循 <code>shouldWriteBack</code>、采用记录的 <code>master.values</code> 和 <code>targets</code>。需要人工确认时，确认采用前不回写。新结果没有值的列保持原值。</p>
-<p>响应中的 <code>itemId</code> 是本次调用新分配的标识。IDP 仍按 <code>groupId + source</code> 关联对应确认项目，并保存本次返回的新结果。</p>
+<h4>结果关联与替换</h4>
+<p>响应中的 <code>itemId</code> 是本次调用新分配的标识，<code>fieldId</code> 与原确认项目保持相同。IDP 按返回的 <code>fieldId</code> 找到对应确认项目，替换其照合结果并保存新 <code>itemId</code>。需要更新的候选、确认原因、判断信息及关联回填结果均属于该确认项目，其他确认项目保持原结果。</p>
+<p>例如，原结果为 <code>fieldId=F1、itemId=I1</code>，第一次重新照合返回 <code>fieldId=F1、itemId=I2</code>。IDP 更新 F1 的结果，保留 F1 与界面项目的关联，不因为 itemId 变化新增一个确认项目。</p>
+<h4>连续重新照合的引用与输入规则（待客户确认）</h4>
+<p>以下为拟采用方案，待客户确认后作为接口实现依据。式样书 §4.6 已定义响应 fieldId，但请求 ref 尚未包含 fieldId，也未明确连续调用时 itemId 的引用及后端上下文覆盖规则。</p>
+<p>确认问题：是否支持在 ref 中携带原 taskId、原 itemId 和稳定 fieldId，每次提交同一对象全部最新输入，由后端按 fieldId 替换旧输入并更新照合上下文，响应返回相同 fieldId 和新 itemId，后续仍引用原 taskId、原 itemId？如不支持，请客户明确现有接口的连续调用及覆盖方式。</p>
+<p>影响范围：连续重新照合的请求组装、后端输入覆盖和上下文更新。该接口实现需在客户确认后定稿，当前不假定现有服务已经支持。</p>
+<p>后端收到请求后，按当前案件任务上下文中的 fieldId 找到原确认项目，用本次 inputs 替换其旧输入。后续照合参考该项目更新后的输入，其他项目保留各自最新有效状态，不能重新引入已被替换的旧值。重新判断后返回相同 fieldId 和新 itemId。此更新用于照合上下文，不等同于直接覆盖尚待人工确认的 IDP 回填值。</p>
+<p>每次重新照合均提交新请求，同步返回新 itemId，不创建 Task。</p>
+<ul>
+<li><code>ref.taskId</code> 和 <code>ref.itemId</code> 保留原整案任务及原对象引用，<code>ref.fieldId</code> 指定本次覆盖的稳定确认项目。后续新 itemId 作为结果标识保存，连续更新由 fieldId 关联。</li>
+<li>每次 <code>inputs</code> 显式提交该对象全部最新输入及照合参考输入，以点击按钮时的页面缓存为准。纯输出字段不作为输入提交。</li>
+<li>原本为空、没有 item 的项目，持续使用原 taskId、groupId 和 source 引用原位置，同样提交全部最新输入。</li>
+<li>返回的新 itemId 保存为本次结果标识，按相同 fieldId 更新同一确认项目。原任务引用单独保留。</li>
+<li>IDP 直接应用单项接口返回结果，不依赖原 Task 查询结果是否随之更新。</li>
+</ul>
+<p>例如原输入为 A0、B0，第一次改 A 后提交 A1、B0，第二次改 B 后提交 A1、B1。两次 ref 均携带原 Task、原 item 和相同 fieldId。后端按 fieldId 覆盖输入，第二次参考 A1、B1，不能重新继承 A0。</p>
+<h4>多次重新照合的边界处理</h4>
+<p>同一确认项目以 <code>fieldId</code> 关联。每次提交使用点击「再照合」时的输入快照，返回结果只对应这次提交的输入。页面当前编辑值、上次已返回的照合结果和原任务引用需要分别保存，不能因为保存了新 itemId 就自动将其与原 taskId 组合为下一次 ref。</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>处理与结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第一次改 A，完成后再改同一对象的 B</td>
+<td>第二次使用该对象当前最新输入，保留第一次对 A 的修改。不能仅因本次只编辑 B，就从原始 ref 继承旧 A。固定使用原 ref，并显式提交 A、B 全部最新输入</td>
+</tr>
+<tr>
+<td>同一对象的 A、B 均在提交前修改</td>
+<td>合并为一次请求，同时带入 A、B 最新值</td>
+</tr>
+<tr>
+<td>同一对象的请求尚未结束，再次点击单个或一括再照合</td>
+<td>不重复提交该对象。单个与一括使用同一处理中判断，不能由另一入口绕过限制</td>
+</tr>
+<tr>
+<td>请求处理中再次修改同一对象的输入</td>
+<td>保留新的编辑值。返回结果对应提交时的旧输入，不能覆盖新编辑值、回写关联字段或将当前输入视为已完成照合。请求结束后，操作员可使用最新输入再次照合</td>
+</tr>
+<tr>
+<td>较早请求的响应延迟返回</td>
+<td>仅当前对象仍对应本次提交的输入及执行记录时应用结果。旧响应不能覆盖后续请求的结果。fieldId 相同不代表可以直接采用任意一次响应</td>
+</tr>
+<tr>
+<td>第二次重新照合失败或超时</td>
+<td>保留最近一次已返回结果及当前编辑值，显示错误并允许重试。上一次结果不能表示本次修改已照合成功</td>
+</tr>
+<tr>
+<td>新结果从无需确认变为需要确认</td>
+<td>更新候选、确认原因及确认状态，等待操作员确认采用后再按回写规则处理</td>
+</tr>
+<tr>
+<td>新结果从需要确认变为无需确认</td>
+<td>使用本次新结果重新判断自动采用条件，满足条件时才采用及回写</td>
+</tr>
+<tr>
+<td>另一个照合对象被修改</td>
+<td>按其自身 fieldId 处理，当前对象结果不随之替换</td>
+</tr>
+<tr>
+<td>原案件已重新执行整案照合</td>
+<td>已失效的旧整案上下文下的单项响应不应用到新整案结果，避免覆盖新执行的数据</td>
+</tr>
+</tbody></table>
+<p>示例中 A、B 均为同一对象的照合输入。</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>页面最新输入</th>
+<th>本次提交的依据</th>
+<th>界面处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原始结果</td>
+<td>A0、B0</td>
+<td>原任务结果</td>
+<td>展示原结果</td>
+</tr>
+<tr>
+<td>修改 A 并第一次提交</td>
+<td>A1、B0</td>
+<td>A1、B0</td>
+<td>等待第一次结果</td>
+</tr>
+<tr>
+<td>第一次结果返回后修改 B 并第二次提交</td>
+<td>A1、B1</td>
+<td>A1、B1</td>
+<td>第二次不能退回 A0；成功后替换同一 fieldId 的结果</td>
+</tr>
+<tr>
+<td>第二次等待期间又将 A 改为 A2</td>
+<td>A2、B1</td>
+<td>在途请求仍对应 A1、B1</td>
+<td>保留 A2，不将第二次响应当作 A2、B1 的结果应用</td>
+</tr>
+<tr>
+<td>第二次结束后再次点击再照合</td>
+<td>A2、B1</td>
+<td>A2、B1</td>
+<td>发起第三次请求，返回并适用时更新同一确认项目</td>
+</tr>
+</tbody></table>
+<p>表中的“本次提交的依据”即每次 inputs 使用的全部最新输入。各次请求携带原任务、原对象引用及稳定 fieldId，后端替换旧输入，IDP 按响应 fieldId 更新结果。</p>
 <h4>异常处理</h4>
 <table>
 <thead>
@@ -2290,7 +2188,7 @@
 </tr>
 <tr>
 <td>任务</td>
-<td>输入变化或重新识别导致旧 Task CANCELLED</td>
+<td>需要整案重新照合的输入变化或重新识别导致旧 Task CANCELLED</td>
 <td>不应用旧结果</td>
 <td>结束旧执行，从开始节点重新执行完整工作流</td>
 </tr>
@@ -2332,7 +2230,7 @@
 </tr>
 <tr>
 <td>重新照合</td>
-<td>同一 item 前一次请求未结束</td>
+<td>同一确认项目（相同 fieldId）前一次请求未结束</td>
 <td>不再提交下一次</td>
 <td>不允许旧响应覆盖新结果</td>
 </tr>
@@ -2355,15 +2253,8 @@
 <td>节点保持 processing</td>
 </tr>
 </tbody></table>
-<h3 id="section-28">6.2 注意点</h3>
-<ol>
-<li>Zurich 原始 status 和 needsReview 必须原样保存，IDP 状态只用于页面和流程分支。</li>
-<li>组配置保存后生成新的 groupsVersion，已运行任务使用冻结版本。</li>
-<li>本期一个案件快照只提交一个 Task；超过 50 件逻辑账票时默认失败，不拆分请求，也不合并多个 taskId。</li>
-<li>组外字段和未选择照合的字段保持 OCR抽出原值。</li>
-</ol>
 <hr>
-<h3 id="section-29">6.3 组配置边界场景</h3>
+<h3 id="section-28">6.3 组配置边界场景</h3>
 <h4>输入与保存</h4>
 <table>
 <thead>
@@ -2604,12 +2495,12 @@
 <li>主数据响应缺少 <code>configuration</code> 时，应禁用项目还是显示接口原始值尚未定义。</li>
 <li>默认组返回未知字段类型时，应清空字段还是直接阻止导入尚未定义。</li>
 </ul>
-<h3 id="section-30">6.4 接口规格书附件</h3>
+<h3 id="section-29">6.4 接口规格书附件</h3>
 <ul>
 <li><a href="/%E4%B8%BB%E6%95%B0%E6%8D%AEAPI/%E7%BB%BC%E5%90%88%E4%B8%BB%E6%95%B0%E6%8D%AE%E5%90%8D%E7%A7%B0%E6%A0%87%E5%87%86%E5%8C%96API%E8%A7%84%E6%A0%BC%E4%B9%A6_v1.2_zh-CN.md">综合主数据名称标准化 API 规格书 v1.2 中文版</a></li>
 </ul>
 <p>完整接口、公共对象、枚举、错误码和通知格式以该附件为准。本 PRD 只列 IDP 实际发送或使用的字段。</p>
-<h3 id="section-31">6.5 主数据照合功能列表附件</h3>
+<h3 id="section-30">6.5 主数据照合功能列表附件</h3>
 <h4>设置（标准化组）</h4>
 <table>
 <thead>

@@ -57,14 +57,15 @@
 
 普通候选确认、保留 OCR 原值和选择已有候选不需要调用 Zurich 接口。确认结果由 IDP 保存到自身的确认记录中。
 
-IDP 以 `groupId + source` 关联确认项目及结果。API 返回的 `fieldId` 仅作为兼容字段由后端接收和保存。
+IDP 以 `fieldId` 关联重新照合前后的确认项目及结果。`groupId` 用于关联组配置，`source` 用于定位主输入，`targets` 用于定位回写位置。
 
 #### 重新照合调用规则
 
-重新照合使用 `POST /v1/items/standardize`，主要提交 `ref`、`masterTable` 和修改后的 `inputs`。有原结果时，`ref` 引用原 `taskId` 和 `itemId`。原本为空、尚无照合对象时，按式样书使用 `groupId` 和 `source` 引用配置及位置。
+请求补充 ref.fieldId、连续引用原 itemId 及后端上下文覆盖行为待客户确认，以下按拟采用方案说明。
 
-修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，其他输入从原结果继承。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。
+重新照合使用 `POST /v1/items/standardize`，主要提交 `ref`、`masterTable` 和该对象全部最新 `inputs`。有原结果时，`ref` 携带原 `taskId`、原 `itemId` 及稳定的 `fieldId`。后端按 fieldId 更新该项目的输入及照合上下文，再重新判断。原本为空、尚无照合对象时，按式样书使用 `groupId` 和 `source` 引用配置及位置。
 
+修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，每次显式提交该对象全部最新输入。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。
 
 
 #### 主要字段
@@ -73,7 +74,7 @@ IDP 以 `groupId + source` 关联确认项目及结果。API 返回的 `fieldId`
 | --- | --- |
 | `status` | 用于识别任务和结果状态，不作为确认页按场景切换结构的依据 |
 | itemId、groupId | 关联照合对象及其配置组 |
-| inputs | 照合输入及原值；重新照合时继承未修改的输入 |
+| inputs | 照合输入及原值；重新照合时提交该对象全部最新输入 |
 | needsReview | 决定是否人工确认；缺失或 null 按需确认处理 |
 | shouldWriteBack | 决定是否回写；缺失或 null 不回写 |
 | `master` | 自动采用或作为初始值的主数据行；使用 `master.values` 回写 |
@@ -874,7 +875,7 @@ GET /v1/standardizations/MS-20261118-7Q3K9D/items?cursor=cursor-example&limit=10
 
 #### 工作流｜取消旧任务
 
-案件中止或重新请求前，需要取消未结束的旧任务。
+案件中止或重新提交整案请求前，需要取消未结束的旧任务。单项重新照合不创建新 Task，不适用此取消流程。
 
 按式样书 §4.5 规则 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
@@ -906,7 +907,7 @@ POST /v1/standardizations/MS-20261118-7Q3K9D/cancel
 
 操作员修改伤病名，点击再照合，直接提交缓存最新值。
 
-请求为式样书 §4.6 原例；响应为 §4.6 规定的对象结构 mock，业务值仅示意，非该输入的真实匹配结果。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+请求以式样书 §4.6 为基础，暂按待客户确认方案在 ref 中补充 fieldId；响应仅示意 §4.6 的结果关联字段，省略匹配结果与回填字段。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
 **请求**
 
@@ -920,7 +921,8 @@ POST /v1/items/standardize
   "caseNo": "CLAIM-20261118000123",
   "ref": {
     "taskId": "MS-20261118-7Q3K9D",
-    "itemId": "dis2"
+    "itemId": "dis2",
+    "fieldId": "fd-dis2-example"
   },
   "masterTable": "DISEASE",
   "inputs": [
@@ -953,237 +955,13 @@ POST /v1/items/standardize
   "msg": "",
   "requestId": "req-example",
   "data": {
-    "itemId": "restandardized-example",
-    "fieldId": "fd-9c1e5a20",
-    "groupId": "HG02-OPE",
-    "needsReview": false,
-    "shouldWriteBack": true,
-    "master": {
-      "masterTable": "OPERATION",
-      "object": "CLM_OperationMst__c",
-      "masterId": "a0V000000000000301",
-      "displayName": "経皮的冠動脈形成術",
-      "values": {
-        "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-        "CLM_OperationMst__c.KCODE__C": "K546-00",
-        "CLM_OperationMst__c.KCODEOPNAME__C": "経皮的冠動脈形成術（その他のもの）",
-        "CLM_OperationMst__c.KANA1__C": "ケイヒテキカンドウミャクケイセイジュツ",
-        "CLM_OperationMst__c.CANCEROPERATION__C": "false",
-        "CLM_OperationMst__c.CWFDENTISTRY__C": "false",
-        "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）",
-        "CWF_OperationMstAlias__c.ID": "a0W000000000000301"
-      },
-      "active": true,
-      "selection": {
-        "object": "CWF_OperationMstAlias__c",
-        "recordType": "ALIAS",
-        "recordId": "a0W000000000000301",
-        "name": "経皮的冠動脈形成術（その他のもの）"
-      }
-    },
-    "targets": {
-      "CLM_OperationMst__c.NAME": {
-        "type": "TABLE_CELL",
-        "documentId": "991243705301",
-        "tableName": "手術情報",
-        "tableIndex": 0,
-        "rowIndex": 0,
-        "columnName": "手術名",
-        "columnIndex": 0
-      }
-    },
-    "masterDataMatches": [
-      {
-        "type": "recommended",
-        "label": "マスタ推奨",
-        "value": "経皮的冠動脈形成術（その他のもの）",
-        "confidence": 100.0,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000301",
-            "name": "経皮的冠動脈形成術（その他のもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）",
-        "confidence": 88.4,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000302",
-            "name": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（不安定狭心症に対するもの）",
-        "confidence": 87.9,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000303",
-            "name": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-        "confidence": 80.2,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000311",
-          "displayName": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-            "CLM_OperationMst__c.KCODE__C": "K548-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000311",
-            "name": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈ステント留置術（その他のもの）",
-        "confidence": 76.5,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000312",
-          "displayName": "経皮的冠動脈ステント留置術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈ステント留置術",
-            "CLM_OperationMst__c.KCODE__C": "K549-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈ステント留置術（その他のもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000312",
-            "name": "経皮的冠動脈ステント留置術（その他のもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      }
-    ],
-    "reviewReason": null,
-    "remarks": [
-      {
-        "label": "照合根拠",
-        "value": "読取値が、画面で選べる別名「経皮的冠動脈形成術（その他のもの）」と完全に一致し、帳票の手術コードとも矛盾しないため確定した。"
-      }
-    ],
+    "itemId": "dis2-r1-example",
+    "fieldId": "fd-dis2-example",
+    "groupId": "HE03-DIS-1",
     "ref": {
       "taskId": "MS-20261118-7Q3K9D",
-      "itemId": "dis2"
+      "itemId": "dis2",
+    "fieldId": "fd-dis2-example"
     }
   }
 }
@@ -1191,4 +969,4 @@ POST /v1/items/standardize
 
 </details>
 
-**IDP 处理：** 继承未修改输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。
+**IDP 处理：** 每次提交该对象全部最新输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。

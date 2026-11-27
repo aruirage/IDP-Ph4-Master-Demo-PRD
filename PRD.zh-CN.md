@@ -10,10 +10,9 @@
 
 - 配置管理员可以通过 Zurich 返回的主数据 schema 配置可复用的照合组。
 - 业务场景管理员可以在 OCR抽出后放置「マスタ照合」节点。节点按当前业务场景自动读取适用的照合组。
-- 每次工作流执行到主数据照合节点时，发送该时点案件下已有的全部账票；一次工作流执行对应一次 API 请求和一个 Task。工作流等待该 Task 结束后继续。后续工作流再次执行时仍发送当时案件的全部账票，不只发送新增文件。
+- 每次工作流执行到主数据照合节点时，发送该时点案件下已有的全部账票；一次工作流执行中的整案提交对应一个 Task。后续单项重新照合另发同步请求，不创建 Task。工作流等待该 Task 结束后继续。后续工作流再次执行时仍发送当时案件的全部账票，不只发送新增文件。
 - IDP 按结果中的 targets 回填无须确认的项目，将需要确认的结果送入本次案件工作流对应的 OCR抽出确认。
 - 组外字段保持 OCR抽出值。
-- 前端展示照合组变更履历；默认组来源、整体版本和配置快照由后端留存，用于追溯。
 
 ### 1.2 本期范围
 
@@ -22,7 +21,8 @@
 | 组配置 | 维护照合组、适用场景和字段映射，支持默认组导入、保存校验及变更履历 |
 | API 设定 | 配置 Zurich API 连接与认证，支持连接测试及连接状态展示 |
 | 工作流 | 配置「マスタ照合」节点；每次执行使用当时全案文件发起照合，处理异步状态、结果回写和失败情况 |
-| OCR 确认 | 展示候选及确认说明，支持人工确认、候选选择和使用缓存最新值重新照合，包含文本字段与表格字段 |
+| OCR 确认 | 展示文本与表格字段的候选及确认说明，支持人工确认和候选选择 |
+| 重新照合 | 在 OCR 确认页修改照合输入后，支持对文本与表格字段发起单项或一括重新照合，直接使用页面缓存中的最新值，无需先保存 |
 
 ### 1.4 里程碑与优先级
 
@@ -75,7 +75,7 @@ API 返回本次任务的 taskId。IDP 等待异步任务结束并取得完整�
 - 确认页使用 API 返回的统一候选列表、确认原因和其他信息。有内容则显示，无内容则隐藏；主要素及追加要素使用同一候选列表。
 - 操作员选择已有候选后，按该候选的值和目标位置采用结果。
 - 修改照合输入后，可单项或一括重新照合，直接使用页面缓存最新值，无需先保存。一括处理已修改的文本和表格输入，不增加勾选框。
-- 重新照合只处理被修改字段所属的照合对象：修改值使用最新缓存，其他输入继承原结果；该对象关联的回填结果可能一起更新，其他对象保持原结果。
+- 重新照合只处理被修改字段所属的照合对象：每次提交该对象全部输入的最新缓存值；该对象关联的回填结果可能一起更新，其他对象保持原结果。
 
 ## 第 3 章｜数据结构与职责
 
@@ -108,6 +108,7 @@ flowchart LR
     n3 -->|超过 50 张| n13["节点失败，不创建 Task"]
     n4 --> n5["多个 item"]
     n5 --> n6["item 定位信息"]
+    n6 --> n60["fieldId（确认项目标识）"]
     n6 --> n61["itemId"]
     n6 --> n62["groupId"]
     n6 --> n63["source"]
@@ -130,15 +131,19 @@ flowchart LR
 
 #### 单字段重新照合｜请求与结果结构
 
-`ref` 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 `taskId + itemId`。原本为空、没有 item 时传原 `taskId + groupId + source`，定位原任务中的组及主输入位置。
+图中请求携带 ref.fieldId、按 fieldId 覆盖旧输入及更新上下文的方案待客户确认。
+
+`ref` 是原照合结果的引用，用于告诉 API 本次要重新照合哪个对象，并继承该对象的上下文和回写位置。已有结果时传原 `taskId + itemId`，并在 `ref.fieldId` 传入同一确认项目的稳定标识。原本为空、没有 item 时传原 `taskId + groupId + source`，定位原任务中的组及主输入位置。
 
 ```mermaid
 flowchart LR
     r1["页面缓存最新输入"] --> r3["单项重新照合请求<br/>POST /v1/items/standardize"]
-    r2["原结果引用 ref<br/>taskId + itemId<br/>原本为空时：taskId + groupId + source"] --> r3
+    r2["原结果引用 ref<br/>taskId + itemId + fieldId<br/>原本为空时：taskId + groupId + source"] --> r3
     r0["主数据表 masterTable"] --> r3
-    r3 --> r4["同步返回单个 item<br/>不创建新的 Task"]
+    r3 --> r31["按 fieldId 替换旧输入<br/>基于更新后的案件上下文重新判断"]
+    r31 --> r4["同步返回单个 item<br/>相同 fieldId、新 itemId，不创建 Task"]
     r4 --> r5["item 定位信息"]
+    r5 --> r50["fieldId（与原确认项目相同）"]
     r5 --> r51["itemId（本次新分配）"]
     r5 --> r52["groupId"]
     r5 --> r53["source"]
@@ -156,14 +161,15 @@ flowchart LR
     r8 --> r82["targets"]
 ```
 
-请求中的 `inputs` 使用页面当前编辑的最新值。同一 item 的多个修改合并为一次请求，未修改输入及回写位置从原结果继承。响应只更新对应照合对象及关联回填结果，其他对象保持原结果。一括再照合按照合对象分别调用。
+请求中的 `inputs` 使用页面当前编辑的最新值。同一 item 的多个修改合并为一次请求，inputs 显式提交该对象全部最新输入，回写位置由原结果引用定位，照合使用按 fieldId 更新后的最新上下文。响应只更新对应照合对象及关联回填结果，其他对象保持原结果。一括再照合按照合对象分别调用。
 
 | item 数据 | API 含义 | IDP 使用位置 |
 | --- | --- | --- |
-| `itemId` | 当前 Task 内的照合对象标识 | 工作流结果处理、局部重新照合和结果更新 |
+| `fieldId` | 确认项目标识，重新照合前后保持相同 | 关联重新照合前后的同一确认项目，替换该项目的结果 |
+| `itemId` | 一次照合结果的对象标识。整案结果中位于 Task 的 items 内，单项重新照合会分配新值但不创建 Task | 工作流结果处理、局部重新照合和结果更新 |
 | `groupId` | 生成该 item 的照合组 | 关联组配置、组名和适用场景 |
 | `source` | 主输入在实际账票中的位置 | 定位确认页中的 OCR 字段或表格单元格 |
-| `inputs` | 实际参与匹配的值及位置 | 确认页判断依据，也用于重新照合时继承其他输入 |
+| `inputs` | 实际参与匹配的值及位置 | 确认页判断依据，重新照合时提交该对象全部最新输入 |
 | `status` | API 对单个 item 的判断状态 | 异常解释和契约检查，不用于切换确认页布局 |
 | `needsReview` | 是否需要人工确认 | 决定进入自动采用还是 OCR 抽出确认 |
 | `shouldWriteBack` | 是否需要回写 | 决定最终结果是否写入 `targets` |
@@ -175,11 +181,11 @@ flowchart LR
 
 `masterDataMatches[]` 每一项都包含自己的 `label`、`confidence`、`primary`、`master` 和 `targets`。操作员选择候选后，IDP 使用该候选自己的数据回写，不从 `splitItems` 等详细结果自行拼接。
 
-IDP 使用 `groupId + source` 识别同一确认项目。API 返回的 `fieldId` 仅作为兼容字段由后端保存，不作为前端业务主键，也不用于确定回写位置。
+IDP 使用 `fieldId` 关联重新照合前后的同一确认项目，并替换该项目的结果。`groupId` 关联组配置，`source` 定位主输入在账票中的实际位置，`targets` 定位回写位置。`fieldId` 不用于确定回写位置，也不决定输入数据的版本。
 
 自动采用使用 item 的 `master.values` 和 `targets`。人工确认使用操作员所选项的 `master.values` 和 `targets`。没有值的列保持原值。`selection` 随响应保存为原始记录，本期不参与展示、回写或后续系统登记。
 
-后续文件新增、删除或替换后再次执行工作流时，IDP 提交新的整案请求并生成新的 Task。单项重新照合使用原 `taskId`、`itemId` 和缓存最新输入，只更新当前 item。
+后续文件新增、删除或替换后再次执行工作流时，IDP 提交新的整案请求并生成新的 Task。单项重新照合使用原 `taskId`、`itemId` 和缓存最新输入，按相同 `fieldId` 替换当前确认项目的结果，保存新 `itemId`。
 
 #### 整案照合与字段重新照合
 
@@ -194,11 +200,11 @@ flowchart TD
     B -->|单据的照合输入修改，点击再照合| H["读取页面缓存最新值，无需先保存"]
     H --> I["按 item 合并修改，一括再照合也按 item 分别处理"]
     I --> J{"是否已有原 item"}
-    J -->|有| K["ref 引用原 taskId 与 itemId"]
+    J -->|有| K["ref：原 taskId、itemId 及稳定 fieldId"]
     J -->|原本为空，无照合对象| L["ref 引用 groupId 与 source"]
     K --> M["POST /v1/items/standardize
-提交 masterTable 与修改后的 inputs
-未修改输入继承原结果"]
+提交 masterTable 与全部最新 inputs
+按 fieldId 替换旧信息后重新判断"]
     L --> M
     M --> N["同步返回当前对象结果，不创建新 Task"]
     N --> O["更新当前 item 及关联回填结果
@@ -272,13 +278,15 @@ IDP 负责配置、提交请求、等待任务、展示确认页及将结果写�
 
 普通候选确认、保留 OCR 原值和选择已有候选不需要调用 Zurich 接口。确认结果由 IDP 保存到自身的确认记录中。
 
-IDP 以 `groupId + source` 关联确认项目及结果。API 返回的 `fieldId` 仅作为兼容字段由后端接收和保存。
+IDP 以 `fieldId` 关联重新照合前后的确认项目及结果。`groupId` 用于关联组配置，`source` 用于定位主输入，`targets` 用于定位回写位置。
 
 #### 重新照合调用规则
 
-重新照合使用 `POST /v1/items/standardize`，主要提交 `ref`、`masterTable` 和修改后的 `inputs`。有原结果时，`ref` 引用原 `taskId` 和 `itemId`。原本为空、尚无照合对象时，按式样书使用 `groupId` 和 `source` 引用配置及位置。
+请求补充 ref.fieldId、连续引用原 itemId 及后端上下文覆盖行为待客户确认，以下按拟采用方案说明。
 
-修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，其他输入从原结果继承。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。
+重新照合使用 `POST /v1/items/standardize`，主要提交 `ref`、`masterTable` 和该对象全部最新 `inputs`。有原结果时，`ref` 携带原 `taskId`、原 `itemId` 及稳定的 `fieldId`。后端按 fieldId 更新该项目的输入及照合上下文，再重新判断。原本为空、尚无照合对象时，按式样书使用 `groupId` 和 `source` 引用配置及位置。
+
+修改值直接取页面缓存，无需先保存。同一 item 的多个修改合并为一次请求，每次显式提交该对象全部最新输入。接口同步返回，不创建新的 Task。新结果更新当前 item 及关联回填结果，其他 item 保持原结果。文本字段和表格字段均适用。
 
 
 #### 主要字段
@@ -287,7 +295,7 @@ IDP 以 `groupId + source` 关联确认项目及结果。API 返回的 `fieldId`
 | --- | --- |
 | `status` | 用于识别任务和结果状态，不作为确认页按场景切换结构的依据 |
 | itemId、groupId | 关联照合对象及其配置组 |
-| inputs | 照合输入及原值；重新照合时继承未修改的输入 |
+| inputs | 照合输入及原值；重新照合时提交该对象全部最新输入 |
 | needsReview | 决定是否人工确认；缺失或 null 按需确认处理 |
 | shouldWriteBack | 决定是否回写；缺失或 null 不回写 |
 | `master` | 自动采用或作为初始值的主数据行；使用 `master.values` 回写 |
@@ -1088,7 +1096,7 @@ GET /v1/standardizations/MS-20261118-7Q3K9D/items?cursor=cursor-example&limit=10
 
 #### 工作流｜取消旧任务
 
-案件中止或重新请求前，需要取消未结束的旧任务。
+案件中止或重新提交整案请求前，需要取消未结束的旧任务。单项重新照合不创建新 Task，不适用此取消流程。
 
 按式样书 §4.5 规则 mock。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
@@ -1120,7 +1128,7 @@ POST /v1/standardizations/MS-20261118-7Q3K9D/cancel
 
 操作员修改伤病名，点击再照合，直接提交缓存最新值。
 
-请求为式样书 §4.6 原例；响应为 §4.6 规定的对象结构 mock，业务值仅示意，非该输入的真实匹配结果。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
+请求以式样书 §4.6 为基础，暂按待客户确认方案在 ref 中补充 fieldId；响应仅示意 §4.6 的结果关联字段，省略匹配结果与回填字段。以下 JSON 仅展示本场景主要字段，省略其他字段，不替代完整契约。
 
 **请求**
 
@@ -1134,7 +1142,8 @@ POST /v1/items/standardize
   "caseNo": "CLAIM-20261118000123",
   "ref": {
     "taskId": "MS-20261118-7Q3K9D",
-    "itemId": "dis2"
+    "itemId": "dis2",
+    "fieldId": "fd-dis2-example"
   },
   "masterTable": "DISEASE",
   "inputs": [
@@ -1167,237 +1176,13 @@ POST /v1/items/standardize
   "msg": "",
   "requestId": "req-example",
   "data": {
-    "itemId": "restandardized-example",
-    "fieldId": "fd-9c1e5a20",
-    "groupId": "HG02-OPE",
-    "needsReview": false,
-    "shouldWriteBack": true,
-    "master": {
-      "masterTable": "OPERATION",
-      "object": "CLM_OperationMst__c",
-      "masterId": "a0V000000000000301",
-      "displayName": "経皮的冠動脈形成術",
-      "values": {
-        "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-        "CLM_OperationMst__c.KCODE__C": "K546-00",
-        "CLM_OperationMst__c.KCODEOPNAME__C": "経皮的冠動脈形成術（その他のもの）",
-        "CLM_OperationMst__c.KANA1__C": "ケイヒテキカンドウミャクケイセイジュツ",
-        "CLM_OperationMst__c.CANCEROPERATION__C": "false",
-        "CLM_OperationMst__c.CWFDENTISTRY__C": "false",
-        "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）",
-        "CWF_OperationMstAlias__c.ID": "a0W000000000000301"
-      },
-      "active": true,
-      "selection": {
-        "object": "CWF_OperationMstAlias__c",
-        "recordType": "ALIAS",
-        "recordId": "a0W000000000000301",
-        "name": "経皮的冠動脈形成術（その他のもの）"
-      }
-    },
-    "targets": {
-      "CLM_OperationMst__c.NAME": {
-        "type": "TABLE_CELL",
-        "documentId": "991243705301",
-        "tableName": "手術情報",
-        "tableIndex": 0,
-        "rowIndex": 0,
-        "columnName": "手術名",
-        "columnIndex": 0
-      }
-    },
-    "masterDataMatches": [
-      {
-        "type": "recommended",
-        "label": "マスタ推奨",
-        "value": "経皮的冠動脈形成術（その他のもの）",
-        "confidence": 100.0,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（その他のもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000301",
-            "name": "経皮的冠動脈形成術（その他のもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）",
-        "confidence": 88.4,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000302",
-            "name": "経皮的冠動脈形成術（急性心筋梗塞に対するもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（不安定狭心症に対するもの）",
-        "confidence": 87.9,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000301",
-          "displayName": "経皮的冠動脈形成術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術",
-            "CLM_OperationMst__c.KCODE__C": "K546-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000303",
-            "name": "経皮的冠動脈形成術（不安定狭心症に対するもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-        "confidence": 80.2,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000311",
-          "displayName": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）",
-            "CLM_OperationMst__c.KCODE__C": "K548-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000311",
-            "name": "経皮的冠動脈形成術（特殊カテーテルによるもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      },
-      {
-        "type": "candidate",
-        "label": "マスタ候補",
-        "value": "経皮的冠動脈ステント留置術（その他のもの）",
-        "confidence": 76.5,
-        "primary": true,
-        "master": {
-          "masterTable": "OPERATION",
-          "object": "CLM_OperationMst__c",
-          "masterId": "a0V000000000000312",
-          "displayName": "経皮的冠動脈ステント留置術",
-          "values": {
-            "CLM_OperationMst__c.NAME": "経皮的冠動脈ステント留置術",
-            "CLM_OperationMst__c.KCODE__C": "K549-00",
-            "CWF_OperationMstAlias__c.NAME": "経皮的冠動脈ステント留置術（その他のもの）"
-          },
-          "active": true,
-          "selection": {
-            "object": "CWF_OperationMstAlias__c",
-            "recordType": "ALIAS",
-            "recordId": "a0W000000000000312",
-            "name": "経皮的冠動脈ステント留置術（その他のもの）"
-          }
-        },
-        "targets": {
-          "CLM_OperationMst__c.NAME": {
-            "type": "TABLE_CELL",
-            "documentId": "991243705301",
-            "tableName": "手術情報",
-            "tableIndex": 0,
-            "rowIndex": 0,
-            "columnName": "手術名",
-            "columnIndex": 0
-          }
-        }
-      }
-    ],
-    "reviewReason": null,
-    "remarks": [
-      {
-        "label": "照合根拠",
-        "value": "読取値が、画面で選べる別名「経皮的冠動脈形成術（その他のもの）」と完全に一致し、帳票の手術コードとも矛盾しないため確定した。"
-      }
-    ],
+    "itemId": "dis2-r1-example",
+    "fieldId": "fd-dis2-example",
+    "groupId": "HE03-DIS-1",
     "ref": {
       "taskId": "MS-20261118-7Q3K9D",
-      "itemId": "dis2"
+      "itemId": "dis2",
+    "fieldId": "fd-dis2-example"
     }
   }
 }
@@ -1405,7 +1190,7 @@ POST /v1/items/standardize
 
 </details>
 
-**IDP 处理：** 继承未修改输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。
+**IDP 处理：** 每次提交该对象全部最新输入，更新当前对象及关联结果；一括按对象合并后分别调用此接口，不新增批量接口。
 
 ## 第 5 章｜功能详情
 
@@ -1596,9 +1381,9 @@ API Key 由后端安全保存，前端不获取明文密钥。连接保存后可
 
 每次工作流执行直接使用该时点案件已有的全量资料。后续文件到达、删除或替换时，下一次工作流执行使用最新全案数据重新请求。批次标识由 IDP 内部管理。
 
-同一案件已有请求处理中且输入发生变化时，IDP 取消旧 Task，结束旧工作流执行，并从开始节点以最新全案数据重新执行完整工作流。旧 Task 的结果仅保留为执行记录，不应用到案件。
+同一案件已有整案请求处理中，且发生需要整案重新照合的输入变化时，IDP 取消旧 Task，结束旧工作流执行，并从开始节点以最新全案数据重新执行完整工作流。旧 Task 的结果仅保留为执行记录，不应用到案件。
 
-本期每个请求最多提交 50 件逻辑账票（`documents[]`）。IDP 在发请求前检查案件账票数，超过 50 件时节点默认失败，不创建 Task。客户式样书中的拆分请求方案属于 IDP 本期范围外。
+本期每个整案请求最多提交 50 件逻辑账票（`documents[]`）。IDP 在发请求前检查案件账票数，超过 50 件时节点默认失败，不创建 Task。客户式样书中的拆分请求方案属于 IDP 本期范围外。
 
 批次再次执行与超限拆分不同：批次处理是在后续文件到达后重新提交“一个最新全案请求”，每次执行仍对应一个 Task。超限拆分是在同一时点把全案拆成多个请求和多个 Task，并需要合并跨请求结果，本期不实现。如果后续批次累计后案件超过 50 件，下一次整案请求同样直接失败。
 
@@ -1657,7 +1442,7 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 
 5. **区分两种游标**　`nextCursor` 用于继续读取已完成 Task 列表。`itemsNextCursor` 只用于同一个 Task 内的照合对象分页。两者不能互换。
 
-6. **恢复与结果归属**　IDP 重启后从持久化的 `nextCursor` 继续轮询，并重试持久化队列中未处理的 `taskId`。仅最新请求的结果更新案件，旧 Task 的结果保留为执行记录。
+6. **恢复与结果归属**　IDP 重启后从持久化的 `nextCursor` 继续轮询，并重试持久化队列中未处理的 `taskId`。整案轮询仅将最新整案请求的结果更新到案件，旧 Task 的结果保留为执行记录。单项重新照合的同步结果按 fieldId 更新对应确认项目。
 
 7. **取消旧 Task**　取消未结束请求时调用 `POST /v1/standardizations/{taskId}/cancel`。取消结果不应用到案件。
 #### 失败与边界
@@ -1734,7 +1519,7 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 
 #### 采用记录
 
-每个 item 保存 `itemId`、`groupId`、所采用的主数据行、`values`、`needsReview`、确认原因和最终采用方式。采用记录用于确认页展示和审计。`selection` 仅作为 API 原始响应留存，本期不向后续系统登记。
+每个 item 保存 `fieldId`、`itemId`、`groupId`、所采用的主数据行、`values`、`needsReview`、确认原因和最终采用方式。采用记录用于确认页展示和审计。`selection` 仅作为 API 原始响应留存，本期不向后续系统登记。
 
 #### 异常处理
 
@@ -1759,19 +1544,19 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 | 单个再照合 | 只处理当前字段所属的 item |
 | 一括再照合 | 处理所有已修改且参与主数据读取的文本字段和表格字段 |
 
-一括再照合不受当前文本／表格 Tab 限制，不增加字段勾选框。重新照合直接使用页面缓存中的最新值，无需先保存。
+重新照合直接使用页面缓存中的最新值，无需先保存。
 
-同一 item 的多个修改合并为一次 `POST /v1/items/standardize`。请求只提交修改过的输入，其他输入从原结果继承。接口通过 `ref` 引用原结果，结合最新输入值同步返回新结果，不创建新的 Task。
+同一 item 的多个修改合并为一次 `POST /v1/items/standardize`。每次显式提交该照合对象全部最新输入，包括此前修改后已完成照合的输入。ref 携带原整案 Task、原 item 和稳定 fieldId。回写位置由原引用定位，照合参考按 fieldId 更新后的最新案件上下文。接口同步返回新结果，不创建新的 Task。
 
 重新照合更新当前 item 及其关联回填结果。同一 item 中未修改的回填字段也可能随新结果变化，其他 item 保持原结果。旧响应不能覆盖较新的重新照合结果。
 
 #### 原结果引用 ref
 
-`ref` 是原照合结果的引用，用于定位本次重新照合的对象，并继承其未修改输入、案件上下文和回写位置。传法如下。
+`ref` 是原照合结果的引用，用于定位本次重新照合的对象，并继承其案件上下文和回写位置。传法如下。
 
 | 场景 | 请求中的 ref | API 如何使用 |
 | --- | --- | --- |
-| 已有照合结果 | `taskId` 为原任务，`itemId` 为要重新照合的原对象 | 继承原对象未修改的输入、案件上下文和回写位置，再使用本次修改的输入进行匹配 |
+| 已有照合结果 | 原 `taskId`、原 `itemId` 和稳定 `fieldId` | 原任务与原对象定位执行上下文及回写位置，fieldId 定位需要覆盖的确认项目。用全部最新输入替换旧输入，更新上下文后重新匹配 |
 | 原主输入为空，尚未生成 item | 原 `taskId`、`groupId` 和主输入位置 `source` | 将原任务中的组配置应用到该位置，生成该位置的照合结果 |
 
 #### 关联字段变化与示例
@@ -1788,7 +1573,61 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 
 新结果返回不等于立即覆盖所有字段。是否需要人工确认由新结果的 `needsReview` 决定，回写遵循 `shouldWriteBack`、采用记录的 `master.values` 和 `targets`。需要人工确认时，确认采用前不回写。新结果没有值的列保持原值。
 
-响应中的 `itemId` 是本次调用新分配的标识。IDP 仍按 `groupId + source` 关联对应确认项目，并保存本次返回的新结果。
+#### 结果关联与替换
+
+响应中的 `itemId` 是本次调用新分配的标识，`fieldId` 与原确认项目保持相同。IDP 按返回的 `fieldId` 找到对应确认项目，替换其照合结果并保存新 `itemId`。需要更新的候选、确认原因、判断信息及关联回填结果均属于该确认项目，其他确认项目保持原结果。
+
+例如，原结果为 `fieldId=F1、itemId=I1`，第一次重新照合返回 `fieldId=F1、itemId=I2`。IDP 更新 F1 的结果，保留 F1 与界面项目的关联，不因为 itemId 变化新增一个确认项目。
+
+#### 连续重新照合的引用与输入规则（待客户确认）
+
+以下为拟采用方案，待客户确认后作为接口实现依据。式样书 §4.6 已定义响应 fieldId，但请求 ref 尚未包含 fieldId，也未明确连续调用时 itemId 的引用及后端上下文覆盖规则。
+
+确认问题：是否支持在 ref 中携带原 taskId、原 itemId 和稳定 fieldId，每次提交同一对象全部最新输入，由后端按 fieldId 替换旧输入并更新照合上下文，响应返回相同 fieldId 和新 itemId，后续仍引用原 taskId、原 itemId？如不支持，请客户明确现有接口的连续调用及覆盖方式。
+
+影响范围：连续重新照合的请求组装、后端输入覆盖和上下文更新。该接口实现需在客户确认后定稿，当前不假定现有服务已经支持。
+
+后端收到请求后，按当前案件任务上下文中的 fieldId 找到原确认项目，用本次 inputs 替换其旧输入。后续照合参考该项目更新后的输入，其他项目保留各自最新有效状态，不能重新引入已被替换的旧值。重新判断后返回相同 fieldId 和新 itemId。此更新用于照合上下文，不等同于直接覆盖尚待人工确认的 IDP 回填值。
+
+每次重新照合均提交新请求，同步返回新 itemId，不创建 Task。
+
+- `ref.taskId` 和 `ref.itemId` 保留原整案任务及原对象引用，`ref.fieldId` 指定本次覆盖的稳定确认项目。后续新 itemId 作为结果标识保存，连续更新由 fieldId 关联。
+- 每次 `inputs` 显式提交该对象全部最新输入及照合参考输入，以点击按钮时的页面缓存为准。纯输出字段不作为输入提交。
+- 原本为空、没有 item 的项目，持续使用原 taskId、groupId 和 source 引用原位置，同样提交全部最新输入。
+- 返回的新 itemId 保存为本次结果标识，按相同 fieldId 更新同一确认项目。原任务引用单独保留。
+- IDP 直接应用单项接口返回结果，不依赖原 Task 查询结果是否随之更新。
+
+例如原输入为 A0、B0，第一次改 A 后提交 A1、B0，第二次改 B 后提交 A1、B1。两次 ref 均携带原 Task、原 item 和相同 fieldId。后端按 fieldId 覆盖输入，第二次参考 A1、B1，不能重新继承 A0。
+
+#### 多次重新照合的边界处理
+
+同一确认项目以 `fieldId` 关联。每次提交使用点击「再照合」时的输入快照，返回结果只对应这次提交的输入。页面当前编辑值、上次已返回的照合结果和原任务引用需要分别保存，不能因为保存了新 itemId 就自动将其与原 taskId 组合为下一次 ref。
+
+| 场景 | 处理与结果 |
+| --- | --- |
+| 第一次改 A，完成后再改同一对象的 B | 第二次使用该对象当前最新输入，保留第一次对 A 的修改。不能仅因本次只编辑 B，就从原始 ref 继承旧 A。固定使用原 ref，并显式提交 A、B 全部最新输入 |
+| 同一对象的 A、B 均在提交前修改 | 合并为一次请求，同时带入 A、B 最新值 |
+| 同一对象的请求尚未结束，再次点击单个或一括再照合 | 不重复提交该对象。单个与一括使用同一处理中判断，不能由另一入口绕过限制 |
+| 请求处理中再次修改同一对象的输入 | 保留新的编辑值。返回结果对应提交时的旧输入，不能覆盖新编辑值、回写关联字段或将当前输入视为已完成照合。请求结束后，操作员可使用最新输入再次照合 |
+| 较早请求的响应延迟返回 | 仅当前对象仍对应本次提交的输入及执行记录时应用结果。旧响应不能覆盖后续请求的结果。fieldId 相同不代表可以直接采用任意一次响应 |
+| 第二次重新照合失败或超时 | 保留最近一次已返回结果及当前编辑值，显示错误并允许重试。上一次结果不能表示本次修改已照合成功 |
+| 新结果从无需确认变为需要确认 | 更新候选、确认原因及确认状态，等待操作员确认采用后再按回写规则处理 |
+| 新结果从需要确认变为无需确认 | 使用本次新结果重新判断自动采用条件，满足条件时才采用及回写 |
+| 另一个照合对象被修改 | 按其自身 fieldId 处理，当前对象结果不随之替换 |
+| 原案件已重新执行整案照合 | 已失效的旧整案上下文下的单项响应不应用到新整案结果，避免覆盖新执行的数据 |
+
+示例中 A、B 均为同一对象的照合输入。
+
+| 步骤 | 页面最新输入 | 本次提交的依据 | 界面处理 |
+| --- | --- | --- | --- |
+| 原始结果 | A0、B0 | 原任务结果 | 展示原结果 |
+| 修改 A 并第一次提交 | A1、B0 | A1、B0 | 等待第一次结果 |
+| 第一次结果返回后修改 B 并第二次提交 | A1、B1 | A1、B1 | 第二次不能退回 A0；成功后替换同一 fieldId 的结果 |
+| 第二次等待期间又将 A 改为 A2 | A2、B1 | 在途请求仍对应 A1、B1 | 保留 A2，不将第二次响应当作 A2、B1 的结果应用 |
+| 第二次结束后再次点击再照合 | A2、B1 | A2、B1 | 发起第三次请求，返回并适用时更新同一确认项目 |
+
+表中的“本次提交的依据”即每次 inputs 使用的全部最新输入。各次请求携带原任务、原对象引用及稳定 fieldId，后端替换旧输入，IDP 按响应 fieldId 更新结果。
+
 
 #### 异常处理
 
@@ -1814,26 +1653,17 @@ Task 进入终态并且最新请求的结果处理完成后，工作流继续。
 | 案件请求 | 自动重试结束仍失败 | 停止自动重试，保留请求记录，节点转为 failed | 显示提交失败，不推进下游 |
 | 标准字段 | 同一 `CASE_FIELD` 有多个来源值 | `caseResult` 的传值方式和采用规则待 Zurich 确认 | 确认画面待接口示例明确 |
 | 任务 | FAILED | 相应目标项目转人工 | 显示失败原因并进入 OCR抽出确认 |
-| 任务 | 输入变化或重新识别导致旧 Task CANCELLED | 不应用旧结果 | 结束旧执行，从开始节点重新执行完整工作流 |
+| 任务 | 需要整案重新照合的输入变化或重新识别导致旧 Task CANCELLED | 不应用旧结果 | 结束旧执行，从开始节点重新执行完整工作流 |
 | 任务 | 点击「案件中止」导致 Task CANCELLED | 不应用任何结果 | 案件标记为中止并结束整条工作流，不设置照合节点状态 |
 | 任务 | 部分账票 FAILED | 任务仍可为 SUCCEEDED，相关组转人工 | 显示对应账票失败 |
 | 结果分流 | needsReview 缺失或 null | 按需确认处理 | 进入 OCR抽出确认 |
 | 结果分流 | ITEM 为 UNRESOLVED 或 NEW_CANDIDATE | 不自动回填 | 显示候选、原因和备注 |
 | 兜底照合 | `groupId=FALLBACK`、`needsReview=true` | 进入人工确认 | 是否单独标注 fallback 待客户确认 |
 | 候选冲突 | WRITE_CONFLICT | 不自动覆盖 | 后续组结果转人工 |
-| 重新照合 | 同一 item 前一次请求未结束 | 不再提交下一次 | 不允许旧响应覆盖新结果 |
+| 重新照合 | 同一确认项目（相同 fieldId）前一次请求未结束 | 不再提交下一次 | 不允许旧响应覆盖新结果 |
 | 重新照合 | 接口超时 | 保留原结果并显示超时 | 可再次提交 |
 | 分页 | itemsNextCursor 存在 | 继续获取 pages | 页面等待完整结果 |
 | IDP 重启 | 存在未完成轮询 | 从保存的 nextCursor 继续 | 节点保持 processing |
-
-### 6.2 注意点
-
-1. Zurich 原始 status 和 needsReview 必须原样保存，IDP 状态只用于页面和流程分支。
-2. 组配置保存后生成新的 groupsVersion，已运行任务使用冻结版本。
-3. 本期一个案件快照只提交一个 Task；超过 50 件逻辑账票时默认失败，不拆分请求，也不合并多个 taskId。
-4. 组外字段和未选择照合的字段保持 OCR抽出原值。
-
-
 
 ---
 
