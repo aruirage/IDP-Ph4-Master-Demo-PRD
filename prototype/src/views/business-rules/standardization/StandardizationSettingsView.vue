@@ -29,9 +29,10 @@ import { p3 } from '@/mocks/phase3'
 const { t, locale } = useI18n()
 const dateLocale = computed(() => (locale.value === 'zh-CN' ? 'zh-CN' : 'ja-JP'))
 const MEMBER_MODE_OPTIONS: StandardizationGroupMember['mode'][] = ['INPUT', 'OUTPUT', 'INPUT_OUTPUT']
-const MEMBER_MODE_LABELS = { INPUT: '読み取り（照合に使う）', OUTPUT: '書き戻し', INPUT_OUTPUT: '読み取り・書き戻し' }
-function memberModeLabel(mode: StandardizationGroupMember['mode']) {
-  return MEMBER_MODE_LABELS[mode] ?? mode
+const MEMBER_MODE_FALLBACK_LABELS = {
+  INPUT: '読み取り（照合に使う）',
+  OUTPUT: '書き戻し',
+  INPUT_OUTPUT: '読み取り・書き戻し'
 }
 const CONFIG_STORAGE_KEY = 'neosai-standardization-config-v13'
 const MOCK_DATA_SEED = 'drug-v1.2-candidate-contract-v4'
@@ -814,15 +815,11 @@ async function saveSettings() {
     const missing = requiredFieldErrors(currentGroup)
     if (missing.length) {
       const message = `${missing.join('と')}を入力してください`
-      validationState.value = 'invalid'
-      validationMessage.value = message
       ElMessage.error(message)
       return
     }
     const firstError = validateGroup(currentGroup)[0]
     if (firstError) {
-      validationState.value = 'invalid'
-      validationMessage.value = firstError
       ElMessage.error(firstError)
       return
     }
@@ -838,8 +835,6 @@ async function saveSettings() {
     const previous = previousGroups.find((group) => group.groupId === currentGroup.groupId)
     const detail = describeSavedGroupChanges(currentGroup, previous)
     if (detail) recordHistory(currentGroup, '更新', detail)
-    validationState.value = 'saved'
-    validationMessage.value = t('standardization.saved')
     ElMessage.success(t('standardization.saveSuccess'))
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : t('standardization.saveFailed'))
