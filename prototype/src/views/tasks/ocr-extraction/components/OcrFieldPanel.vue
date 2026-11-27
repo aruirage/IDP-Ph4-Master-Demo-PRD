@@ -470,7 +470,6 @@ defineExpose({ scrollToField })
                 :value="source.id"
               />
             </el-select>
-            <span class="p4-write-source-picker__hint">{{ $t('tasks.ocr.writeSourceHint') }}</span>
           </div>
           <div
             v-if="fieldReviewReason(field) || reviewRemarks(field).length"
@@ -1033,7 +1032,7 @@ defineExpose({ scrollToField })
 <style scoped>
 .p4-write-source-picker {
   display: grid;
-  grid-template-columns: 110px minmax(220px, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: 6px 10px;
   margin-top: 10px;
@@ -1044,6 +1043,7 @@ defineExpose({ scrollToField })
 }
 
 .p4-write-source-picker label {
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 600;
 }

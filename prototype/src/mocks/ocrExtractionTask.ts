@@ -770,8 +770,8 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
       masterDataId: 'master-medicine-info',
       masterMatchConfirmRule: 'low-similarity',
       writeSourceOptions: [
-        { id: 'F2', label: '诊断书 F2 · 商品名' },
-        { id: 'F3', label: '诊断书 F3 · 商品名' }
+        { id: 'F2', label: '診断書-1・商品名' },
+        { id: 'F3', label: '診断書-2・商品名' }
       ],
       apiStandardizationApplied: true,
       masterRecommendation: { ...candidate('ティーエスワン配合カプセルT20', 'マスタ推奨'), isMaster: true },

@@ -1796,54 +1796,98 @@
 </tbody></table>
 <h3 id="section-24">5.4 OCR抽出确认</h3>
 <h4>结果分流与自动采用</h4>
-<p>任务成功后，IDP 按每个照合对象的 <code>needsReview</code> 判断是否需要人工确认，再按 <code>shouldWriteBack</code> 判断是否回写。缺失或 null 的处理遵循式样书 §2.8。</p>
+<p>任务成功后，IDP 按每个照合对象的 <code>needsReview</code> 判断是否需要人工确认，再按 <code>shouldWriteBack</code> 判断是否回写。正常响应中，这两个字段均为 true 或 false。</p>
 <pre><code class="language-mermaid">flowchart TD
     A[&quot;照合对象结果&quot;] --&gt; B{&quot;needsReview 是否为 false？&quot;}
     B --&gt;|是| C[&quot;无需主数据照合人工确认&quot;]
     C --&gt; D{&quot;shouldWriteBack 是否为 true？&quot;}
     D --&gt;|是| E[&quot;自动采用 master&lt;br/&gt;从 master.values 取值&lt;br/&gt;按 targets 回写&quot;]
-    D --&gt;|false、缺失或 null| F[&quot;不回写，保留原值&quot;]
-    B --&gt;|true、缺失或 null| G[&quot;进入 OCR抽出确认&lt;br/&gt;显示候选、确认原因和备注&lt;br/&gt;确认采用前不回写&quot;]
+    D --&gt;|false| F[&quot;不回写，保留原值&quot;]
+    B --&gt;|true| G[&quot;进入 OCR抽出确认&lt;br/&gt;显示候选、确认原因和备注&lt;br/&gt;确认采用前不回写&quot;]
     G --&gt; H{&quot;操作员采用哪种结果？&quot;}
     H --&gt;|保留 OCR 原值| I[&quot;保留原值，保存确认结果&quot;]
     H --&gt;|选择候选| J{&quot;shouldWriteBack 是否为 true？&quot;}
     J --&gt;|是| K[&quot;采用所选候选的 master.values&lt;br/&gt;按该候选的 targets 回写&quot;]
-    J --&gt;|false、缺失或 null| L[&quot;仅保存确认结果&lt;br/&gt;不回写，保留原值&quot;]
+    J --&gt;|false| L[&quot;仅保存确认结果&lt;br/&gt;不回写，保留原值&quot;]
 </code></pre>
 <p>回写时，没有值的列保持原值。API 返回的 <code>selection</code> 作为原始响应保存，本期不向后续系统登记。自动采用的照合对象仍可在确认页查看和改选候选。</p>
 <p><code>confidence</code> 只用于显示和排序，不作为人工确认或自动采用的阈值。<code>status</code> 用于结果解释和接口契约检查，不用于按场景切换确认页结构。</p>
+<p>异常兜底：按式样书 §2.8，needsReview 缺失或为 null 时按需人工确认处理，shouldWriteBack 缺失或为 null 时不回写。这属于响应异常的兼容处理，不是正常业务状态。</p>
 <h4>确认页结构</h4>
 <p>确认页统一使用 API 返回的固定结构。</p>
+<p>以下“所属结构”指接口返回的数据对象，不是数据库物理表。整案详情以 <code>data.items[]</code> 为照合对象，结果分页以 <code>data.items[]</code> 为照合对象，单项重新照合以 <code>data</code> 为照合对象。下表统一用 <code>item</code> 表示当前照合对象。</p>
 <table>
 <thead>
 <tr>
 <th>数据</th>
+<th>所属结构</th>
+<th>字段／路径</th>
 <th>页面行为</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>OCR 原值</td>
+<td>IDP 原始 OCR 结果</td>
+<td>按 <code>item.source</code> 的 documentId、fieldIndex 或表格位置定位原始字段值；不使用候选值替代原始 OCR 值</td>
 <td>主字段默认显示 OCR 原值</td>
 </tr>
 <tr>
-<td><code>masterDataMatches</code></td>
-<td>非空时显示主数据候选下拉。按返回顺序显示 <code>label</code>、<code>value</code>、<code>confidence</code> 和主要素／追加要素标签</td>
+<td>候选列表</td>
+<td>照合对象 → 候选项</td>
+<td><code>item.masterDataMatches[]</code>；每项的 <code>label</code>、<code>value</code>、<code>confidence</code></td>
+<td>非空时显示主数据候选下拉，按返回顺序显示</td>
 </tr>
 <tr>
-<td><code>primary</code></td>
-<td>区分主要素和追加要素，不另行按 <code>SPLIT</code> 状态拼装选项</td>
+<td>主要素／追加要素</td>
+<td>照合对象 → 候选项</td>
+<td><code>item.masterDataMatches[].primary</code></td>
+<td>true 为主要素，false 为追加要素，不另行按 SPLIT 状态拼装选项</td>
 </tr>
 <tr>
-<td><code>reviewReason</code></td>
+<td>确认原因</td>
+<td>照合对象</td>
+<td><code>item.reviewReason</code></td>
 <td>有值时显示在「確認理由」</td>
 </tr>
 <tr>
-<td><code>remarks</code></td>
-<td>有内容时按返回顺序显示标签和值，没有内容时隐藏</td>
+<td>其他信息</td>
+<td>照合对象 → 备注项</td>
+<td><code>item.remarks[].label</code>、<code>item.remarks[].value</code></td>
+<td>按返回顺序显示标签和值，没有内容时隐藏</td>
 </tr>
 </tbody></table>
+<p>例如，从整案详情取得候选名称时读取 <code>data.items[i].masterDataMatches[j].label</code>，取得该对象确认原因时读取 <code>data.items[i].reviewReason</code>。从单项重新照合响应取得同类数据时，分别读取 <code>data.masterDataMatches[j].label</code> 和 <code>data.reviewReason</code>。</p>
 <p>确认页不为不同主数据表、状态或确认原因创建独立场景。展示内容只由 API 是否返回对应数据和字段配置决定。</p>
-<p>多份账票导致回写目标不能唯一确定时，页面显示「書き込み先の帳票」选择框。只有存在多个候选写入位置时才要求操作员选择，其他情况不显示该选择框。</p>
+<h4>回写目标文件选择</h4>
+<p>选择项显示为“账票类别-序号・字段名”，例如“诊断书-1・ICD 编码”“诊断书-2・ICD 编码”。其中“账票类别-序号”与顶部文件名称完全一致，序号沿用顶部既有顺序，不显示内部 documentId。</p>
+<p>多份账票导致回写目标不能唯一确定时，页面显示「書き込み先のファイル」选择框。只有存在多个候选写入位置时才要求操作员选择，其他情况不显示该选择框。</p>
+<p>示例：</p>
+<pre><code class="language-text">照合组配置
+  输入：诊断书 → 伤病名
+  输出：申请书 → ICD 编码
+
+案件中的账票
+  诊断书 D1：提供伤病名输入
+  申请书 A：有“ICD 编码”字段
+  申请书 B：也有“ICD 编码”字段
+
+照合结果
+  已确定采用的伤病名记录及 ICD 编码
+  但无法唯一确定写入申请书 A 还是 B
+
+界面处理
+  显示「書き込み先のファイル」
+  可选：申请书 A / 申请书 B
+  未选择前：不向该位置回写
+
+操作员选择“申请书 B”后
+  申请书 B → ICD 编码：写入采用记录中的编码
+  申请书 A → ICD 编码：保持原值
+
+只有一份适用申请书时
+  目标可以唯一确定，不显示该选择框
+</code></pre>
+<p>这里选择的是结果写入哪份账票，与主数据候选下拉中选择采用哪条记录是两个不同操作。</p>
 <h4>候选确认与回写</h4>
 <ol>
 <li>操作员可以保留 OCR 原值，也可以选择一个 <code>masterDataMatches</code>。</li>
