@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MasterDataNavigation from '@/views/business-rules/master-data/MasterDataNavigation.vue'
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, MoreFilled, Plus, Refresh } from '@element-plus/icons-vue'
@@ -101,9 +101,6 @@ const masterOptions = ref<StandardizationMaster[]>(
 const catalog = ref<StandardizationCatalog | null>(configIsCurrent ? persistedConfig?.catalog ?? null : null)
 const historyVisible = ref(false)
 const historyGroupId = ref('')
-type ValidationState = 'idle' | 'validating' | 'valid' | 'warning' | 'invalid' | 'saved'
-const validationState = ref<ValidationState>('idle')
-const validationMessage = ref('')
 const defaultGroupDialogVisible = ref(false)
 const defaultGroupDiff = ref<DefaultGroupDiffRow[]>([])
 const defaultGroupPreviewVersion = ref('')
@@ -143,15 +140,6 @@ watch(
       defaultGroupsVersion: defaultGroupsVersion.value,
       importedDefaultGroupIds: importedDefaultGroupIds.value
     }))
-  },
-  { deep: true }
-)
-
-watch(
-  standardizationGroups,
-  () => {
-    validationState.value = 'idle'
-    validationMessage.value = ''
   },
   { deep: true }
 )
@@ -627,6 +615,11 @@ function getMasterItem(member: StandardizationGroupMember) {
   )
 }
 
+function memberModeLabel(mode: StandardizationGroupMember['mode']) {
+  return catalog.value?.enums.memberMode?.find((entry) => entry.value === mode)?.label
+    ?? MEMBER_MODE_FALLBACK_LABELS[mode]
+}
+
 function isMasterItemUsedInGroup(value: string) {
   if (!activeGroup.value) return false
   const [kind, ...keyParts] = value.split(':')
@@ -897,6 +890,10 @@ async function fetchCatalog(options: { silent?: boolean } = {}) {
     fetchingCatalog.value = false
   }
 }
+
+onMounted(() => {
+  if (!catalog.value) void fetchCatalog({ silent: true })
+})
 
 async function fetchDefaultGroups(options: { silent?: boolean } = {}) {
   if (fetchingDefaultGroups.value) return false
@@ -1555,6 +1552,14 @@ function applyDefaultGroups() {
 
 <style scoped lang="scss">
 .standardization-page {
+  &__history-meta {
+    display: grid;
+    gap: 12px;
+    margin: 0 8px 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
   display: flex;
   flex-direction: column;
   gap: var(--app-page-gap);
@@ -1697,9 +1702,11 @@ function applyDefaultGroups() {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    align-items: baseline;
+    gap: 8px;
 
     span:first-child {
+      flex: 1;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1769,42 +1776,6 @@ function applyDefaultGroups() {
 
     :deep(.el-button + .el-button) {
       margin-left: 0;
-    }
-  }
-
-  &__validation {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    color: var(--text-secondary);
-    font-size: 15px;
-
-    span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    &.is-validating {
-      color: var(--el-color-primary);
-    }
-
-    &.is-valid,
-    &.is-saved {
-      color: var(--el-color-success);
-    }
-
-    &.is-warning {
-      color: var(--el-color-warning);
-    }
-
-    &.is-invalid {
-      color: var(--el-color-danger);
-    }
-
-    .is-spinning {
-      animation: standardization-spin 0.9s linear infinite;
     }
   }
 
@@ -1957,10 +1928,16 @@ function applyDefaultGroups() {
 
 }
 
-@keyframes standardization-spin {
-  to {
-    transform: rotate(360deg);
-  }
+:global(.standardization-master-item-dropdown .el-select-group__title) {
+  font-weight: 700;
+}
+
+:global(.standardization-master-item-dropdown .standardization-column-group .el-select-group__title) {
+  color: #2563eb;
+}
+
+:global(.standardization-master-item-dropdown .standardization-hint-group .el-select-group__title) {
+  color: #0f766e;
 }
 
 :global(.standardization-page__tooltip-lines) {

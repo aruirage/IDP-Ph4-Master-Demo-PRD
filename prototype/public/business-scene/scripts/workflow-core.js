@@ -3071,7 +3071,6 @@ function sanitizeHitlGateEdges(workflow) {
   const nodeMap = Object.fromEntries((workflow.nodes || []).map((n) => [n.id, n]));
   workflow.edges = workflow.edges.filter((edge) => {
     const from = nodeMap[edge.from];
-    const to = nodeMap[edge.to];
     if (!isHitlGateNode(from)) return true;
     if (!edge.branch) return false;
     if (!normalizeHitlGateActions(from.actions).includes(edge.branch)) return false;

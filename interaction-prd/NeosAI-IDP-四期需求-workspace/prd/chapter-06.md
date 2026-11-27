@@ -20,7 +20,7 @@
 | 任务 | 部分账票 FAILED | 任务仍可为 SUCCEEDED，相关组转人工 | 显示对应账票失败 |
 | 结果分流 | needsReview 缺失或 null | 按需确认处理 | 进入 OCR抽出确认 |
 | 结果分流 | ITEM 为 UNRESOLVED 或 NEW_CANDIDATE | 不自动回填 | 显示候选、原因和备注 |
-| 兜底照合 | `groupId=FALLBACK`、`needsReview=true` | 进入人工确认 | 是否单独标注 fallback 待客户确认 |
+| 兜底照合 | v1.2 将 fallback 设为第 2 期 | 本期不发送 `options.fallback=true`，不处理 fallback 结果 | 不展示兜底开关 |
 | 候选冲突 | WRITE_CONFLICT | 不自动覆盖 | 后续组结果转人工 |
 | 重新照合 | 同一 item 前一次请求未结束 | 不再提交下一次 | 不允许旧响应覆盖新结果 |
 | 重新照合 | 接口超时 | 保留原结果并显示超时 | 可再次提交 |
