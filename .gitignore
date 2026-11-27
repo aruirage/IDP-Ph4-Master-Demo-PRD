@@ -9,3 +9,4 @@ dist/
 interaction-prd/*/exports/
 .vercel/
 .vercel-data/
+interaction-prd/*/node_modules
