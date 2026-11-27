@@ -56,7 +56,7 @@ const INSPECTOR_HINTS = {
   nodeOutput: '後続ノード・IF/ELSE 条件で使える出力変数です。{ノード変数名.項目} 形式で指定します。',
   nodeOutputPreprocess: '処理状態（preprocessStatus）と処理結果（preprocessResult）を出力します。\n\n・処理状態：前処理ノード全体の実行成否（processing / success / failed）。画像不正検知・敏感情報脱敏・回転・補正・整列の各モジュール結果を集約。\n・処理結果：業務結論（passed / reviewRequired）。画像不正検知で要確認のとき reviewRequired。',
   nodeOutputOcr: '処理状態と処理結果を出力します。状態は実行の成否、結果は業務上の通過/要確認です。',
-  nodeOutputMasterStandardization: '処理状態（masterStatus）と処理結果（masterResult）を出力します。\n\n・masterStatus：task が PENDING / PROCESSING の間は processing。全 task が SUCCEEDED なら success。task の FAILED / CANCELLED、送信失敗、再試行上限超過は failed。\n・masterResult：masterStatus が success のときだけ判定します。needsReview が全件 false で、帳票失敗や阻害 warning がなければ passed。1件でも要確認または阻害条件があれば reviewRequired。',
+  nodeOutputMasterStandardization: '処理状態（masterStatus）と処理結果（masterResult）を出力します。\n\n・masterStatus：task が PENDING / PROCESSING の間は processing。Task が SUCCEEDED なら success。task の FAILED、送信失敗、再試行上限超過は failed。入力更新または再認識により旧 Task を取り消す場合は、旧結果を適用せず旧 Workflow を終了し、最新入力で開始ノードから全体を再実行します。案件中止時は案件を中止状態にし、Workflow 全体を終了します。取消処理は独立したノード状態として出力しません。\n・masterResult：Task 正常完了時に判定します。needsReview が全件 false で帳票失敗や阻害 warning がなければ passed。1件でも要確認または阻害条件があれば reviewRequired。取消された Task の結果は適用しません。',
   nodeOutputVerify: '処理状態と処理結果を出力します。状態は実行の成否、結果は業務上の通過/要確認です。',
   nodeOutputStart: '案件 ID（caseId）とファイル一覧（files[]）のみ。帳票タイプは条件ノードで Step1 から直接選択。',
   nodeOutputEnd: '終了ノードは出力変数なし。設定項目なし。',
@@ -81,7 +81,7 @@ const INSPECTOR_HINTS = {
   textVerify: '自然言語で記述し、AI補助で実行式を生成します。入力欄の下にプレビューが表示されます。',
   dataVerify: '帳票間の整合性と業務ロジックを自然言語で記述し、AI補助で実行式をプレビュー表示します。',
   seal: '署名・印鑑が存在するかを検出します。帳票タイプごとに検出目標と類似度閾値を設定できます。閾値未満は不備として扱います。',
-  hitlGate: '案件単位の人工確認タスクを生成します。「完了」は後続ノードに接続し、「補件」は上流ノードに戻るよう接続します。「案件中止」は画面上にのみ表示され、ノードには接続できません。',
+  hitlGate: '案件単位の人工確認タスクを生成します。「完了」「補件」「案件中止」の各出口は、業務フローに合わせて任意の有効なノードへ接続できます。公開時は全体の構造と終了ノードへの到達性を確認します。',
   hitlContext: '前処理・OCR 抽出・AI 検証の要確認分岐に接続すると、確認対象が自動判定されます。条件分岐を挟んだ接続にも対応します。',
   decision: 'IF / ELIF / ELSE を変数・演算子で自由に設定します。上流ノードの出力変数を選択して分岐条件を組み立てます。',
   decisionContext: '案件就緒・検証結果・処理完了など、分岐の業務意味を選びます。変更時は既定条件で上書きされます。',
@@ -1007,8 +1007,8 @@ const WORKFLOW_NODE_OUTPUT_VAR_DEFS = {
     { id: 'case.ocrResult', label: '処理結果', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.processResult, description: '業務結論。通過は主フローへ進み、要確認（低信頼など）は人工確認へ進む。' },
   ],
   master_standardization: [
-    { id: 'case.masterStatus', label: '照合状態', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.nodeStatus, description: '処理中は processing。全 task が SUCCEEDED なら success。task が FAILED / CANCELLED、送信失敗、再試行上限超過の場合は failed。' },
-    { id: 'case.masterResult', label: '照合結果', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.processResult, description: 'masterStatus が success のときだけ判定します。全 item が自動採用可能で、帳票失敗や阻害 warning がなければ passed。1件でも needsReview=true または阻害条件があれば reviewRequired。' },
+    { id: 'case.masterStatus', label: '照合状態', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.nodeStatus, description: '処理中は processing。Task が SUCCEEDED なら success。入力更新または再認識で旧 Task を取り消した場合は旧 Workflow を終了し、最新入力で開始ノードから全体を再実行。案件中止時は案件を中止状態にし、Workflow 全体を終了。取消を独立したノード状態として出力しない。Task の FAILED、送信失敗、再試行上限超過は failed。' },
+    { id: 'case.masterResult', label: '照合結果', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.processResult, description: 'Task 正常完了時に全 item 自動採用可能なら passed、要確認や阻害条件があれば reviewRequired。取消された Task の結果は適用しません。' },
   ],
   fraud_detect: [
     { id: 'case.fraudDetectStatus', label: '処理状態', scope: '案件', type: 'Enum', valueSpec: WORKFLOW_OUTPUT_VALUE_SPECS.nodeStatus, description: '本ノードの実行進捗。対象帳票 OFF または検知対象外の場合も success とし、skip は別値として出力しない。業務上通過したかは「処理結果」を見る。' },
@@ -3069,15 +3069,9 @@ function sanitizeHitlGateEdges(workflow) {
   const nodeMap = Object.fromEntries((workflow.nodes || []).map((n) => [n.id, n]));
   workflow.edges = workflow.edges.filter((edge) => {
     const from = nodeMap[edge.from];
-    const to = nodeMap[edge.to];
     if (!isHitlGateNode(from)) return true;
     if (!edge.branch) return false;
-    if (!normalizeHitlGateActions(from.actions).includes(edge.branch)) return false;
-    if (edge.branch === 'reject') return false;
-    if (edge.branch === 'request_supplement') {
-      return !!to && workflowCanReach(workflow, to.id, from.id, edge);
-    }
-    return true;
+    return normalizeHitlGateActions(from.actions).includes(edge.branch);
   });
   const seen = new Set();
   workflow.edges = workflow.edges.filter((edge) => {
@@ -4996,12 +4990,6 @@ function isValidWorkflowConnect(from, to, branch) {
   if (from.type === 'decision' && !branch) return false;
   if (isHitlGateNode(from) && !branch) return false;
   if (isHitlGateNode(from) && branch && !normalizeHitlGateActions(from.actions).includes(branch)) return false;
-  if (isHitlGateNode(from) && branch === 'reject') return false;
-  if (isHitlGateNode(from) && branch === 'request_supplement') {
-    const workflow = arguments[3] || null;
-    if (!workflow) return false;
-    return workflowCanReach(workflow, to.id, from.id);
-  }
   return true;
 }
 

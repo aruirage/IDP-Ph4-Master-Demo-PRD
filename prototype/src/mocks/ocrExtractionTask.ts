@@ -74,6 +74,7 @@ export interface OcrStandardizationReview {
     matchedMaster?: string
   }[]
   targets: string[]
+  shouldWriteBack: boolean
   groupId?: string
 }
 
@@ -303,6 +304,7 @@ function createStandardizationReview(
     alternatives: [],
     proposedName: '',
     splitItems: [],
+    shouldWriteBack: false,
     targets: [],
     groupId: '',
     ...overrides
@@ -421,6 +423,7 @@ function createPhase4MasterStandardizationFields(needsReview: boolean): OcrExtra
         : [],
       alternatives: needsReview ? drugRows.slice(1).map((row) => ({ value: row.name, whyNot: '主入力の規格・剤形と完全一致しない候補です', score: row.score })) : [],
       proposedName: '',
+      shouldWriteBack: true,
       targets: ['商品名', '一般名', 'ATC分類', '薬効分類', '薬価基準コード']
     }
   )
@@ -606,6 +609,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       masterMatchCandidates: splitCandidates('p4-split-auto'),
       standardizationReview: createStandardizationReview('SPLIT', false, '主要素を確定しました。追加要素も候補から選択できます。', {
         confidence: 0.93,
+        shouldWriteBack: true,
         splitItems: [
           { text: '1型糖尿病', primary: true, matchedMaster: '1型糖尿病' },
           { text: '糖尿病性腎症', primary: false, matchedMaster: '糖尿病性腎症' }
@@ -628,6 +632,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       masterMatchCandidates: splitCandidates('p4-split-review'),
       standardizationReview: createStandardizationReview('SPLIT', true, '複数の傷病名に分割されました。主要素を確認してください。', {
         confidence: 0.72,
+        shouldWriteBack: true,
         reviewReasons: [{ code: 'SPLIT_NOT_CONFIRMED', message: '分割後の各要素の照合結果を確定できません。' }],
         alternatives: [{ value: '2型糖尿病', whyNot: '主入力との一致度が低い候補です', score: 84 }],
         splitItems: [
@@ -711,6 +716,7 @@ function createPhase4StatusFields(): OcrExtractionField[] {
       ],
       standardizationReview: createStandardizationReview('UNRESOLVED', true, '主データ行を判断できません。候補を確認してください。', {
         confidence: 0.42,
+        shouldWriteBack: true,
         reviewReasons: [
           { code: 'UNRESOLVED', message: '一致する主データ行を判断できません。' },
           { code: 'LOW_CONFIDENCE', message: '複数候補のスコアが近く、自動確定できません。' }
@@ -772,6 +778,7 @@ function createPhase4ExceptionFields(): OcrExtractionField[] {
       masterMatchCandidates: [candidate('ティーエスワン配合顆粒T20')],
       standardizationReview: createStandardizationReview('MATCHED', true, '複数の帳票に異なる薬剤名が記載されています。', {
         confidence: 0.61,
+        shouldWriteBack: true,
         reviewReasons: [{ code: 'AMBIGUOUS_SOURCE', message: '複数の帳票で入力値が一致しません。' }],
         targets: ['商品名']
       }),
@@ -1189,7 +1196,7 @@ export function getSortedMasterMatchCandidates(
 }
 
 /**
- * v1.1 の candidates を再現する。master は必ず一覧に含め、全体を maxCandidates 件までにする。
+ * v1.2 の候補を再現する。master は必ず一覧に含め、全体を maxCandidates 件までにする。
  * API は master を含む candidates を needsReview の値にかかわらず返す。
  */
 export function getStandardizationApiCandidates(
@@ -1245,7 +1252,7 @@ export function getStandardizationPresentation(field: OcrExtractionField) {
   }))
   return {
     needsReview: review.needsReview,
-    shouldWriteBack: review.targets.length > 0 && masterDataMatches.some((match) => match.selectable !== false),
+    shouldWriteBack: review.shouldWriteBack,
     masterDataMatches,
     reviewReason: review.reviewReasons[0]?.message ?? '',
     remarks: [

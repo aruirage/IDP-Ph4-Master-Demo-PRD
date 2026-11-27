@@ -4,17 +4,25 @@ export type StandardizationMode = 'INPUT' | 'OUTPUT' | 'INPUT_OUTPUT'
 export type StandardizationFieldType = 'FIELD' | 'TABLE_COLUMN' | 'CASE_FIELD'
 export type StandardizationInputRole = 'PRIMARY' | 'SUPPORTING' | 'NONE'
 
+export interface StandardizationColumnConfiguration {
+  roleLabel: string
+  allowedModes: StandardizationMode[]
+  canBePrimary: boolean
+}
+
 export interface StandardizationMasterColumn {
   column: string
   label: string
   inputRole: StandardizationInputRole
   writable: boolean
+  configuration?: StandardizationColumnConfiguration
   deprecated?: boolean
 }
 
 export interface StandardizationMasterHint {
   hint: string
   label: string
+  configuration?: StandardizationColumnConfiguration
   deprecated?: boolean
 }
 
@@ -90,13 +98,26 @@ export interface StandardizationBusinessScene {
   documentTypeIds: string[]
 }
 
+function schemaConfiguration(inputRole: StandardizationInputRole | 'HINT', writable: boolean): StandardizationColumnConfiguration {
+  if (inputRole === 'HINT') return { roleLabel: 'ヒント（照合に使うだけ）', allowedModes: ['INPUT'], canBePrimary: false }
+  if (inputRole === 'NONE') return writable
+    ? { roleLabel: '書き戻し専用', allowedModes: ['OUTPUT'], canBePrimary: false }
+    : { roleLabel: '選択不可', allowedModes: [], canBePrimary: false }
+  const isPrimary = inputRole === 'PRIMARY'
+  return {
+    roleLabel: isPrimary ? (writable ? '主入力・書き戻し可' : '主入力・読み取り専用') : (writable ? '補助入力・書き戻し可' : '補助入力・読み取り専用'),
+    allowedModes: writable ? ['INPUT', 'OUTPUT', 'INPUT_OUTPUT'] : ['INPUT'],
+    canBePrimary: isPrimary
+  }
+}
+
 export const standardizationMasters: StandardizationMaster[] = [
   {
     masterTable: 'DISEASE',
     label: '傷病名マスタ',
     columns: [
       { column: 'CLM_ICD10Mst__c.NAME', label: '傷病名', inputRole: 'PRIMARY', writable: true },
-      { column: 'CLM_ICD10Mst__c.ICD10__C', label: 'ICD10コード', inputRole: 'SUPPORTING', writable: true },
+      { column: 'CLM_ICD10Mst__c.ICD10__C', label: 'ICD10 コード', inputRole: 'SUPPORTING', writable: true },
       { column: 'CLM_ICD10Mst__c.KANA__C', label: '傷病名カナ', inputRole: 'NONE', writable: true }
     ],
     hints: [
@@ -109,8 +130,8 @@ export const standardizationMasters: StandardizationMaster[] = [
     label: '手術マスタ',
     columns: [
       { column: 'CLM_OperationMst__c.NAME', label: '手術名', inputRole: 'PRIMARY', writable: true },
-      { column: 'CLM_OperationMst__c.KCODE__C', label: '手術コード（Kコード）', inputRole: 'SUPPORTING', writable: true },
-      { column: 'CLM_OperationMst__c.KCODEOPNAME__C', label: 'Kコードの手術名', inputRole: 'SUPPORTING', writable: true },
+      { column: 'CLM_OperationMst__c.KCODE__C', label: '手術コード（K コード）', inputRole: 'SUPPORTING', writable: true },
+      { column: 'CLM_OperationMst__c.KCODEOPNAME__C', label: 'K コードの手術名', inputRole: 'SUPPORTING', writable: true },
       { column: 'CLM_OperationMst__c.OPERATIONNO__C', label: '手術番号', inputRole: 'NONE', writable: true }
     ],
     hints: [{ hint: 'operationDate', label: '手術日' }]
@@ -129,10 +150,10 @@ export const standardizationMasters: StandardizationMaster[] = [
     masterTable: 'DRUG',
     label: '薬剤マスタ',
     columns: [
-      { column: 'DRUG.BRANDNAME', label: '商品名', inputRole: 'PRIMARY', writable: true },
+      { column: 'DRUG.BRANDNAME', label: '商品名（販売名）', inputRole: 'PRIMARY', writable: true },
       { column: 'DRUG.GENERICNAME', label: '一般名', inputRole: 'PRIMARY', writable: true },
       { column: 'DRUG.GENERICNAMEEN', label: '一般名（英語）', inputRole: 'NONE', writable: true },
-      { column: 'DRUG.ATC', label: 'ATC分類', inputRole: 'NONE', writable: true },
+      { column: 'DRUG.ATC', label: 'ATC 分類', inputRole: 'NONE', writable: true },
       { column: 'DRUG.EFFICACY', label: '薬効分類', inputRole: 'NONE', writable: true },
       { column: 'DRUG.YJCODE', label: '薬価基準コード', inputRole: 'SUPPORTING', writable: true },
       { column: 'DRUG.DATEFROM', label: '薬価収載日', inputRole: 'NONE', writable: true },
@@ -144,6 +165,11 @@ export const standardizationMasters: StandardizationMaster[] = [
     ]
   }
 ]
+
+for (const master of standardizationMasters) {
+  for (const column of master.columns) column.configuration ??= schemaConfiguration(column.inputRole, column.writable)
+  for (const hint of master.hints) hint.configuration ??= schemaConfiguration('HINT', false)
+}
 
 export const standardizationDocumentTypes: StandardizationDocumentType[] = [
   {
@@ -429,9 +455,9 @@ export async function fetchStandardizationCatalog(): Promise<StandardizationCata
         label: master.label
       })),
       memberMode: [
-        { value: 'INPUT', label: '照合のみ' },
-        { value: 'OUTPUT', label: '反映のみ' },
-        { value: 'INPUT_OUTPUT', label: '照合して反映' }
+        { value: 'INPUT', label: '読み取り（照合に使う）' },
+        { value: 'OUTPUT', label: '書き戻し' },
+        { value: 'INPUT_OUTPUT', label: '読み取り・書き戻し' }
       ],
       inputRole: [
         { value: 'PRIMARY', label: '主要列' },
@@ -730,7 +756,7 @@ export async function validateStandardizationGroups(
     const hasPrimaryInput = group.members.some((member) => {
       if (member.mode === 'OUTPUT') return false
       const column = master?.columns.find((item) => item.column === member.column)
-      return column?.inputRole === 'PRIMARY'
+      return column?.configuration?.canBePrimary === true
     })
     if (!hasPrimaryInput) {
       errors.push({ code: 'NO_PRIMARY_INPUT', message: '主要入力を1件以上設定してください', memberIndex: null })
@@ -738,7 +764,7 @@ export async function validateStandardizationGroups(
 
     const primaryInputs = group.members.filter((member) => {
       if (member.mode === 'OUTPUT') return false
-      return master?.columns.find((column) => column.column === member.column)?.inputRole === 'PRIMARY'
+      return master?.columns.find((column) => column.column === member.column)?.configuration?.canBePrimary === true
     })
     const documentPrimaryInputs = primaryInputs.filter((member) => member.field.type !== 'CASE_FIELD')
     if (documentPrimaryInputs.length > 1) {

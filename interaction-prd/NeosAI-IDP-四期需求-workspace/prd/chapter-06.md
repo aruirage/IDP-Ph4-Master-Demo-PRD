@@ -13,13 +13,14 @@
 | 批次提交 | 超时或 500 | 使用相同 clientRequestId 重试 | 节点保持 processing |
 | 限流 | 429 或 503 | 按 Retry-After 重试 | 节点保持 processing |
 | 批次提交 | 自动重试结束仍失败 | 停止自动重试，保留请求记录，节点转为 failed | 显示提交失败，不推进下游 |
-| 标准字段 | 同一 `CASE_FIELD` 有多个来源值 | `caseResult` 的传值方式和采用规则待 Zurich 确认 | 确认画面待接口示例明确 |
+| 标准字段冲突 | 多张账票映射到同一 `CASE_FIELD` 且值不一致 | API 返回 `caseFieldConflicts` 和 `CASE_FIELD_CONFLICT`；操作员修正标准字段后整案重新请求 | 显示冲突字段及受影响项目 |
 | 任务 | FAILED | 相应目标项目转人工 | 显示失败原因并进入 OCR抽出确认 |
-| 任务 | CANCELLED | 不应用任何结果 | 批次不继续应用结果 |
+| 任务 | 输入更新或重新识别导致旧 Task CANCELLED | 不应用旧结果 | 结束旧执行，从开始节点以最新资料重新执行完整工作流 |
+| 任务 | 点击「案件中止」后 Task CANCELLED | 不应用任何结果 | 案件标记为中止，结束整条工作流，不执行后续节点 |
 | 任务 | 部分账票 FAILED | 任务仍可为 SUCCEEDED，相关组转人工 | 显示对应账票失败 |
 | 结果分流 | needsReview 缺失或 null | 按需确认处理 | 进入 OCR抽出确认 |
 | 结果分流 | ITEM 为 UNRESOLVED 或 NEW_CANDIDATE | 不自动回填 | 显示候选、原因和备注 |
-| 兜底照合 | `groupId=FALLBACK`、`needsReview=true` | 进入人工确认 | 是否单独标注 fallback 待客户确认 |
+| 兜底照合 | v1.2 将 fallback 设为第 2 期 | 本期不发送 `options.fallback=true`，不处理 fallback 结果 | 不展示兜底开关 |
 | 候选冲突 | WRITE_CONFLICT | 不自动覆盖 | 后续组结果转人工 |
 | 重新照合 | 同一 item 前一次请求未结束 | 不再提交下一次 | 不允许旧响应覆盖新结果 |
 | 重新照合 | 接口超时 | 保留原结果并显示超时 | 可再次提交 |
@@ -30,7 +31,7 @@
 
 1. Zurich 原始 status 和 needsReview 必须原样保存，IDP 状态只用于页面和流程分支。
 2. 组配置保存后生成新的 groupsVersion，已运行任务使用冻结版本。
-3. 同一业务批次拆成多个 taskId 时只生成一个 OCR抽出确认入口。
+3. 每个案件快照的整案请求只对应一个 Task；后续补件或资料变化时重新提交案件最新快照。
 4. 组外字段和未选择照合的字段保持 OCR抽出原值。
 
 
@@ -39,6 +40,6 @@
 
 ### 6.3 接口规格书附件
 
-- [綜合主データ名称標準化 API 仕様書 v1.1 中文版（下载）](/attachments/zurich-standardization-api-v1.1-zh-CN.md)
+- [综合主数据名称标准化 API 规格书 v1.2 中文版（下载）](/attachments/zurich-standardization-api-v1.2-zh-CN.md)
 
-完整接口、公共对象、枚举、错误码和通知格式以该附件为准。本 PRD 只列 IDP 实际发送或使用的字段。
+完整接口、公共对象、枚举、错误码和通知格式以 v1.2 附件为准。本 PRD 只列 IDP 实际发送或使用的字段。

@@ -1,6 +1,6 @@
 ## 第 4 章｜API 契约
 
-字段名称、类型和必填性以 [综合主数据名称标准化 API 规格书 v1.1 中文版](/attachments/zurich-standardization-api-v1.1-zh-CN.md) 为准。本章只列 IDP 实际发送或使用的字段，不新增 API 字段。
+字段名称、类型和必填性以 [综合主数据名称标准化 API 规格书 v1.2 中文版](/attachments/zurich-standardization-api-v1.2-zh-CN.md) 为准。本章只列 IDP 实际发送或使用的字段，不新增 API 字段。
 
 标记说明：`必填` 和 `条件必填` 取自式样书；`可选` 不表示 IDP 不发送；`IDP发送` 只说明实现策略。
 
@@ -11,7 +11,7 @@
 | 配置 | `GET /v1/masters` | 本期 | 展开「マスタ」或「マスタ項目」下拉 | 同步 |
 | 配置 | `GET /v1/catalog` | 本期 | 展开「マスタ」或「マスタ項目」下拉 | 同步 |
 | 配置 | `GET /v1/groups/defaults` | 本期 | 点击「既定グループ」 | 同步 |
-| 照合执行 | `POST /v1/standardizations` | 本期 | 一个业务批次提交 | 异步，可由 `waitSeconds` 同步返回 |
+| 照合执行 | `POST /v1/standardizations` | 本期 | 每次工作流执行到节点时提交案件当前全部文件 | 异步，可由 `waitSeconds` 同步返回 |
 | 照合执行 | `GET /v1/standardizations` | 本期 | 轮询已完成任务 | 同步 |
 | 照合执行 | `GET /v1/standardizations/{taskId}` | 本期 | 任务进入终态或查询状态 | 同步 |
 | 照合执行 | `GET /v1/standardizations/{taskId}/items` | 本期 | `itemsNextCursor` 存在 | 同步 |
@@ -192,7 +192,7 @@ sequenceDiagram
 
 #### `POST /v1/standardizations`
 
-调用条件：一个业务批次 OCR抽出完成。
+调用条件：每次工作流执行到主数据照合节点，且本次待提交案件文件均已完成 OCR 抽出和数据映射。
 
 | 请求字段 | 类型 | 必填性 | IDP发送策略 |
 | --- | --- | --- | --- |
@@ -202,7 +202,7 @@ sequenceDiagram
 | `groups` | Object[] | 可选 | IDP 有有效组时发送 |
 | `groupsVersion` | String | 可选 | 发送当前保存版本 |
 | `waitSeconds` | Integer | 可选 | IDP 设置同步等待秒数 |
-| `options.fallback` | Boolean | 可选 | Zurich 通过此参数控制 fallback，接口默认 `true`。本期取值及配置入口待确认 |
+| `options.fallback` | Boolean | 可选 | v1.2 默认 `false`，fallback 属于第 2 期；本期不发送 `true` |
 | `options.maxCandidates` | Integer | 可选 | 默认值 5，可设置范围 1 至 10，候选数包含 `isMaster=true` 的主数据行 |
 | `caseResult` | Object | 可选 | 案件标准字段容器，组使用 `CASE_FIELD` 时发送 |
 | `caseResult.fields[]` | Object[] | 条件必填 | 标准字段数组，`CASE_FIELD.fieldName` 与其中 `name` 对应 |

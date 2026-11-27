@@ -2961,18 +2961,6 @@
                         <el-button type="primary" link class="inspector-settings-link" @click="openStandardizationSettings">設定ページへ →</el-button>
                       </div>
                     </header>
-                    <div class="inspector-section-block__body">
-                      <div class="master-standardization-fallback">
-                        <div class="master-standardization-fallback__row">
-                          <strong class="master-standardization-fallback__label">未設定帳票のフォールバック照合</strong>
-                          <el-switch
-                            :model-value="selectedWorkflowNode.fallbackEnabled !== false"
-                            aria-label="未設定帳票のフォールバック照合"
-                            @change="setMasterStandardizationFallback"
-                          />
-                        </div>
-                      </div>
-                    </div>
                   </section>
                 </div>
 

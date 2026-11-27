@@ -2243,12 +2243,6 @@ function collectWorkflowTestDimensionErrors(workflow, testCase, sceneContext = {
   if (errors.some((e) => e.dimension === '変数参照')) return { errors, blockedDimension: '変数参照' };
   if (errors.some((e) => e.dimension === 'フィールド選択')) return { errors, blockedDimension: 'フィールド選択' };
 
-  // —— 依赖：HITL 上游 ——
-  validateWorkflowTestHitlContext(wf).forEach((issue) => {
-    push('S2-28', '依存', issue.message, issue.nodeId);
-  });
-  if (errors.some((e) => e.dimension === '依存')) return { errors, blockedDimension: '依存' };
-
   return { errors, blockedDimension: '' };
 }
 
@@ -3064,87 +3058,9 @@ function buildWorkflowTestArtifacts(testCase) {
   };
 }
 
-const WORKFLOW_TEST_HITL_CONTEXT_RULES = {
-  preprocess: { label: '前処理確認', allowedTypes: ['preprocess'] },
-  ocr: { label: 'OCR結果確認', allowedTypes: ['ocr'] },
-  verification: { label: 'AI検証確認', allowedTypes: ['ai_verify'] },
-};
-
-const HITL_ALLOWED_UPSTREAM_TYPES = {
-  preprocess: ['preprocess'],
-  ocr: ['ocr'],
-  verification: ['ai_verify'],
-};
-
-const HITL_ALLOWED_UPSTREAM_LABELS = {
-  preprocess: '前処理',
-  ocr: 'OCR',
-  verification: 'AI検証',
-};
-
-function getHitlAllowedUpstreamTypes(node) {
-  const ctx = node?.hitlContext || '';
-  if (HITL_ALLOWED_UPSTREAM_TYPES[ctx]) return HITL_ALLOWED_UPSTREAM_TYPES[ctx];
-  return ['preprocess', 'ocr', 'ai_verify'];
-}
-
-function getHitlAllowedUpstreamLabel(node) {
-  const ctx = node?.hitlContext || '';
-  return HITL_ALLOWED_UPSTREAM_LABELS[ctx] || '前処理・OCR・AI検証';
-}
-
-function collectWorkflowTestHitlSourceTypes(workflow, hitlNodeId) {
-  const wf = workflow || { nodes: [], edges: [] };
-  const nodeMap = Object.fromEntries((wf.nodes || []).map((node) => [node.id, node]));
-  const visited = new Set();
-  const sources = [];
-  const queue = (wf.edges || []).filter((edge) => edge.to === hitlNodeId).map((edge) => edge.from);
-  while (queue.length) {
-    const id = queue.shift();
-    if (!id || visited.has(id)) continue;
-    visited.add(id);
-    const node = nodeMap[id];
-    if (!node) continue;
-    if (node.type === 'decision') {
-      (wf.edges || []).filter((edge) => edge.to === id).forEach((edge) => queue.push(edge.from));
-      continue;
-    }
-    sources.push(node);
-  }
-  return sources;
-}
-
-function validateWorkflowTestHitlContext(workflow) {
-  const wf = workflow || { nodes: [], edges: [] };
-  const hitlNodes = (wf.nodes || []).filter((node) => node.type === 'hitl_gate');
-  const nodeMap = Object.fromEntries((wf.nodes || []).map((node) => [node.id, node]));
-  const issues = [];
-  hitlNodes.forEach((node) => {
-    const supplementEdge = (wf.edges || []).find((edge) => (
-      edge.from === node.id
-      && normalizeHitlGateActionValue(edge.branch) === 'request_supplement'
-      && !edge.visualHidden
-    ));
-    if (!supplementEdge) {
-      issues.push({
-        nodeId: node.id,
-        message: `${node.label || '人工確認'}：補件出口を前述ノードへ回流接続してください。`,
-      });
-    } else if (!workflowCanReach(wf, supplementEdge.to, node.id, supplementEdge)) {
-      const target = nodeMap[supplementEdge.to];
-      issues.push({
-        nodeId: node.id,
-        message: `${node.label || '人工確認'}：補件出口は前述ノードへ回流接続してください。現在の接続先は ${target?.label || supplementEdge.to} です。`,
-      });
-    }
-  });
-  return issues;
-}
-
 function buildWorkflowTestDiagnostics(workflow) {
   const wf = workflow || { nodes: [], edges: [] };
   const nodeLabels = (wf.nodes || []).map((node) => node.label || node.type);
-  const hitlIssues = validateWorkflowTestHitlContext(wf);
   const canvasAnalysis = analyzeWorkflowTestCanvas(wf);
   const cycleNodeIds = typeof getWorkflowCycleNodeIds === 'function'
     ? getWorkflowCycleNodeIds(wf)
@@ -3169,13 +3085,11 @@ function buildWorkflowTestDiagnostics(workflow) {
       }
       return parts.join('\n');
     })(),
-    hitlContext: hitlIssues.length
-      ? hitlIssues.map((issue) => issue.message).join('\n')
-      : '人工確認ノードの上流接続に問題は検出されませんでした。',
+    hitlContext: 'HITL 出口可连接到任意有效节点，发布时统一检查整体流程结构和结束节点可达性。',
     structureChecks: structureLines.length
       ? structureLines.join('\n')
       : '孤立ノード・不可達ノードは検出されませんでした。',
-    hasError: hitlIssues.length > 0 || canvasAnalysis.canvasHighlights.length > 0
+    hasError: canvasAnalysis.canvasHighlights.length > 0
       || Object.keys(canvasAnalysis.branchIssues).length > 0,
   };
 }
